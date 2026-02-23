@@ -182,11 +182,7 @@ class NPCBuilderApp extends FormApplication {
           this._applyAuthStateUI();
           ui.notifications?.info?.('Patreon sign-in complete.');
         } else {
-          ui.notifications?.error?.(data?.error || 'Unauthorized. Please sign in with Patreon to create NPCs.', { permanent: true });
-          ui.notifications?.info?.(
-            `<a href="${NPCBuilderApp.PATREON_URL}" target="_blank" style="color: #ff424d; text-decoration: underline;">Join our Patreon</a> to access the NPC Builder.`,
-            { permanent: true }
-          );
+          ui.notifications?.error?.(`${data?.error || 'Unauthorized.'} <a href="${NPCBuilderApp.PATREON_URL}" target="_blank" style="color:#ff424d;text-decoration:underline;">Join our Patreon</a> to create NPCs.`, { permanent: true });
         }
       };
 
