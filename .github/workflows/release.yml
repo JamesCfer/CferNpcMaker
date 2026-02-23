@@ -1,21 +1,22 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      release_id:
-        description: 'GitHub Release ID to upload assets to'
-        required: true
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version from module.json
+        id: version
+        run: echo "version=$(jq -r .version module.json)" >> $GITHUB_OUTPUT
 
       - name: Create module zip
         run: |
@@ -26,26 +27,74 @@ jobs:
             templates/ \
             README.md
 
-      - name: Upload release assets
+      - name: Create GitHub Release and upload assets
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const { repo, owner } = context.repo;
-            const release_id = context.payload.release
-              ? context.payload.release.id
-              : parseInt('${{ inputs.release_id }}');
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            // Create release, or fetch existing if tag already exists
+            let release;
+            try {
+              const res = await github.rest.repos.createRelease({
+                owner, repo,
+                tag_name: tag,
+                name: tag,
+                body: `Release ${tag}`,
+                draft: false,
+                prerelease: false,
+              });
+              release = res.data;
+            } catch (e) {
+              if (e.status === 422) {
+                const list = await github.rest.repos.listReleases({ owner, repo });
+                release = list.data.find(r => r.tag_name === tag);
+                if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+                // Delete existing assets so we can re-upload
+                for (const asset of release.assets) {
+                  await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+                }
+              } else {
+                throw e;
+              }
+            }
 
             // Upload module.json
             await github.rest.repos.uploadReleaseAsset({
-              owner, repo, release_id,
+              owner, repo,
+              release_id: release.id,
               name: 'module.json',
               data: fs.readFileSync('module.json'),
             });
 
             // Upload zip
             await github.rest.repos.uploadReleaseAsset({
-              owner, repo, release_id,
+              owner, repo,
+              release_id: release.id,
               name: 'Pf2eNpcMaker.zip',
               data: fs.readFileSync('Pf2eNpcMaker.zip'),
             });
+
+      - name: Notify Foundry VTT Package Release API
+        env:
+          FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
+        run: |
+          curl -s -f -X POST https://foundryvtt.com/api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Token ${FOUNDRYVTT_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"Pf2eNpcMaker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${{ steps.version.outputs.version }}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/latest/download/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${{ steps.version.outputs.version }}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }"
