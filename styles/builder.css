@@ -1,9 +1,11 @@
 /* ============================================================
    PF2E NPC Auto-Builder — Application Styles
+   Uses .application.npc-builder as root to override PF2e/Foundry
+   button defaults in ApplicationV2 windows.
    ============================================================ */
 
 /* ── Wrapper ─────────────────────────────────────────────── */
-.npc-builder .npc-builder-inner {
+.application.npc-builder .npc-builder-inner {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -11,13 +13,13 @@
 }
 
 /* ── Auth banner ─────────────────────────────────────────── */
-.npc-builder .auth-banner {
+.application.npc-builder .auth-banner {
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
   margin-bottom: 0;
 }
 
 /* --- unsigned state ---------------------------------------- */
-.npc-builder .auth-unsigned {
+.application.npc-builder .auth-unsigned {
   display: flex;
   flex-direction: column;
   gap: 0.6em;
@@ -26,7 +28,7 @@
   border-bottom: 2px solid #e8c97a;
 }
 
-.npc-builder .auth-unsigned-text {
+.application.npc-builder .auth-unsigned-text {
   display: flex;
   align-items: center;
   gap: 0.5em;
@@ -34,18 +36,18 @@
   color: #6b5200;
 }
 
-.npc-builder .auth-patreon-icon {
+.application.npc-builder .auth-patreon-icon {
   color: #ff424d;
   font-size: 1.1em;
 }
 
-.npc-builder .auth-unsigned-actions {
+.application.npc-builder .auth-unsigned-actions {
   display: flex;
   gap: 0.5em;
 }
 
 /* --- signed-in state --------------------------------------- */
-.npc-builder .auth-signed {
+.application.npc-builder .auth-signed {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -54,7 +56,7 @@
   border-bottom: 2px solid #5cb87a;
 }
 
-.npc-builder .auth-signed-status {
+.application.npc-builder .auth-signed-status {
   display: flex;
   align-items: center;
   gap: 0.45em;
@@ -63,35 +65,34 @@
   color: #1d6b35;
 }
 
-.npc-builder .auth-signed-status i {
+.application.npc-builder .auth-signed-status i {
   color: #38a85a;
   font-size: 1.05em;
 }
 
 /* ── CSS-driven visibility (set by JS on root element) ─────── */
-/* Default (unauthenticated): show unsigned, hide signed */
-.npc-builder .auth-signed          { display: none; }
-.npc-builder .auth-unsigned        { display: flex; }
+.application.npc-builder .auth-signed          { display: none; }
+.application.npc-builder .auth-unsigned        { display: flex; }
 
-.npc-builder.is-authenticated .auth-unsigned { display: none; }
-.npc-builder.is-authenticated .auth-signed   { display: flex; }
+.application.npc-builder.is-authenticated .auth-unsigned { display: none; }
+.application.npc-builder.is-authenticated .auth-signed   { display: flex; }
 
 /* ── Form ────────────────────────────────────────────────── */
-.npc-builder .npc-form {
+.application.npc-builder .npc-form {
   display: flex;
   flex-direction: column;
   gap: 0.75em;
   padding: 0.9em 1em 1em;
 }
 
-.npc-builder .field {
+.application.npc-builder .field {
   display: flex;
   flex-direction: column;
   gap: 0.3em;
 }
 
-.npc-builder .field label,
-.npc-builder .field > label {
+.application.npc-builder .field label,
+.application.npc-builder .field > label {
   font-size: 0.82em;
   font-weight: 700;
   text-transform: uppercase;
@@ -99,34 +100,35 @@
   color: #444;
 }
 
-.npc-builder .field input[type="text"],
-.npc-builder .field input[type="number"],
-.npc-builder .field textarea {
+.application.npc-builder .field input[type="text"],
+.application.npc-builder .field input[type="number"],
+.application.npc-builder .field textarea {
   width: 100%;
   padding: 0.4em 0.55em;
   border: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 4px;
   background: #fff;
+  color: #333;
   font-family: inherit;
   font-size: 0.95em;
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
 
-.npc-builder .field input:focus,
-.npc-builder .field textarea:focus {
+.application.npc-builder .field input:focus,
+.application.npc-builder .field textarea:focus {
   outline: none;
   border-color: #7c5cbf;
   box-shadow: 0 0 0 2px rgba(124, 92, 191, 0.18);
 }
 
-.npc-builder .field textarea {
+.application.npc-builder .field textarea {
   resize: vertical;
   min-height: 100px;
   line-height: 1.45;
 }
 
-.npc-builder .field-hint {
+.application.npc-builder .field-hint {
   font-size: 0.78em;
   color: #777;
   font-style: italic;
@@ -134,21 +136,21 @@
 }
 
 /* ── Two-column name/level row ───────────────────────────── */
-.npc-builder .field-row {
+.application.npc-builder .field-row {
   display: flex;
   gap: 0.65em;
   align-items: flex-start;
 }
 
-.npc-builder .field--name  { flex: 1; }
-.npc-builder .field--level { width: 80px; flex-shrink: 0; }
+.application.npc-builder .field--name  { flex: 1; }
+.application.npc-builder .field--level { width: 80px; flex-shrink: 0; }
 
-.npc-builder .field--level input {
+.application.npc-builder .field--level input {
   text-align: center;
 }
 
 /* ── Checkbox field ──────────────────────────────────────── */
-.npc-builder .field--check {
+.application.npc-builder .field--check {
   background: #f9f9fb;
   border: 1px solid #e0e0e8;
   border-radius: 5px;
@@ -156,7 +158,7 @@
   gap: 0.2em;
 }
 
-.npc-builder .checkbox-label {
+.application.npc-builder .checkbox-label {
   display: flex;
   align-items: center;
   gap: 0.5em;
@@ -168,7 +170,7 @@
   color: #333;
 }
 
-.npc-builder .checkbox-label input[type="checkbox"] {
+.application.npc-builder .checkbox-label input[type="checkbox"] {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
@@ -176,18 +178,18 @@
   accent-color: #7c5cbf;
 }
 
-/* ── Action buttons ──────────────────────────────────────── */
-.npc-builder .form-actions {
+/* ── Action buttons — explicit colors beat PF2e defaults ─── */
+.application.npc-builder .form-actions {
   display: flex;
   gap: 0.5em;
   margin-top: 0.15em;
 }
 
-.npc-builder .btn-primary,
-.npc-builder .btn-secondary,
-.npc-builder .btn-patreon,
-.npc-builder .btn-join,
-.npc-builder .btn-signout {
+.application.npc-builder button.btn-primary,
+.application.npc-builder button.btn-secondary,
+.application.npc-builder button.btn-patreon,
+.application.npc-builder button.btn-join,
+.application.npc-builder button.btn-signout {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -198,44 +200,44 @@
   font-size: 0.9em;
   font-weight: 600;
   cursor: pointer;
-  border: none;
   transition: filter 0.12s, opacity 0.12s, transform 0.08s;
   white-space: nowrap;
   line-height: 1;
 }
 
-.npc-builder .btn-primary,
-.npc-builder .btn-secondary {
+.application.npc-builder button.btn-primary,
+.application.npc-builder button.btn-secondary {
   flex: 1;
   padding: 0.6em 0.85em;
   font-size: 0.95em;
 }
 
 /* Primary — purple/indigo */
-.npc-builder .btn-primary {
+.application.npc-builder button.btn-primary {
   background: #7c5cbf;
   color: #fff;
+  border: none;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.npc-builder .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
-.npc-builder .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+.application.npc-builder button.btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+.application.npc-builder button.btn-primary:active:not(:disabled) { transform: translateY(1px); }
 
 /* Secondary — outline */
-.npc-builder .btn-secondary {
-  background: transparent;
-  color: #555;
+.application.npc-builder button.btn-secondary {
+  background: #f5f5f5;
+  color: #444;
   border: 1px solid #bbb;
 }
-.npc-builder .btn-secondary:hover:not(:disabled) { background: #f0f0f0; }
+.application.npc-builder button.btn-secondary:hover:not(:disabled) { background: #e8e8e8; }
 
 /* Disabled state */
-.npc-builder button:disabled {
+.application.npc-builder button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
 /* Generating spinner pulse */
-.npc-builder.is-generating .btn-primary {
+.application.npc-builder.is-generating button.btn-primary {
   animation: npc-pulse 1.2s ease-in-out infinite;
 }
 @keyframes npc-pulse {
@@ -244,31 +246,32 @@
 }
 
 /* Patreon button */
-.npc-builder .btn-patreon {
+.application.npc-builder button.btn-patreon {
   background: #ff424d;
   color: #fff;
+  border: none;
   flex: 1;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.npc-builder .btn-patreon:hover { filter: brightness(1.08); }
+.application.npc-builder button.btn-patreon:hover { filter: brightness(1.08); }
 
 /* Join Patreon (secondary outline) */
-.npc-builder .btn-join {
+.application.npc-builder button.btn-join {
   background: transparent;
   color: #cc2030;
   border: 1px solid #ff424d;
 }
-.npc-builder .btn-join:hover { background: rgba(255, 66, 77, 0.06); }
+.application.npc-builder button.btn-join:hover { background: rgba(255, 66, 77, 0.06); }
 
 /* Sign-out button */
-.npc-builder .btn-signout {
+.application.npc-builder button.btn-signout {
   background: transparent;
-  color: #666;
+  color: #555;
   border: 1px solid #ccc;
   font-size: 0.82em;
   padding: 0.35em 0.65em;
 }
-.npc-builder .btn-signout:hover { background: rgba(0,0,0,0.05); color: #333; }
+.application.npc-builder button.btn-signout:hover { background: rgba(0,0,0,0.05); color: #333; }
 
 /* ── Sidebar injection button ────────────────────────────── */
 .directory .npc-builder-button {
@@ -279,8 +282,9 @@
   border-radius: 3px;
   padding: 0.2em 0.55em;
   background: #eee;
+  color: #333;
   cursor: pointer;
   margin-left: 0.5em;
   font-size: 0.85em;
 }
-.directory .npc-builder-button:hover { background: #ddd; }
+.directory .npc-builder-button:hover { background: #ddd; color: #111; }

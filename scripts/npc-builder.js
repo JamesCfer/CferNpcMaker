@@ -53,7 +53,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static PARTS = {
     form: {
-      template: 'modules/pf2e-npc-auto-builder/templates/builder.html',
+      template: 'modules/Pf2eNpcMaker/templates/builder.html',
     },
   };
 
