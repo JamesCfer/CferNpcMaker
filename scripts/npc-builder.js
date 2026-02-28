@@ -322,9 +322,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           sameSource: ev.source === win,
         });
 
-        const okOrigins = new Set([N8N_ORIGIN, window.location.origin, 'null']);
-        const fromPopup = ev.source === win;
-        if (!fromPopup && !okOrigins.has(ev.origin)) return;
+        // After cross-origin redirects (Foundry → n8n → Patreon → n8n callback),
+        // ev.source === win is unreliable in modern browsers — the window reference
+        // breaks across cross-origin navigations. Accept any message from N8N_ORIGIN
+        // or '*' (which arrives as 'null' string when targetOrigin was '*').
+        const okOrigins = new Set([N8N_ORIGIN, window.location.origin, 'null', '*']);
+        if (!okOrigins.has(ev.origin) && ev.origin !== '') return;
 
         let data = ev.data;
         if (typeof data === 'string') {
