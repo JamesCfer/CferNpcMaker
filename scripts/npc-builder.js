@@ -305,6 +305,13 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     console.log('[NPC Builder] starting Patreon sign-in, poll URL:', POLL_URL);
 
     try {
+      // Generate a nonce here in the module and pass it to n8n via the login URL.
+      // n8n will embed it in the OAuth state and store it with the session on callback.
+      // This lets us poll /oauth/patreon/poll?nonce=<nonce> from any environment
+      // (browser popup OR Electron external browser) without relying on postMessage.
+      const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+        .map(b => b.toString(16).padStart(2,'0')).join('');
+
       const authUrl = NPCBuilderApp.N8N_AUTH_URL
         + '?origin=' + encodeURIComponent(window.location.origin)
         + '&nonce='  + encodeURIComponent(nonce);
@@ -314,13 +321,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const X = (window.top?.outerWidth  || window.outerWidth);
       const y = (Y / 2) + (window.top?.screenY || window.screenY) - (h / 2);
       const x = (X / 2) + (window.top?.screenX || window.screenX) - (w / 2);
-
-      // Generate a nonce here in the module and pass it to n8n via the login URL.
-      // n8n will embed it in the OAuth state and store it with the session on callback.
-      // This lets us poll /oauth/patreon/poll?nonce=<nonce> from any environment
-      // (browser popup OR Electron external browser) without relying on postMessage.
-      const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12)))
-        .map(b => b.toString(16).padStart(2,'0')).join('');
 
       console.log('[NPC Builder] generated poll nonce:', nonce);
 
