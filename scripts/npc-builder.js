@@ -375,6 +375,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
       // Method B: polling (works in Electron / external browser where opener is null)
       let pollTimer = null;
+      let consecutiveServerErrors = 0;
+      const MAX_SERVER_ERRORS = 10; // ~25 s of consecutive 500s before giving up
       const deadline = Date.now() + TIMEOUT_MS;
       pollTimer = setInterval(async () => {
           if (resolved) { clearInterval(pollTimer); return; }
@@ -385,7 +387,23 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           }
           try {
             const resp = await fetch(`${POLL_URL}?nonce=${encodeURIComponent(nonce)}`);
-            if (!resp.ok) return; // not ready yet
+            if (resp.status === 500) {
+              consecutiveServerErrors++;
+              if (consecutiveServerErrors === 3) {
+                console.error(
+                  '[NPC Builder] Poll endpoint returning 500 errors.',
+                  'The patreon_sessions table may be missing the "nonce" column.',
+                  'Add it in n8n under Data → patreon_sessions → Add column → nonce (string).'
+                );
+              }
+              if (consecutiveServerErrors >= MAX_SERVER_ERRORS) {
+                clearInterval(pollTimer);
+                onFailure('Sign-in server error — please contact support or check n8n logs.');
+              }
+              return;
+            }
+            consecutiveServerErrors = 0;
+            if (!resp.ok) return; // 404 / other = not ready yet, keep polling
             const data = await resp.json();
             if (data.ok && data.key && String(data.key).length >= 32) {
               onSuccess(data.key);
