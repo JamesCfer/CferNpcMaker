@@ -4,11 +4,90 @@
    button defaults in ApplicationV2 windows.
    ============================================================ */
 
+/* ── Outer layout wrapper (flex column: tabs → warning → panels) ── */
+.application.npc-builder .npc-builder-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── System selector tabs ────────────────────────────────── */
+.application.npc-builder .system-selector {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  background: #2c2c3a;
+}
+
+.application.npc-builder .system-tab {
+  flex: 1;
+  padding: 0.55em 0.75em;
+  font-size: 0.85em;
+  font-weight: 600;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+}
+
+.application.npc-builder .system-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Active tab — each system gets its own accent colour */
+.application.npc-builder.system-pf2e .system-tab[data-system="pf2e"].is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom-color: #7c5cbf;
+}
+
+.application.npc-builder.system-dnd5e .system-tab[data-system="dnd5e"].is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom-color: #c0392b;
+}
+
+.application.npc-builder.system-hero6e .system-tab[data-system="hero6e"].is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom-color: #2980b9;
+}
+
+/* ── System warning banner ───────────────────────────────── */
+.application.npc-builder .system-warning {
+  display: none;
+  align-items: center;
+  gap: 0.65em;
+  padding: 0.6em 1em;
+  background: #5c3800;
+  color: #ffe0b2;
+  font-size: 0.87em;
+  font-weight: 500;
+  border-bottom: 2px solid #e65100;
+  flex-shrink: 0;
+}
+
+.application.npc-builder .system-warning i {
+  color: #ffb74d;
+  font-size: 1.15em;
+  flex-shrink: 0;
+}
+
 /* ── Two-panel wrapper ───────────────────────────────────── */
 .application.npc-builder .npc-builder-inner {
   display: flex;
   flex-direction: row;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 

@@ -1,97 +1,143 @@
-<div class="npc-builder-inner">
+<div class="npc-builder-layout">
 
-  <!-- ── Left: form panel ──────────────────────────────────────── -->
-  <div class="npc-panel-form">
-
-    <!-- ── Auth banner ─────────────────────────────────────────── -->
-    <div class="auth-banner">
-
-      <!-- Shown when NOT authenticated -->
-      <div class="auth-unsigned">
-        <div class="auth-unsigned-text">
-          <i class="fa-brands fa-patreon auth-patreon-icon"></i>
-          <span>Sign in with Patreon to generate NPCs</span>
-        </div>
-        <div class="auth-unsigned-actions">
-          <button type="button" data-action="signin" class="btn-patreon">
-            <i class="fa-brands fa-patreon"></i> Sign in with Patreon
-          </button>
-          <button type="button" data-action="patreon" class="btn-join">
-            Join Patreon
-          </button>
-        </div>
-      </div>
-
-      <!-- Shown when authenticated -->
-      <div class="auth-signed">
-        <div class="auth-signed-status">
-          <i class="fa-solid fa-circle-check"></i>
-          <span>Signed in via Patreon</span>
-        </div>
-        <button type="button" data-action="signout" class="btn-signout">
-          <i class="fa-solid fa-right-from-bracket"></i> Sign Out
-        </button>
-      </div>
-
-    </div>
-
-    <!-- ── NPC form ──────────────────────────────────────────────── -->
-    <form class="npc-form" autocomplete="off">
-
-      <div class="history-selected-banner" style="display:none;">
-        <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
-        <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
-      </div>
-
-      <div class="field-row">
-        <div class="field field--name">
-          <label for="npc-name">NPC Name</label>
-          <input type="text" id="npc-name" name="name" placeholder="e.g. Goblin Warchief" />
-        </div>
-        <div class="field field--level">
-          <label for="npc-level">Level</label>
-          <input type="number" id="npc-level" name="level" value="1" min="0" max="25" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="npc-desc">Description</label>
-        <textarea id="npc-desc" name="description" rows="5"
-          placeholder="Describe this NPC: their role, fighting style, special abilities, equipment, personality traits…"></textarea>
-        <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
-      </div>
-
-      <div class="field field--check">
-        <label class="checkbox-label">
-          <input type="checkbox" name="includeSpells" />
-          <span>Include spell compendium mapping</span>
-        </label>
-        <span class="field-hint">Indexes your spell compendiums before generating (~10 s extra, enables correct spell links).</span>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" data-action="generate" class="btn-primary" disabled>
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span class="btn-label">Generate NPC</span>
-        </button>
-        <button type="button" data-action="export" class="btn-secondary" disabled>
-          <i class="fa-solid fa-file-arrow-down"></i>
-          <span>Export JSON</span>
-        </button>
-      </div>
-
-    </form>
+  <!-- ── System selector tabs ────────────────────────────────────── -->
+  <div class="system-selector">
+    <button type="button" class="system-tab" data-action="selectsystem" data-system="pf2e">
+      <i class="fa-solid fa-dragon"></i> Pathfinder 2e
+    </button>
+    <button type="button" class="system-tab" data-action="selectsystem" data-system="dnd5e">
+      <i class="fa-solid fa-shield-halved"></i> D&amp;D 5e
+    </button>
+    <button type="button" class="system-tab" data-action="selectsystem" data-system="hero6e">
+      <i class="fa-solid fa-bolt"></i> HERO 6e
+    </button>
   </div>
 
-  <!-- ── Right: history panel ──────────────────────────────────── -->
-  <div class="npc-panel-history">
-    <div class="history-header">
-      <i class="fa-solid fa-clock-rotate-left"></i>
-      <span>Created NPCs</span>
-    </div>
-    <div class="history-list">
-      <!-- Populated by JavaScript -->
-    </div>
+  <!-- ── System warning banners (shown for non-functional systems) ── -->
+  <div class="system-warning system-warning--dnd5e">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span>D&amp;D 5e support is currently not in a usable state. This feature is under active development.</span>
+  </div>
+  <div class="system-warning system-warning--hero6e">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span>HERO 6e support is currently not in a usable state. This feature is under active development.</span>
   </div>
 
+  <!-- ── Main two-panel content ──────────────────────────────────── -->
+  <div class="npc-builder-inner">
+
+    <!-- ── Left: form panel ──────────────────────────────────────── -->
+    <div class="npc-panel-form">
+
+      <!-- ── Auth banner ─────────────────────────────────────────── -->
+      <div class="auth-banner">
+
+        <!-- Shown when NOT authenticated -->
+        <div class="auth-unsigned">
+          <div class="auth-unsigned-text">
+            <i class="fa-brands fa-patreon auth-patreon-icon"></i>
+            <span>Sign in with Patreon to generate NPCs</span>
+          </div>
+          <div class="auth-unsigned-actions">
+            <button type="button" data-action="signin" class="btn-patreon">
+              <i class="fa-brands fa-patreon"></i> Sign in with Patreon
+            </button>
+            <button type="button" data-action="patreon" class="btn-join">
+              Join Patreon
+            </button>
+          </div>
+        </div>
+
+        <!-- Shown when authenticated -->
+        <div class="auth-signed">
+          <div class="auth-signed-status">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Signed in via Patreon</span>
+          </div>
+          <button type="button" data-action="signout" class="btn-signout">
+            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ── NPC form ──────────────────────────────────────────────── -->
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name" class="label-npc-name">NPC Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. Goblin Warchief" />
+          </div>
+          <div class="field field--level">
+            <label for="npc-level" class="label-npc-level">Level</label>
+            <input type="number" id="npc-level" name="level" value="1" min="0" max="25" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <textarea id="npc-desc" name="description" rows="5"
+            placeholder="Describe this NPC: their role, fighting style, special abilities, equipment, personality traits…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+        </div>
+
+        <!-- PF2e-only: spell compendium mapping -->
+        <div class="field field--check" data-system-only="pf2e">
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeSpells" />
+            <span>Include spell compendium mapping</span>
+          </label>
+          <span class="field-hint">Indexes your spell compendiums before generating (~10 s extra, enables correct spell links).</span>
+        </div>
+
+        <!-- D&D 5e-only: equipment list -->
+        <div class="field field--check" data-system-only="dnd5e">
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeEquipment" />
+            <span>Include equipment &amp; magic items</span>
+          </label>
+          <span class="field-hint">Adds weapons, armor, and notable items to this stat block.</span>
+        </div>
+
+        <!-- HERO 6e-only: complications -->
+        <div class="field field--check" data-system-only="hero6e">
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeComplications" />
+            <span>Include complications</span>
+          </label>
+          <span class="field-hint">Adds character complications (disadvantages) to the build.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate NPC</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- ── Right: history panel ──────────────────────────────────── -->
+    <div class="npc-panel-history">
+      <div class="history-header">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span class="history-header-label">Created NPCs</span>
+      </div>
+      <div class="history-list">
+        <!-- Populated by JavaScript -->
+      </div>
+    </div>
+
+  </div>
 </div>

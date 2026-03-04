@@ -45,25 +45,35 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** localStorage slot for NPC history */
   static HISTORY_KEY = 'pf2e-npc-builder.history';
 
+  /** localStorage slot for selected game system */
+  static SYSTEM_KEY = 'pf2e-npc-builder.system';
+
+  /** localStorage slot for last-seen module version (used to force sign-out on updates) */
+  static VERSION_KEY = 'pf2e-npc-builder.module-version';
+
   /** Max history entries to retain */
   static MAX_HISTORY = 50;
+
+  /** Supported game systems */
+  static SYSTEMS = ['pf2e', 'dnd5e', 'hero6e'];
 
   static DEFAULT_OPTIONS = {
     id: 'pf2e-npc-builder',
     classes: ['pf2e', 'npc-builder'],
     window: {
-      title: 'PF2E NPC Builder',
+      title: 'NPC Builder',
       resizable: true,
     },
     position: {
       width: 800,
     },
     actions: {
-      signin:   function(event) { this._signIn(event); },
-      signout:  function(event) { this._signOut(event); },
-      generate: function(event) { this._generateNPC(event); },
-      export:   function(event) { this._exportJSON(event); },
-      patreon:  function()      { window.open(this.constructor.PATREON_URL, '_blank'); },
+      signin:        function(event) { this._signIn(event); },
+      signout:       function(event) { this._signOut(event); },
+      generate:      function(event) { this._generateNPC(event); },
+      export:        function(event) { this._exportJSON(event); },
+      patreon:       function()      { window.open(this.constructor.PATREON_URL, '_blank'); },
+      selectsystem:  function(event) { this._selectSystem(event); },
     },
   };
 
@@ -96,6 +106,30 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } catch (_) {}
   }
 
+  /* ── System storage helpers ──────────────────────────────── */
+
+  static getStoredSystem() {
+    try {
+      const v = localStorage.getItem(NPCBuilderApp.SYSTEM_KEY);
+      if (v && NPCBuilderApp.SYSTEMS.includes(v)) return v;
+    } catch (_) {}
+    return 'pf2e';
+  }
+
+  static setStoredSystem(system) {
+    try { localStorage.setItem(NPCBuilderApp.SYSTEM_KEY, system); } catch (_) {}
+  }
+
+  /* ── Module version storage helpers ─────────────────────── */
+
+  static getStoredVersion() {
+    try { return localStorage.getItem(NPCBuilderApp.VERSION_KEY) || ''; } catch (_) { return ''; }
+  }
+
+  static setStoredVersion(version) {
+    try { localStorage.setItem(NPCBuilderApp.VERSION_KEY, version); } catch (_) {}
+  }
+
   /* ── History storage helpers ─────────────────────────────── */
 
   static loadHistory() {
@@ -121,6 +155,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.authenticated     = !!this.accessKey;
     this.lastGeneratedNPC  = null;
     this.selectedHistoryId = null;
+    this.selectedSystem    = NPCBuilderApp.getStoredSystem();
 
     // Load history; clean up any entries stuck in "generating" from a prior session
     this.npcHistory = NPCBuilderApp.loadHistory();
@@ -147,7 +182,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /* ── Render hook ─────────────────────────────────────────── */
 
   _onRender(context, options) {
-    this._applyAuthStateUI();
+    this._applySystemUI();  // also calls _applyAuthStateUI
     this._renderHistory();
   }
 
@@ -162,15 +197,102 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const anyGenerating = this.npcHistory.some(e => e.status === 'generating');
     root.classList.toggle('is-generating', anyGenerating);
 
+    const isUnusableSystem = this.selectedSystem !== 'pf2e';
+
     const genBtn = root.querySelector('button[data-action="generate"]');
     if (genBtn) {
-      genBtn.disabled = !this.authenticated;
+      genBtn.disabled = !this.authenticated || isUnusableSystem;
       const label = genBtn.querySelector('.btn-label');
-      if (label) label.textContent = 'Generate NPC';
+      if (label) label.textContent = isUnusableSystem ? 'Not Available' : 'Generate NPC';
     }
 
     const expBtn = root.querySelector('button[data-action="export"]');
     if (expBtn) expBtn.disabled = !this.authenticated;
+  }
+
+  /* ── System selection ────────────────────────────────────── */
+
+  _selectSystem(event) {
+    const btn    = event.currentTarget || event.target;
+    const system = btn?.dataset?.system;
+    if (!system || !NPCBuilderApp.SYSTEMS.includes(system)) return;
+    this.selectedSystem = system;
+    NPCBuilderApp.setStoredSystem(system);
+    this._applySystemUI();
+  }
+
+  _applySystemUI() {
+    const root = this.element;
+    if (!root) return;
+
+    const system = this.selectedSystem || 'pf2e';
+
+    // Update system tab active state
+    root.querySelectorAll('.system-tab').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.system === system);
+    });
+
+    // Apply system class to root for CSS-driven theming
+    NPCBuilderApp.SYSTEMS.forEach(s => root.classList.remove(`system-${s}`));
+    root.classList.add(`system-${system}`);
+
+    // Show/hide system-specific elements via data-system-only attribute
+    root.querySelectorAll('[data-system-only]').forEach(el => {
+      el.style.display = el.dataset.systemOnly === system ? '' : 'none';
+    });
+
+    // Show/hide warning banners
+    root.querySelectorAll('.system-warning').forEach(el => { el.style.display = 'none'; });
+    const warning = root.querySelector(`.system-warning--${system}`);
+    if (warning) warning.style.display = 'flex';
+
+    // Update field labels and input constraints per system
+    const configs = {
+      pf2e: {
+        levelLabel:      'Level',
+        levelMin:        '0',
+        levelMax:        '25',
+        namePlaceholder: 'e.g. Goblin Warchief',
+        descPlaceholder: 'Describe this NPC: their role, fighting style, special abilities, equipment, personality traits…',
+        historyLabel:    'Created NPCs',
+      },
+      dnd5e: {
+        levelLabel:      'Challenge Rating',
+        levelMin:        '0',
+        levelMax:        '30',
+        namePlaceholder: 'e.g. Bandit Captain',
+        descPlaceholder: 'Describe this creature: their role, attacks, special abilities, legendary actions, lore…',
+        historyLabel:    'Created Creatures',
+      },
+      hero6e: {
+        levelLabel:      'Power Level',
+        levelMin:        '1',
+        levelMax:        '12',
+        namePlaceholder: 'e.g. Ironclad',
+        descPlaceholder: 'Describe this character: their powers, combat style, skills, limitations, background…',
+        historyLabel:    'Created Characters',
+      },
+    };
+
+    const cfg = configs[system] || configs.pf2e;
+
+    const levelLabel = root.querySelector('label[for="npc-level"]');
+    if (levelLabel) levelLabel.textContent = cfg.levelLabel;
+
+    const levelInput = root.querySelector('#npc-level');
+    if (levelInput) { levelInput.min = cfg.levelMin; levelInput.max = cfg.levelMax; }
+
+    const nameInput = root.querySelector('#npc-name');
+    if (nameInput) nameInput.placeholder = cfg.namePlaceholder;
+
+    const descTextarea = root.querySelector('#npc-desc');
+    if (descTextarea) descTextarea.placeholder = cfg.descPlaceholder;
+
+    const historyLabel = root.querySelector('.history-header-label');
+    if (historyLabel) historyLabel.textContent = cfg.historyLabel;
+
+    // Sync auth UI (handles button disabled state with system awareness)
+    this._applyAuthStateUI();
   }
 
   /* ── History rendering ───────────────────────────────────── */
@@ -504,6 +626,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     if (!this.authenticated) {
       ui.notifications.warn('Please sign in with Patreon before generating an NPC.');
+      return;
+    }
+
+    if (this.selectedSystem !== 'pf2e') {
+      const names = { dnd5e: 'D&D 5e', hero6e: 'HERO 6e' };
+      ui.notifications.warn(`${names[this.selectedSystem] || this.selectedSystem} support is not yet available.`);
       return;
     }
 
@@ -961,7 +1089,19 @@ Hooks.on('renderActorDirectoryPF2e',         injectSidebarButton);
 Hooks.on('renderCompendiumDirectoryPF2e',    injectSidebarButton);
 
 Hooks.once('ready', () => {
-  const modId = game.modules?.get('Pf2eNpcMaker') ? 'Pf2eNpcMaker' : 'pf2e-npc-auto-builder';
+  const modId         = game.modules?.get('Pf2eNpcMaker') ? 'Pf2eNpcMaker' : 'pf2e-npc-auto-builder';
+  const currentVersion = game.modules?.get(modId)?.version || '';
+  const storedVersion  = NPCBuilderApp.getStoredVersion();
+
+  // Sign users out when the module updates so stale sessions don't persist
+  if (currentVersion && storedVersion && currentVersion !== storedVersion) {
+    NPCBuilderApp.setStoredKey('');
+    console.log(`[NPC Builder] Module updated ${storedVersion} → ${currentVersion}. Session cleared.`);
+    ui.notifications?.info?.('NPC Builder was updated — please sign in again.', { permanent: false });
+  }
+
+  if (currentVersion) NPCBuilderApp.setStoredVersion(currentVersion);
+
   (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)([`modules/${modId}/templates/builder.html`]);
-  console.log(`PF2E NPC Auto-Builder ready (module folder: ${modId}).`);
+  console.log(`PF2E NPC Auto-Builder ready (module folder: ${modId}, version: ${currentVersion}).`);
 });
