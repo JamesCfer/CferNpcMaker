@@ -879,6 +879,27 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const _dnd5eTokenName = actorData.name;
         const _dnd5eTokenImg  = actorData.img || 'icons/svg/mystery-man.svg';
 
+        // ── dnd5e 5.x / Foundry v14: merge system data against the blank NPC schema ──
+        // Actor5e._preCreate reads `this.system.token` (and other fields) during document
+        // initialisation. If actorData.system is missing keys that the DataModel expects,
+        // the coercion step fails and this.system comes out undefined, crashing _preCreate.
+        // Merging against the blank schema guarantees every required key is present.
+        if (system === 'dnd5e') {
+          try {
+            const blankSchema = foundry.utils.deepClone(
+              game.system.model?.Actor?.npc ?? {}
+            );
+            actorData.system = foundry.utils.mergeObject(
+              blankSchema,
+              actorData.system ?? {},
+              { inplace: false, insertKeys: true, insertValues: true, overwrite: true }
+            );
+            console.log('[NPC Builder] D&D 5e: system merged against blank NPC schema');
+          } catch (mergeErr) {
+            console.warn('[NPC Builder] D&D 5e: schema merge failed (non-fatal):', mergeErr);
+          }
+        }
+
         let actor, attempts = 0;
         const maxAttempts = 10;
 
@@ -1074,6 +1095,45 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (_abilities[k]) _abilities[k].proficient = v?.proficient ?? 0;
       }
       delete actorData.system.attributes.save;
+    }
+
+    // ── Coerce trait sets to { value: [], custom: '' } ───────────────────────
+    // dnd5e 3.x+ DataModel rejects bare arrays for di/dr/ci/languages.
+    // GPT and older workflow versions output raw arrays — coerce them here as a
+    // last line of defence before the system merge in _runGeneration.
+    const _traits = actorData.system?.traits;
+    if (_traits) {
+      const toTraitSet = (val) => {
+        if (val && typeof val === 'object' && !Array.isArray(val) && Array.isArray(val.value)) {
+          if (!val.custom) val.custom = '';
+          return val;
+        }
+        if (Array.isArray(val)) return { value: val, custom: '' };
+        return { value: [], custom: '' };
+      };
+      if (_traits.di        !== undefined) _traits.di        = toTraitSet(_traits.di);
+      if (_traits.dr        !== undefined) _traits.dr        = toTraitSet(_traits.dr);
+      if (_traits.dv        !== undefined) _traits.dv        = toTraitSet(_traits.dv);
+      if (_traits.ci        !== undefined) _traits.ci        = toTraitSet(_traits.ci);
+      if (_traits.languages !== undefined) _traits.languages = toTraitSet(_traits.languages);
+    }
+
+    // ── Ensure movement uses dnd5e 5.x schema (system.attributes.movement) ──
+    // Old workflow versions wrote system.attributes.speed; 5.x needs .movement.
+    const _attrs = actorData.system?.attributes;
+    if (_attrs && !_attrs.movement) {
+      const spd = _attrs.speed;
+      const walkVal = (spd && typeof spd === 'object' ? spd.value : spd) || 30;
+      _attrs.movement = {
+        burrow: 0, climb: 0, fly: 0, swim: 0,
+        walk: typeof walkVal === 'number' ? walkVal : (parseInt(walkVal) || 30),
+        units: 'ft', hover: false,
+      };
+    }
+
+    // ── Ensure currency exists (required by dnd5e DataModel) ─────────────────
+    if (actorData.system && !actorData.system.currency) {
+      actorData.system.currency = { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 };
     }
 
     // ── Remove prototypeToken ────────────────────────────────────────────────
