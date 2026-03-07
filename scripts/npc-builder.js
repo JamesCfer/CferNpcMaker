@@ -874,17 +874,10 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           this._sanitizeActorData(actorData);
         }
 
-        // For dnd5e, remove prototypeToken before Actor.create().
-        // Foundry's Actor5e._preCreate constructs a proper PrototypeToken DataModel
-        // instance internally. Passing any plain object — even a fully-formed one —
-        // causes _preCreate to crash at actor.mjs:661 because it expects to operate
-        // on an already-initialized document, not raw JSON. Omitting it lets Foundry
-        // build it correctly from defaults, then we patch the name/img after creation.
+        // prototypeToken is already deleted by _sanitizeActorDataDnd5e for dnd5e.
+        // Keep the name/img to restore after creation.
         const dnd5eTokenName = actorData.name;
-        const dnd5eTokenImg = actorData.img;
-        if (system === 'dnd5e') {
-          delete actorData.prototypeToken;
-        }
+        const dnd5eTokenImg  = actorData.img;
 
         let actor, attempts = 0;
         const maxAttempts = 10;
@@ -904,11 +897,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
 
         if (actor) {
-          // Restore prototypeToken name and img now that the document exists properly
+          // Patch token name/img now that the DataModel is fully initialized
           if (system === 'dnd5e') {
             await actor.update({
               'prototypeToken.name': dnd5eTokenName,
-              'prototypeToken.texture.src': dnd5eTokenImg || 'icons/svg/mystery-man.svg'
+              'prototypeToken.texture.src': dnd5eTokenImg || 'icons/svg/mystery-man.svg',
             });
           }
           this.lastGeneratedNPC = actorData;
@@ -1053,21 +1046,43 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!actorData.flags) actorData.flags = {};
     if (!actorData.img) actorData.img = 'icons/svg/mystery-man.svg';
 
-    if (!actorData.prototypeToken) {
-      actorData.prototypeToken = {
-        name: actorData.name,
-        actorLink: false,
-        texture: { src: actorData.img || 'icons/svg/mystery-man.svg' },
-        width: 1,
-        height: 1,
-        disposition: -1,
-        displayBars: 40,
-        bar1: { attribute: 'attributes.hp' },
-        bar2: { attribute: null },
-        sight: { enabled: false },
-        detectionModes: []
-      };
+    // ── Fix misplaced saving throw data ─────────────────────────────────────
+    // GPT inconsistently puts saves in the wrong place. The ONLY valid location
+    // in dnd5e is system.abilities[key].proficient = 0|1. Scrub all wrong forms.
+    const abilities = actorData.system?.abilities || {};
+
+    // Case 1: system.save = { str: { proficient: 1 }, ... }
+    if (actorData.system?.save && typeof actorData.system.save === 'object') {
+      console.warn('[NPC Builder] D&D 5e: Moving misplaced system.save into abilities');
+      for (const [key, val] of Object.entries(actorData.system.save)) {
+        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      }
+      delete actorData.system.save;
     }
+
+    // Case 2: system['attributes.save'] — literal dotted-string key
+    if (actorData.system?.['attributes.save'] && typeof actorData.system['attributes.save'] === 'object') {
+      console.warn('[NPC Builder] D&D 5e: Moving misplaced system["attributes.save"] into abilities');
+      for (const [key, val] of Object.entries(actorData.system['attributes.save'])) {
+        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      }
+      delete actorData.system['attributes.save'];
+    }
+
+    // Case 3: system.attributes.save — wrong nesting
+    if (actorData.system?.attributes?.save && typeof actorData.system.attributes.save === 'object') {
+      console.warn('[NPC Builder] D&D 5e: Moving misplaced system.attributes.save into abilities');
+      for (const [key, val] of Object.entries(actorData.system.attributes.save)) {
+        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      }
+      delete actorData.system.attributes.save;
+    }
+
+    // ── Remove prototypeToken ────────────────────────────────────────────────
+    // Actor5e._preCreate crashes when given a plain prototypeToken object because
+    // it expects a live DataModel instance. Delete it here; Foundry builds it from
+    // defaults, and _runGeneration patches name/img afterwards.
+    delete actorData.prototypeToken;
 
     console.log('[NPC Builder] D&D 5e actor data sanitized:', actorData.name, '| items:', actorData.items?.length || 0);
   }
