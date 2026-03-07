@@ -114,6 +114,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const v = localStorage.getItem(NPCBuilderApp.SYSTEM_KEY);
       if (v && NPCBuilderApp.SYSTEMS.includes(v)) return v;
     } catch (_) {}
+    // Default to whatever system is active in Foundry
+    try {
+      const gameSystem = game?.system?.id;
+      if (gameSystem && NPCBuilderApp.SYSTEMS.includes(gameSystem)) return gameSystem;
+    } catch (_) {}
     return 'pf2e';
   }
 
@@ -183,6 +188,16 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /* ── Render hook ─────────────────────────────────────────── */
 
   _onRender(context, options) {
+    // Bind tab clicks directly — bypasses ApplicationV2 action delegation
+    // which can be intercepted by system-level CSS/JS (e.g. PF2e overrides).
+    this.element.querySelectorAll('.system-tab[data-system]').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._selectSystem(ev);
+      });
+    });
+
     this._applySystemUI();  // also calls _applyAuthStateUI
     this._renderHistory();
   }
@@ -216,9 +231,17 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _selectSystem(event) {
     const btn    = event.currentTarget || event.target;
     const system = btn?.dataset?.system;
-    if (!system || !NPCBuilderApp.SYSTEMS.includes(system)) return;
-    this.selectedSystem = system;
-    NPCBuilderApp.setStoredSystem(system);
+    if (!system) return;
+
+    if (system === 'home') {
+      this.selectedSystem = 'home';
+      // Don't persist 'home' — remember the last real system for next open
+    } else if (NPCBuilderApp.SYSTEMS.includes(system)) {
+      this.selectedSystem = system;
+      NPCBuilderApp.setStoredSystem(system);
+    } else {
+      return;
+    }
     this._applySystemUI();
   }
 
@@ -228,10 +251,25 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const system = this.selectedSystem || 'pf2e';
 
-    // Update system tab active state
+    // Update system tab active state (includes 'home')
     root.querySelectorAll('.system-tab').forEach(btn => {
       btn.classList.toggle('is-active', btn.dataset.system === system);
     });
+
+    // Toggle home panel vs builder inner
+    const homePanel    = root.querySelector('.home-panel');
+    const builderInner = root.querySelector('.npc-builder-inner');
+    const isHome       = system === 'home';
+    if (homePanel)    homePanel.style.display    = isHome ? 'flex'  : 'none';
+    if (builderInner) builderInner.style.display = isHome ? 'none'  : 'flex';
+
+    if (isHome) {
+      // Clear all system classes, hide warnings, update auth buttons and return
+      NPCBuilderApp.SYSTEMS.forEach(s => root.classList.remove(`system-${s}`));
+      root.querySelectorAll('.system-warning').forEach(el => { el.style.display = 'none'; });
+      this._applyAuthStateUI();
+      return;
+    }
 
     // Apply system class to root for CSS-driven theming
     NPCBuilderApp.SYSTEMS.forEach(s => root.classList.remove(`system-${s}`));
@@ -650,8 +688,9 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (this.selectedSystem === 'hero6e') {
-      ui.notifications.warn('HERO 6e support is not yet available.');
+    if (this.selectedSystem === 'hero6e' || this.selectedSystem === 'home') {
+      if (this.selectedSystem === 'hero6e')
+        ui.notifications.warn('HERO 6e support is not yet available.');
       return;
     }
 
