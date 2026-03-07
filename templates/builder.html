@@ -2,13 +2,16 @@
 
   <!-- ── System selector tabs ────────────────────────────────────── -->
   <div class="system-selector">
-    <button type="button" class="system-tab" data-action="selectsystem" data-system="pf2e">
+    <button type="button" class="system-tab system-tab--home" data-system="home">
+      <i class="fa-solid fa-house"></i> Home
+    </button>
+    <button type="button" class="system-tab" data-system="pf2e">
       <i class="fa-solid fa-dragon"></i> Pathfinder 2e
     </button>
-    <button type="button" class="system-tab" data-action="selectsystem" data-system="dnd5e">
+    <button type="button" class="system-tab" data-system="dnd5e">
       <i class="fa-solid fa-shield-halved"></i> D&amp;D 5e
     </button>
-    <button type="button" class="system-tab" data-action="selectsystem" data-system="hero6e">
+    <button type="button" class="system-tab" data-system="hero6e">
       <i class="fa-solid fa-bolt"></i> HERO 6e
     </button>
   </div>
@@ -17,6 +20,51 @@
   <div class="system-warning system-warning--hero6e">
     <i class="fa-solid fa-triangle-exclamation"></i>
     <span>HERO 6e support is currently not in a usable state. This feature is under active development.</span>
+  </div>
+
+  <!-- ── Home panel ───────────────────────────────────────────────── -->
+  <div class="home-panel" style="display:none;">
+    <div class="home-content">
+      <div class="home-logo">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <h2>NPC Auto-Builder</h2>
+      </div>
+      <p class="home-intro">
+        Generate fully-statted NPCs for Pathfinder 2e and D&amp;D 5e in seconds using AI.
+        Sign in with Patreon, describe your NPC, and let the builder handle the stat block.
+      </p>
+      <div class="home-steps">
+        <div class="home-step">
+          <span class="home-step-num">1</span>
+          <div>
+            <strong>Sign in with Patreon</strong>
+            <span>Free accounts get 3 NPCs per month. Supporters unlock higher limits.</span>
+          </div>
+        </div>
+        <div class="home-step">
+          <span class="home-step-num">2</span>
+          <div>
+            <strong>Choose your system</strong>
+            <span>Pathfinder 2e and D&amp;D 5e are fully supported.</span>
+          </div>
+        </div>
+        <div class="home-step">
+          <span class="home-step-num">3</span>
+          <div>
+            <strong>Describe your NPC</strong>
+            <span>Enter a name, level/CR, and a short description — then hit Generate.</span>
+          </div>
+        </div>
+      </div>
+      <div class="home-links">
+        <a href="https://discord.gg/6AJxmtjZvX" target="_blank" rel="noopener noreferrer" class="btn-discord">
+          <i class="fa-brands fa-discord"></i> Join our Discord
+        </a>
+        <a href="https://www.patreon.com/cw/CelestiaTools" target="_blank" rel="noopener noreferrer" class="btn-patreon-link">
+          <i class="fa-brands fa-patreon"></i> Support on Patreon
+        </a>
+      </div>
+    </div>
   </div>
 
   <!-- ── Main two-panel content ──────────────────────────────────── -->

@@ -43,7 +43,21 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* Home tab — visually distinct, narrower */
+.application.npc-builder .system-tab--home {
+  flex: 0 0 auto;
+  padding-left: 0.9em;
+  padding-right: 0.9em;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* Active tab — each system gets its own accent colour */
+.application.npc-builder .system-tab[data-system="home"].is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom-color: #e8a020;
+}
+
 .application.npc-builder.system-pf2e .system-tab[data-system="pf2e"].is-active {
   color: #fff;
   background: rgba(255, 255, 255, 0.06);
@@ -525,6 +539,130 @@
   padding: 0.35em 0.65em;
 }
 .application.npc-builder button.btn-signout:hover { background: rgba(0,0,0,0.05); color: #333; }
+
+/* ── Home panel ──────────────────────────────────────────── */
+.application.npc-builder .home-panel {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.5em 1em;
+  background: #fafafa;
+}
+
+.application.npc-builder .home-content {
+  max-width: 460px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+}
+
+.application.npc-builder .home-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  color: #7c5cbf;
+}
+
+.application.npc-builder .home-logo i {
+  font-size: 1.6em;
+}
+
+.application.npc-builder .home-logo h2 {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 700;
+  color: #333;
+  border: none;
+}
+
+.application.npc-builder .home-intro {
+  margin: 0;
+  font-size: 0.9em;
+  color: #555;
+  line-height: 1.55;
+}
+
+.application.npc-builder .home-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65em;
+}
+
+.application.npc-builder .home-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75em;
+}
+
+.application.npc-builder .home-step-num {
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  background: #7c5cbf;
+  color: #fff;
+  font-size: 0.78em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.1em;
+}
+
+.application.npc-builder .home-step div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.application.npc-builder .home-step strong {
+  font-size: 0.88em;
+  color: #333;
+}
+
+.application.npc-builder .home-step span {
+  font-size: 0.8em;
+  color: #777;
+}
+
+.application.npc-builder .home-links {
+  display: flex;
+  gap: 0.6em;
+  flex-wrap: wrap;
+}
+
+.application.npc-builder .btn-discord,
+.application.npc-builder .btn-patreon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.5em 1em;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.88em;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter 0.12s;
+  white-space: nowrap;
+}
+
+.application.npc-builder .btn-discord {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+}
+.application.npc-builder .btn-discord:hover { filter: brightness(1.1); }
+
+.application.npc-builder .btn-patreon-link {
+  background: transparent;
+  color: #cc2030;
+  border: 1px solid #ff424d;
+}
+.application.npc-builder .btn-patreon-link:hover { background: rgba(255, 66, 77, 0.06); }
 
 /* ── Sidebar injection button ────────────────────────────── */
 .directory .npc-builder-button {
