@@ -874,10 +874,10 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           this._sanitizeActorData(actorData);
         }
 
-        // prototypeToken is already deleted by _sanitizeActorDataDnd5e for dnd5e.
-        // Keep the name/img to restore after creation.
-        const dnd5eTokenName = actorData.name;
-        const dnd5eTokenImg  = actorData.img;
+        // prototypeToken was deleted by _sanitizeActorDataDnd5e. Save name/img to
+        // restore on the live document after Actor.create() completes.
+        const _dnd5eTokenName = actorData.name;
+        const _dnd5eTokenImg  = actorData.img || 'icons/svg/mystery-man.svg';
 
         let actor, attempts = 0;
         const maxAttempts = 10;
@@ -897,11 +897,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
 
         if (actor) {
-          // Patch token name/img now that the DataModel is fully initialized
+          // Patch token name + img now that the DataModel is fully initialized
           if (system === 'dnd5e') {
             await actor.update({
-              'prototypeToken.name': dnd5eTokenName,
-              'prototypeToken.texture.src': dnd5eTokenImg || 'icons/svg/mystery-man.svg',
+              'prototypeToken.name': _dnd5eTokenName,
+              'prototypeToken.texture.src': _dnd5eTokenImg,
             });
           }
           this.lastGeneratedNPC = actorData;
@@ -1046,42 +1046,40 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!actorData.flags) actorData.flags = {};
     if (!actorData.img) actorData.img = 'icons/svg/mystery-man.svg';
 
-    // ── Fix misplaced saving throw data ─────────────────────────────────────
-    // GPT inconsistently puts saves in the wrong place. The ONLY valid location
-    // in dnd5e is system.abilities[key].proficient = 0|1. Scrub all wrong forms.
-    const abilities = actorData.system?.abilities || {};
+    // ── Scrub misplaced saving throw data ───────────────────────────────────
+    // GPT inconsistently outputs saves in wrong locations. The only valid place
+    // in dnd5e is system.abilities[key].proficient = 0|1. Fix all known variants.
+    const _abilities = actorData.system?.abilities || {};
 
     // Case 1: system.save = { str: { proficient: 1 }, ... }
     if (actorData.system?.save && typeof actorData.system.save === 'object') {
-      console.warn('[NPC Builder] D&D 5e: Moving misplaced system.save into abilities');
-      for (const [key, val] of Object.entries(actorData.system.save)) {
-        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      console.warn('[NPC Builder] D&D 5e: Fixing misplaced system.save');
+      for (const [k, v] of Object.entries(actorData.system.save)) {
+        if (_abilities[k]) _abilities[k].proficient = v?.proficient ?? 0;
       }
       delete actorData.system.save;
     }
-
     // Case 2: system['attributes.save'] — literal dotted-string key
     if (actorData.system?.['attributes.save'] && typeof actorData.system['attributes.save'] === 'object') {
-      console.warn('[NPC Builder] D&D 5e: Moving misplaced system["attributes.save"] into abilities');
-      for (const [key, val] of Object.entries(actorData.system['attributes.save'])) {
-        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      console.warn('[NPC Builder] D&D 5e: Fixing misplaced system["attributes.save"]');
+      for (const [k, v] of Object.entries(actorData.system['attributes.save'])) {
+        if (_abilities[k]) _abilities[k].proficient = v?.proficient ?? 0;
       }
       delete actorData.system['attributes.save'];
     }
-
-    // Case 3: system.attributes.save — wrong nesting
+    // Case 3: system.attributes.save — wrong nesting level
     if (actorData.system?.attributes?.save && typeof actorData.system.attributes.save === 'object') {
-      console.warn('[NPC Builder] D&D 5e: Moving misplaced system.attributes.save into abilities');
-      for (const [key, val] of Object.entries(actorData.system.attributes.save)) {
-        if (abilities[key]) abilities[key].proficient = val?.proficient ?? 0;
+      console.warn('[NPC Builder] D&D 5e: Fixing misplaced system.attributes.save');
+      for (const [k, v] of Object.entries(actorData.system.attributes.save)) {
+        if (_abilities[k]) _abilities[k].proficient = v?.proficient ?? 0;
       }
       delete actorData.system.attributes.save;
     }
 
     // ── Remove prototypeToken ────────────────────────────────────────────────
-    // Actor5e._preCreate crashes when given a plain prototypeToken object because
-    // it expects a live DataModel instance. Delete it here; Foundry builds it from
-    // defaults, and _runGeneration patches name/img afterwards.
+    // Foundry's Actor5e._preCreate crashes when given any plain prototypeToken
+    // object — it expects to build a live DataModel instance itself from defaults.
+    // We delete it here; _runGeneration patches name + img after creation.
     delete actorData.prototypeToken;
 
     console.log('[NPC Builder] D&D 5e actor data sanitized:', actorData.name, '| items:', actorData.items?.length || 0);
