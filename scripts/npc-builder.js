@@ -767,6 +767,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         endpoint = NPCBuilderApp.N8N_DND5E_URL;
         payload  = { name, cr: level, description, casterType };
         console.log('[NPC Builder] D&D 5e generation request:', { name, cr: level, casterType });
+
+        if (casterType !== 'none') {
+          ui.notifications.info('Building spell mapping… (this may take 5–10 seconds)');
+          payload.spellMapping = await this._buildSpellMapping();
+          console.log(`[NPC Builder] Added ${payload.spellMapping.length} D&D 5e spells to payload`);
+        }
       } else {
         endpoint = NPCBuilderApp.N8N_NPC_URL;
         payload  = { name, level, description };
@@ -862,7 +868,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       } else if (response.ok) {
         if (data?.ok === false) throw new Error(data?.message || data?.error || 'Server rejected the request');
 
-        const actorData = data.foundryNpc || data.npcDesign || data.actor || data;
+        const actorData    = data.foundryNpc || data.npcDesign || data.actor || data;
+        const chosenSpells = Array.isArray(data.chosenSpells) ? data.chosenSpells : [];
 
         if (!actorData || typeof actorData !== 'object') throw new Error('No valid actor data returned from server');
         if (!actorData.name || !actorData.type) throw new Error(`Invalid actor data: missing ${!actorData.name ? 'name' : 'type'}`);
@@ -930,7 +937,28 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
               'prototypeToken.name': _dnd5eTokenName,
               'prototypeToken.texture.src': _dnd5eTokenImg,
             });
+
+            // Embed chosen spells from compendium
+            if (chosenSpells.length > 0) {
+              ui.notifications.info(`Adding ${chosenSpells.length} spells…`);
+              const spellItems = [];
+              for (const spell of chosenSpells) {
+                try {
+                  const pack = game.packs.get(spell.packId);
+                  if (!pack) { console.warn('[NPC Builder] Pack not found:', spell.packId); continue; }
+                  const doc = await pack.getDocument(spell.id);
+                  if (doc) spellItems.push(doc.toObject());
+                } catch (e) {
+                  console.warn('[NPC Builder] Failed to load spell:', spell.name, e.message);
+                }
+              }
+              if (spellItems.length > 0) {
+                await actor.createEmbeddedDocuments('Item', spellItems);
+                console.log(`[NPC Builder] Embedded ${spellItems.length} spells on actor`);
+              }
+            }
           }
+
           this.lastGeneratedNPC = actorData;
           this._updateHistoryEntry(historyEntry.id, { status: 'success' });
           ui.notifications.success(`NPC "${actor.name}" created successfully!`);
