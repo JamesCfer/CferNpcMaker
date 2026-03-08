@@ -4,11 +4,13 @@ on:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +36,6 @@ jobs:
             const version = '${{ steps.version.outputs.version }}';
             const tag = `v${version}`;
 
-            // Create release, or fetch existing if tag already exists
             let release;
             try {
               const res = await github.rest.repos.createRelease({
@@ -51,7 +52,6 @@ jobs:
                 const list = await github.rest.repos.listReleases({ owner, repo });
                 release = list.data.find(r => r.tag_name === tag);
                 if (!release) throw new Error(`Tag ${tag} exists but release not found`);
-                // Delete existing assets so we can re-upload
                 for (const asset of release.assets) {
                   await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
                 }
@@ -60,7 +60,6 @@ jobs:
               }
             }
 
-            // Upload module.json
             await github.rest.repos.uploadReleaseAsset({
               owner, repo,
               release_id: release.id,
@@ -68,7 +67,6 @@ jobs:
               data: fs.readFileSync('module.json'),
             });
 
-            // Upload zip
             await github.rest.repos.uploadReleaseAsset({
               owner, repo,
               release_id: release.id,
@@ -76,7 +74,8 @@ jobs:
               data: fs.readFileSync('Pf2eNpcMaker.zip'),
             });
 
-      - name: Notify Foundry VTT Package Release API
+      # PF2E PACKAGE RELEASE
+      - name: Notify Foundry PF2e Package
         env:
           FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
         run: |
@@ -86,6 +85,37 @@ jobs:
             -H "Authorization: ${FOUNDRYVTT_RELEASE_TOKEN}" \
             -d "{
               \"id\": \"Pf2eNpcMaker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/download/v${VERSION}/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      # DND5E PACKAGE RELEASE
+      - name: Notify Foundry DnD5e Package
+        env:
+          FOUNDRYVTT_DND5E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_DND5E_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"DnD5eNpcMaker\",
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
