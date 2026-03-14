@@ -38,6 +38,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static N8N_AUTH_URL   = 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login';
   static N8N_NPC_URL    = 'https://foundryrelay.dedicated2.com/webhook/npc-builder';
   static N8N_DND5E_URL  = 'https://foundryrelay.dedicated2.com/webhook/dnd5e-npc-builder';
+  static N8N_HERO6E_URL = 'https://foundryrelay.dedicated2.com/webhook/hero6e-npc-builder';
   static PATREON_URL    = 'https://www.patreon.com/cw/CelestiaTools';
 
   /** localStorage slots */
@@ -57,6 +58,17 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Supported game systems */
   static SYSTEMS = ['pf2e', 'dnd5e', 'hero6e'];
+
+  /**
+   * Valid Hero System 6e point tiers.
+   * Used to snap the input value to the nearest recognised budget.
+   */
+  static HERO6E_POINT_TIERS = [25, 50, 75, 100, 150, 175, 200, 250, 300, 350, 400, 500, 600];
+
+  /**
+   * Valid Hero System 6e genre values accepted by the n8n workflow.
+   */
+  static HERO6E_GENRES = ['standard', 'superhero', 'pulp', 'dark_champions', 'fantasy', 'sci-fi'];
 
   static DEFAULT_OPTIONS = {
     id: 'pf2e-npc-builder',
@@ -213,13 +225,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const anyGenerating = this.npcHistory.some(e => e.status === 'generating');
     root.classList.toggle('is-generating', anyGenerating);
 
-    const isUnusableSystem = this.selectedSystem === 'hero6e';
-
     const genBtn = root.querySelector('button[data-action="generate"]');
     if (genBtn) {
-      genBtn.disabled = !this.authenticated || isUnusableSystem;
+      genBtn.disabled = !this.authenticated;
       const label = genBtn.querySelector('.btn-label');
-      if (label) label.textContent = isUnusableSystem ? 'Not Available' : 'Generate NPC';
+      if (label) label.textContent = 'Generate NPC';
     }
 
     const expBtn = root.querySelector('button[data-action="export"]');
@@ -308,13 +318,13 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         historyLabel:    'Created Creatures',
       },
       hero6e: {
-        levelLabel:      'Power Level',
-        levelMin:        '1',
-        levelMax:        '12',
-        levelStep:       '1',
-        levelDefault:    '1',
+        levelLabel:      'Point Value',
+        levelMin:        '25',
+        levelMax:        '600',
+        levelStep:       '25',
+        levelDefault:    '150',
         namePlaceholder: 'e.g. Ironclad',
-        descPlaceholder: 'Describe this character: their powers, combat style, skills, limitations, background…',
+        descPlaceholder: 'Describe this character: their powers, combat style, skills, limitations, background…\n\nOptionally add "genre: superhero/standard/pulp/dark_champions/fantasy/sci-fi" to set the genre.',
         historyLabel:    'Created Characters',
       },
     };
@@ -329,6 +339,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       levelInput.min  = cfg.levelMin;
       levelInput.max  = cfg.levelMax;
       levelInput.step = cfg.levelStep;
+      // Snap current value to a valid Hero tier if switching to hero6e
+      if (system === 'hero6e') {
+        const raw = parseInt(levelInput.value) || 150;
+        levelInput.value = NPCBuilderApp._snapToHero6eTier(raw);
+      }
     }
 
     const nameInput = root.querySelector('#npc-name');
@@ -340,8 +355,18 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const historyLabel = root.querySelector('.history-header-label');
     if (historyLabel) historyLabel.textContent = cfg.historyLabel;
 
-    // Sync auth UI (handles button disabled state with system awareness)
+    // Sync auth UI
     this._applyAuthStateUI();
+  }
+
+  /**
+   * Snap a raw point value to the nearest valid Hero System 6e tier.
+   */
+  static _snapToHero6eTier(raw) {
+    const tiers = NPCBuilderApp.HERO6E_POINT_TIERS;
+    return tiers.reduce((prev, curr) =>
+      Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev
+    );
   }
 
   /* ── History rendering ───────────────────────────────────── */
@@ -380,7 +405,16 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const escapedName  = this._escapeHtml(entry.name);
     const escapedError = entry.error ? this._escapeHtml(entry.error) : '';
-    const metaLabel    = entry.system === 'dnd5e' ? `CR&nbsp;${entry.level}` : `Lv.&nbsp;${entry.level}`;
+
+    // Pick the right label for the secondary meta column
+    let metaLabel;
+    if (entry.system === 'dnd5e') {
+      metaLabel = `CR&nbsp;${entry.level}`;
+    } else if (entry.system === 'hero6e') {
+      metaLabel = `${entry.level}&nbsp;pts`;
+    } else {
+      metaLabel = `Lv.&nbsp;${entry.level}`;
+    }
 
     el.innerHTML = `
       <div class="history-entry-main">
@@ -563,8 +597,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
       // Method B: polling (works in Electron / external browser where opener is null)
       let pollTimer = null;
-      // Both real 500s and CORS/network failures (which also manifest as "Failed to fetch"
-      // when n8n's error responses lack CORS headers) count toward the give-up limit.
       let consecutiveErrors = 0;
       const MAX_ERRORS = 10; // ~25 s of consecutive failures before giving up
       const deadline = Date.now() + TIMEOUT_MS;
@@ -613,8 +645,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
             }
             // data.pending === true means still waiting — keep polling
           } catch (err) {
-            // fetch() throws (instead of resolving with status 500) when the server's
-            // error response is missing CORS headers — count these the same as server errors.
             consecutiveErrors++;
             console.warn(
               `[NPC Builder] poll fetch error (${consecutiveErrors}/${MAX_ERRORS}):`, err.message,
@@ -688,11 +718,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (this.selectedSystem === 'hero6e' || this.selectedSystem === 'home') {
-      if (this.selectedSystem === 'hero6e')
-        ui.notifications.warn('HERO 6e support is not yet available.');
-      return;
-    }
+    if (this.selectedSystem === 'home') return;
 
     const form = this.element?.querySelector?.('.npc-form');
     if (!form) {
@@ -764,6 +790,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       let endpoint, payload;
 
       if (system === 'dnd5e') {
+        // ── D&D 5e ───────────────────────────────────────────────────────────
         endpoint = NPCBuilderApp.N8N_DND5E_URL;
         payload  = { name, cr: level, description, casterType };
         console.log('[NPC Builder] D&D 5e generation request:', { name, cr: level, casterType });
@@ -773,7 +800,27 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           payload.spellMapping = await this._buildSpellMapping();
           console.log(`[NPC Builder] Added ${payload.spellMapping.length} D&D 5e spells to payload`);
         }
+
+      } else if (system === 'hero6e') {
+        // ── Hero System 6e ───────────────────────────────────────────────────
+        endpoint = NPCBuilderApp.N8N_HERO6E_URL;
+
+        // Snap points to nearest valid tier
+        const points = NPCBuilderApp._snapToHero6eTier(level);
+
+        // Extract optional genre tag from description (e.g. "genre: superhero")
+        let genre = 'standard';
+        const genreMatch = description.match(/\bgenre\s*:\s*([\w_-]+)/i);
+        if (genreMatch) {
+          const extracted = genreMatch[1].toLowerCase();
+          if (NPCBuilderApp.HERO6E_GENRES.includes(extracted)) genre = extracted;
+        }
+
+        payload = { name, points, genre, description };
+        console.log('[NPC Builder] Hero System 6e generation request:', { name, points, genre });
+
       } else {
+        // ── Pathfinder 2e (default) ───────────────────────────────────────────
         endpoint = NPCBuilderApp.N8N_NPC_URL;
         payload  = { name, level, description };
 
@@ -875,8 +922,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!actorData.name || !actorData.type) throw new Error(`Invalid actor data: missing ${!actorData.name ? 'name' : 'type'}`);
 
         console.log('[NPC Builder] Creating actor in Foundry...', actorData);
+
         if (system === 'dnd5e') {
           this._sanitizeActorDataDnd5e(actorData);
+        } else if (system === 'hero6e') {
+          this._sanitizeActorDataHero6e(actorData);
         } else {
           this._sanitizeActorData(actorData);
         }
@@ -887,10 +937,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const _dnd5eTokenImg  = actorData.img || 'icons/svg/mystery-man.svg';
 
         // ── dnd5e 5.x / Foundry v14: merge system data against the blank NPC schema ──
-        // Actor5e._preCreate reads `this.system.token` (and other fields) during document
-        // initialisation. If actorData.system is missing keys that the DataModel expects,
-        // the coercion step fails and this.system comes out undefined, crashing _preCreate.
-        // Merging against the blank schema guarantees every required key is present.
         if (system === 'dnd5e') {
           try {
             const blankSchema = foundry.utils.deepClone(
@@ -902,9 +948,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
               { inplace: false, insertKeys: true, insertValues: true, overwrite: true }
             );
             console.log('[NPC Builder] D&D 5e: system merged against blank NPC schema');
-            // Actor5e._preCreate (dnd5e 5.x) reads this.system.token at actor.mjs:661.
-            // If the blank NPC schema doesn't include a token key, this.system comes out
-            // undefined after DataModel coercion and crashes. Ensure it exists here.
             if (!actorData.system.token || typeof actorData.system.token !== 'object') {
               actorData.system.token = {};
             }
@@ -922,7 +965,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
             actor = await Actor.create(actorData);
           } catch (error) {
             const errorText = error.toString ? error.toString() : String(error.message || error);
-            if (system !== 'dnd5e' && this._tryFixValidationError(actorData, errorText)) {
+            if (system !== 'dnd5e' && system !== 'hero6e' && this._tryFixValidationError(actorData, errorText)) {
               console.warn(`[NPC Builder] Fixed validation error, retrying (attempt ${attempts})...`);
               continue;
             }
@@ -931,8 +974,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
 
         if (actor) {
-          // Patch token name + img now that the DataModel is fully initialized
           if (system === 'dnd5e') {
+            // Patch token name + img now that the DataModel is fully initialized
             await actor.update({
               'prototypeToken.name': _dnd5eTokenName,
               'prototypeToken.texture.src': _dnd5eTokenImg,
@@ -1079,7 +1122,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       actorData._id = generateId();
     }
 
-    // Ensure type is 'npc' for D&D 5e monsters/NPCs
     if (actorData.type !== 'npc') {
       console.warn('[NPC Builder] D&D 5e: Correcting actor type to "npc" (was:', actorData.type, ')');
       actorData.type = 'npc';
@@ -1091,8 +1133,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           console.warn('[NPC Builder] D&D 5e: Fixing invalid item _id:', item._id, 'for', item.name);
           item._id = generateId();
         }
-
-        // Ensure description object exists
         if (!item.system) item.system = {};
         if (!item.system.description) item.system.description = { value: '', chat: '', unidentified: '' };
       });
@@ -1101,12 +1141,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!actorData.flags) actorData.flags = {};
     if (!actorData.img) actorData.img = 'icons/svg/mystery-man.svg';
 
-    // ── Scrub misplaced saving throw data ───────────────────────────────────
-    // GPT inconsistently outputs saves in wrong locations. The only valid place
-    // in dnd5e is system.abilities[key].proficient = 0|1. Fix all known variants.
     const _abilities = actorData.system?.abilities || {};
 
-    // Case 1: system.save = { str: { proficient: 1 }, ... }
     if (actorData.system?.save && typeof actorData.system.save === 'object') {
       console.warn('[NPC Builder] D&D 5e: Fixing misplaced system.save');
       for (const [k, v] of Object.entries(actorData.system.save)) {
@@ -1114,7 +1150,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       delete actorData.system.save;
     }
-    // Case 2: system['attributes.save'] — literal dotted-string key
     if (actorData.system?.['attributes.save'] && typeof actorData.system['attributes.save'] === 'object') {
       console.warn('[NPC Builder] D&D 5e: Fixing misplaced system["attributes.save"]');
       for (const [k, v] of Object.entries(actorData.system['attributes.save'])) {
@@ -1122,7 +1157,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       delete actorData.system['attributes.save'];
     }
-    // Case 3: system.attributes.save — wrong nesting level
     if (actorData.system?.attributes?.save && typeof actorData.system.attributes.save === 'object') {
       console.warn('[NPC Builder] D&D 5e: Fixing misplaced system.attributes.save');
       for (const [k, v] of Object.entries(actorData.system.attributes.save)) {
@@ -1131,10 +1165,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       delete actorData.system.attributes.save;
     }
 
-    // ── Coerce trait sets to { value: [], custom: '' } ───────────────────────
-    // dnd5e 3.x+ DataModel rejects bare arrays for di/dr/ci/languages.
-    // GPT and older workflow versions output raw arrays — coerce them here as a
-    // last line of defence before the system merge in _runGeneration.
     const _traits = actorData.system?.traits;
     if (_traits) {
       const toTraitSet = (val) => {
@@ -1152,8 +1182,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (_traits.languages !== undefined) _traits.languages = toTraitSet(_traits.languages);
     }
 
-    // ── Ensure movement uses dnd5e 5.x schema (system.attributes.movement) ──
-    // Old workflow versions wrote system.attributes.speed; 5.x needs .movement.
     const _attrs = actorData.system?.attributes;
     if (_attrs && !_attrs.movement) {
       const spd = _attrs.speed;
@@ -1165,18 +1193,137 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
 
-    // ── Ensure currency exists (required by dnd5e DataModel) ─────────────────
     if (actorData.system && !actorData.system.currency) {
       actorData.system.currency = { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 };
     }
 
-    // ── Remove prototypeToken ────────────────────────────────────────────────
-    // Foundry's Actor5e._preCreate crashes when given any plain prototypeToken
-    // object — it expects to build a live DataModel instance itself from defaults.
-    // We delete it here; _runGeneration patches name + img after creation.
     delete actorData.prototypeToken;
 
     console.log('[NPC Builder] D&D 5e actor data sanitized:', actorData.name, '| items:', actorData.items?.length || 0);
+  }
+
+  /* ── Sanitize Hero System 6e actor data ──────────────────── */
+
+  /**
+   * Cleans up a hero6efoundryvttv2 actor object returned from the n8n workflow
+   * before passing it to Actor.create().
+   *
+   * Key concerns:
+   * - All 17 characteristics must be present with numeric value/max/LEVELS
+   * - item.system.LEVELS must be a string (the system reads it as a string field)
+   * - Complications must have a numeric POINTS field
+   * - prototypeToken is preserved (the Hero system doesn't crash on it)
+   */
+  _sanitizeActorDataHero6e(actorData) {
+    const generateId = () => foundry.utils.randomID(16);
+
+    // ── Actor-level fields ────────────────────────────────────────────────────
+    if (!actorData._id || actorData._id.length !== 16 || !/^[a-zA-Z0-9]{16}$/.test(actorData._id)) {
+      console.warn('[NPC Builder] Hero 6e: Fixing invalid actor _id:', actorData._id);
+      actorData._id = generateId();
+    }
+
+    if (actorData.type !== 'npc') {
+      console.warn('[NPC Builder] Hero 6e: Correcting actor type to "npc" (was:', actorData.type, ')');
+      actorData.type = 'npc';
+    }
+
+    if (!actorData.img) actorData.img = 'icons/svg/mystery-man.svg';
+    if (!actorData.flags) actorData.flags = {};
+    if (!actorData.effects) actorData.effects = [];
+
+    // ── System-level fields ───────────────────────────────────────────────────
+    if (!actorData.system) actorData.system = {};
+    const sys = actorData.system;
+
+    if (typeof sys.is5e === 'undefined') sys.is5e = false;
+    if (!sys.genre) sys.genre = 'standard';
+    if (!sys.totalPoints) sys.totalPoints = 150;
+    if (!sys.basePoints) sys.basePoints = sys.totalPoints;
+    if (typeof sys.experiencePoints === 'undefined') sys.experiencePoints = 0;
+    if (!sys.notes) sys.notes = '';
+    if (!sys.biography) sys.biography = '';
+
+    // ── Characteristics: enforce all 17 keys, coerce to numbers ──────────────
+    const CHAR_BASES = {
+      STR:10, DEX:10, CON:10, INT:10, EGO:10, PRE:10,
+      OCV:3,  DCV:3,  OMCV:3, DMCV:3,
+      SPD:2,  PD:2,   ED:2,
+      REC:4,  END:20, BODY:10, STUN:20,
+    };
+
+    if (!sys.characteristics) sys.characteristics = {};
+    const chars = sys.characteristics;
+
+    for (const [key, base] of Object.entries(CHAR_BASES)) {
+      if (!chars[key]) {
+        chars[key] = { value: base, max: base, LEVELS: 0 };
+      } else {
+        const c = chars[key];
+        const levels = Math.max(0, parseInt(c.LEVELS) || 0);
+        c.LEVELS = levels;
+        c.max    = base + levels;
+        c.value  = Math.min(parseInt(c.value) || c.max, c.max);
+      }
+    }
+
+    // ── Items: coerce LEVELS to string, ensure required fields ───────────────
+    if (!Array.isArray(actorData.items)) actorData.items = [];
+
+    const VALID_ITEM_TYPES = new Set([
+      'power', 'skill', 'talent', 'complication', 'equipment',
+      'perk', 'martialart', 'maneuver', 'characteristic',
+    ]);
+
+    actorData.items = actorData.items.map(item => {
+      if (!item._id || item._id.length !== 16 || !/^[a-zA-Z0-9]{16}$/.test(item._id)) {
+        item._id = generateId();
+      }
+
+      // Default type to 'power' if missing or invalid
+      if (!VALID_ITEM_TYPES.has(item.type)) {
+        console.warn('[NPC Builder] Hero 6e: Unknown item type', item.type, '— defaulting to "power"');
+        item.type = 'power';
+      }
+
+      if (!item.system) item.system = {};
+      const s = item.system;
+
+      // XMLID is required by the Hero system
+      if (!s.XMLID) {
+        if (item.type === 'power')        s.XMLID = 'ENERGYBLAST';
+        else if (item.type === 'skill')   s.XMLID = 'SKILL';
+        else if (item.type === 'complication') s.XMLID = 'PSYCHOLOGICAL_LIMITATION';
+        else                              s.XMLID = 'GENERIC';
+      }
+
+      // LEVELS must be a string (hero6e system reads it that way)
+      if (typeof s.LEVELS === 'number') s.LEVELS = String(s.LEVELS);
+      if (!s.LEVELS) s.LEVELS = '1';
+
+      // ALIAS doubles as the display name
+      if (!s.ALIAS) s.ALIAS = item.name || s.XMLID;
+      if (!s.description) s.description = item.name || '';
+
+      // Numeric fields
+      if (s.active_points !== undefined) s.active_points = parseInt(s.active_points) || 0;
+      if (s.real_cost     !== undefined) s.real_cost     = parseInt(s.real_cost)     || 0;
+      if (s.ENDCOST       !== undefined) s.ENDCOST       = parseInt(s.ENDCOST)       || 0;
+
+      // Complications need a numeric POINTS value
+      if (item.type === 'complication') {
+        s.POINTS = parseInt(s.POINTS) || 10;
+      }
+
+      item.system = s;
+      return item;
+    });
+
+    console.log('[NPC Builder] Hero 6e actor data sanitized:', actorData.name,
+      '| items:', actorData.items.length,
+      '| powers:', actorData.items.filter(i => i.type === 'power').length,
+      '| skills:', actorData.items.filter(i => i.type === 'skill').length,
+      '| complications:', actorData.items.filter(i => i.type === 'complication').length);
   }
 
   /**
