@@ -1208,11 +1208,22 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Cleans up a hero6efoundryvttv2 actor object returned from the n8n workflow
    * before passing it to Actor.create().
    *
-   * Key concerns:
-   * - All 17 characteristics must be present with numeric value/max/LEVELS
-   * - item.system.LEVELS must be a string (the system reads it as a string field)
-   * - Complications must have a numeric POINTS field
-   * - prototypeToken is preserved (the Hero system doesn't crash on it)
+   * IMPORTANT: n8n Step 4 injects critical fields onto each item.system before
+   * returning the response. This function MUST preserve those fields:
+   *
+   *   INPUT       — required by _getNonCharacteristicsBasedRollComponents; calling
+   *                 INPUT.includes() on undefined causes a TypeError that crashes
+   *                 the entire actor sheet render.
+   *   OPTIONID    — required by COMBAT_LEVELS, FLASHDEFENSE, STRIKING_APPEARANCE,
+   *                 SKILL_LEVELS, etc.; missing causes a crash on sheet open.
+   *   OPTION      — companion to OPTIONID.
+   *   OPTION_ALIAS — display label for the selected option.
+   *   CHARACTERISTIC — required by skills (DEX, INT, PRE, etc.) and some talents.
+   *   ADDER       — required by PSYCHOLOGICALLIMITATION (INTENSITY adder).
+   *   is5e        — must be false on every item to suppress 5e-mode warnings.
+   *
+   * This function only handles structural concerns (IDs, type coercion, required
+   * defaults). It trusts n8n's validated XMLIDs and injected fields completely.
    */
   _sanitizeActorDataHero6e(actorData) {
     const generateId = () => foundry.utils.randomID(16);
@@ -1228,8 +1239,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       actorData.type = 'npc';
     }
 
-    if (!actorData.img) actorData.img = 'icons/svg/mystery-man.svg';
-    if (!actorData.flags) actorData.flags = {};
+    if (!actorData.img)     actorData.img     = 'icons/svg/mystery-man.svg';
+    if (!actorData.flags)   actorData.flags   = {};
     if (!actorData.effects) actorData.effects = [];
 
     // ── System-level fields ───────────────────────────────────────────────────
@@ -1237,12 +1248,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const sys = actorData.system;
 
     if (typeof sys.is5e === 'undefined') sys.is5e = false;
-    if (!sys.genre) sys.genre = 'standard';
-    if (!sys.totalPoints) sys.totalPoints = 150;
-    if (!sys.basePoints) sys.basePoints = sys.totalPoints;
+    if (!sys.genre)          sys.genre          = 'standard';
+    if (!sys.totalPoints)    sys.totalPoints    = 150;
+    if (!sys.basePoints)     sys.basePoints     = sys.totalPoints;
     if (typeof sys.experiencePoints === 'undefined') sys.experiencePoints = 0;
-    if (!sys.notes) sys.notes = '';
-    if (!sys.biography) sys.biography = '';
+    if (!sys.notes)          sys.notes          = '';
+    if (!sys.biography)      sys.biography      = '';
 
     // ── Characteristics: enforce all 17 keys, coerce to numbers ──────────────
     const CHAR_BASES = {
@@ -1259,11 +1270,22 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!chars[key]) {
         chars[key] = { value: base, max: base, LEVELS: 0 };
       } else {
-        const c = chars[key];
+        const c      = chars[key];
         const levels = Math.max(0, parseInt(c.LEVELS) || 0);
-        c.LEVELS = levels;
-        c.max    = base + levels;
-        c.value  = Math.min(parseInt(c.value) || c.max, c.max);
+        c.LEVELS     = levels;
+        c.max        = base + levels;
+        c.value      = Math.min(parseInt(c.value) || c.max, c.max);
+      }
+    }
+
+    // Remove any non-standard characteristic keys (e.g. "Natural", lowercase dupes).
+    // The Hero system iterates ALL keys in characteristics and calls getPowerInfo()
+    // on each — any unknown key logs "Unable to find 6e power entry" and can
+    // interfere with point calculations and sheet rendering.
+    for (const k of Object.keys(chars)) {
+      if (!CHAR_BASES[k]) {
+        console.warn('[NPC Builder] Hero 6e: Removing non-standard characteristic key:', k);
+        delete chars[k];
       }
     }
 
@@ -1289,12 +1311,20 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!item.system) item.system = {};
       const s = item.system;
 
-      // XMLID is required by the Hero system
+      // XMLID: trust n8n's validated value entirely.
+      // Only set a safe fallback if the field is completely absent.
+      // Do NOT use invalid 5e-era defaults like 'PSYCHOLOGICAL_LIMITATION' (broken —
+      // the correct 6e XMLID has no underscores: PSYCHOLOGICALLIMITATION) or 'SKILL'
+      // (doesn't exist in hero6efoundryvttv2).
       if (!s.XMLID) {
-        if (item.type === 'power')        s.XMLID = 'ENERGYBLAST';
-        else if (item.type === 'skill')   s.XMLID = 'SKILL';
-        else if (item.type === 'complication') s.XMLID = 'PSYCHOLOGICAL_LIMITATION';
-        else                              s.XMLID = 'GENERIC';
+        const xmlidDefaults = {
+          power:        'CUSTOMPOWER',
+          skill:        'CUSTOMSKILL',
+          talent:       'CUSTOMTALENT',
+          complication: 'GENERICDISADVANTAGE',
+        };
+        s.XMLID = xmlidDefaults[item.type] || 'CUSTOMPOWER';
+        console.warn('[NPC Builder] Hero 6e: Missing XMLID on', item.type, '→ defaulting to', s.XMLID);
       }
 
       // LEVELS must be a string (hero6e system reads it that way)
@@ -1302,7 +1332,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!s.LEVELS) s.LEVELS = '1';
 
       // ALIAS doubles as the display name
-      if (!s.ALIAS) s.ALIAS = item.name || s.XMLID;
+      if (!s.ALIAS)       s.ALIAS       = item.name || s.XMLID;
       if (!s.description) s.description = item.name || '';
 
       // Numeric fields
@@ -1313,6 +1343,14 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Complications need a numeric POINTS value
       if (item.type === 'complication') {
         s.POINTS = parseInt(s.POINTS) || 10;
+      }
+
+      // Debug: log key fields for every power so we can confirm INPUT/OPTIONID survive
+      if (item.type === 'power') {
+        console.log('[NPC Builder] Hero 6e item:', s.XMLID,
+          '| INPUT:', s.INPUT        || 'MISSING',
+          '| OPTIONID:', s.OPTIONID  || 'none',
+          '| CHARACTERISTIC:', s.CHARACTERISTIC || 'none');
       }
 
       item.system = s;
