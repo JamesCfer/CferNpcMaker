@@ -2,7 +2,6 @@
   "id": "Pf2eNpcMaker",
   "title": "PF2E NPC Auto-Builder",
   "description": "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API.",
-  "version": "1.9.3",
   "authors": [
     {
       "name": "JamesCfer"
@@ -19,7 +18,5 @@
   "styles": [
     "styles/builder.css"
   ],
-  "templateDir": "templates",
-  "manifest": "https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-latest/module.json",
-  "download": "https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-latest/Pf2eNpcMaker.zip"
+  "templateDir": "templates"
 }
