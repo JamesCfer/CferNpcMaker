@@ -24,14 +24,15 @@ jobs:
           BASE="https://github.com/JamesCfer/CferNpcMaker/releases/download"
 
           # --- DnD5eNpcMaker ---
+          # manifest/download use the floating tag so Foundry always finds the latest
           mkdir -p DnD5eNpcMaker
           jq \
             --arg id          "DnD5eNpcMaker" \
             --arg title       "DnD 5e NPC Auto-Builder" \
             --arg desc        "Generate D&D 5e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
             --argjson systems '["dnd5e"]' \
-            --arg manifest    "${BASE}/dnd5e-v${VERSION}/module.json" \
-            --arg download    "${BASE}/dnd5e-v${VERSION}/DnD5eNpcMaker.zip" \
+            --arg manifest    "${BASE}/dnd5e-latest/module.json" \
+            --arg download    "${BASE}/dnd5e-latest/DnD5eNpcMaker.zip" \
             '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
             module.json > DnD5eNpcMaker/module.json
           cp -r scripts styles templates README.md DnD5eNpcMaker/
@@ -44,8 +45,8 @@ jobs:
             --arg title       "PF2E NPC Auto-Builder" \
             --arg desc        "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
             --argjson systems '["pf2e"]' \
-            --arg manifest    "${BASE}/pf2e-v${VERSION}/module.json" \
-            --arg download    "${BASE}/pf2e-v${VERSION}/Pf2eNpcMaker.zip" \
+            --arg manifest    "${BASE}/pf2e-latest/module.json" \
+            --arg download    "${BASE}/pf2e-latest/Pf2eNpcMaker.zip" \
             '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
             module.json > Pf2eNpcMaker/module.json
           cp -r scripts styles templates README.md Pf2eNpcMaker/
@@ -58,14 +59,14 @@ jobs:
             --arg title       "Hero 6e NPC Auto-Builder" \
             --arg desc        "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
             --argjson systems '["hero6e"]' \
-            --arg manifest    "${BASE}/hero6-v${VERSION}/module.json" \
-            --arg download    "${BASE}/hero6-v${VERSION}/Hero6NpcMaker.zip" \
+            --arg manifest    "${BASE}/hero6-latest/module.json" \
+            --arg download    "${BASE}/hero6-latest/Hero6NpcMaker.zip" \
             '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
             module.json > Hero6NpcMaker/module.json
           cp -r scripts styles templates README.md Hero6NpcMaker/
           zip -r Hero6NpcMaker.zip Hero6NpcMaker/
 
-      - name: Create DnD5e Release
+      - name: Create DnD5e versioned release
         uses: actions/github-script@v7
         with:
           script: |
@@ -76,38 +77,47 @@ jobs:
 
             let release;
             try {
-              const res = await github.rest.repos.createRelease({
-                owner, repo,
-                tag_name: tag,
-                name: `DnD5eNpcMaker v${version}`,
-                body: `DnD5eNpcMaker release v${version}`,
-                draft: false,
-                prerelease: false,
-              });
-              release = res.data;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `DnD5eNpcMaker v${version}`,
+                body: `DnD5eNpcMaker release v${version}`, draft: false, prerelease: false,
+              })).data;
             } catch (e) {
-              if (e.status === 422) {
-                const list = await github.rest.repos.listReleases({ owner, repo });
-                release = list.data.find(r => r.tag_name === tag);
-                if (!release) throw new Error(`Tag ${tag} exists but release not found`);
-                for (const asset of release.assets) {
-                  await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-                }
-              } else {
-                throw e;
-              }
+              if (e.status !== 422) throw e;
+              const list = await github.rest.repos.listReleases({ owner, repo });
+              release = list.data.find(r => r.tag_name === tag);
+              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            }
+            for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update DnD5e floating latest release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { repo, owner } = context.repo;
+            const tag = 'dnd5e-latest';
+            const version = '${{ steps.version.outputs.version }}';
+
+            // Delete existing release and tag if present
+            const list = await github.rest.repos.listReleases({ owner, repo });
+            const existing = list.data.find(r => r.tag_name === tag);
+            if (existing) {
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
+              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
             }
 
-            for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']]) {
-              await github.rest.repos.uploadReleaseAsset({
-                owner, repo,
-                release_id: release.id,
-                name,
-                data: fs.readFileSync(path),
-              });
-            }
+            const release = (await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: `DnD5eNpcMaker latest (v${version})`,
+              body: `Always points to the latest DnD5eNpcMaker release. Current: v${version}`,
+              draft: false, prerelease: false,
+            })).data;
+            for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-      - name: Create PF2e Release
+      - name: Create PF2e versioned release
         uses: actions/github-script@v7
         with:
           script: |
@@ -118,38 +128,46 @@ jobs:
 
             let release;
             try {
-              const res = await github.rest.repos.createRelease({
-                owner, repo,
-                tag_name: tag,
-                name: `Pf2eNpcMaker v${version}`,
-                body: `Pf2eNpcMaker release v${version}`,
-                draft: false,
-                prerelease: false,
-              });
-              release = res.data;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `Pf2eNpcMaker v${version}`,
+                body: `Pf2eNpcMaker release v${version}`, draft: false, prerelease: false,
+              })).data;
             } catch (e) {
-              if (e.status === 422) {
-                const list = await github.rest.repos.listReleases({ owner, repo });
-                release = list.data.find(r => r.tag_name === tag);
-                if (!release) throw new Error(`Tag ${tag} exists but release not found`);
-                for (const asset of release.assets) {
-                  await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-                }
-              } else {
-                throw e;
-              }
+              if (e.status !== 422) throw e;
+              const list = await github.rest.repos.listReleases({ owner, repo });
+              release = list.data.find(r => r.tag_name === tag);
+              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            }
+            for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update PF2e floating latest release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { repo, owner } = context.repo;
+            const tag = 'pf2e-latest';
+            const version = '${{ steps.version.outputs.version }}';
+
+            const list = await github.rest.repos.listReleases({ owner, repo });
+            const existing = list.data.find(r => r.tag_name === tag);
+            if (existing) {
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
+              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
             }
 
-            for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']]) {
-              await github.rest.repos.uploadReleaseAsset({
-                owner, repo,
-                release_id: release.id,
-                name,
-                data: fs.readFileSync(path),
-              });
-            }
+            const release = (await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: `Pf2eNpcMaker latest (v${version})`,
+              body: `Always points to the latest Pf2eNpcMaker release. Current: v${version}`,
+              draft: false, prerelease: false,
+            })).data;
+            for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-      - name: Create Hero6 Release
+      - name: Create Hero6 versioned release
         uses: actions/github-script@v7
         with:
           script: |
@@ -160,36 +178,44 @@ jobs:
 
             let release;
             try {
-              const res = await github.rest.repos.createRelease({
-                owner, repo,
-                tag_name: tag,
-                name: `Hero6NpcMaker v${version}`,
-                body: `Hero6NpcMaker release v${version}`,
-                draft: false,
-                prerelease: false,
-              });
-              release = res.data;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `Hero6NpcMaker v${version}`,
+                body: `Hero6NpcMaker release v${version}`, draft: false, prerelease: false,
+              })).data;
             } catch (e) {
-              if (e.status === 422) {
-                const list = await github.rest.repos.listReleases({ owner, repo });
-                release = list.data.find(r => r.tag_name === tag);
-                if (!release) throw new Error(`Tag ${tag} exists but release not found`);
-                for (const asset of release.assets) {
-                  await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-                }
-              } else {
-                throw e;
-              }
+              if (e.status !== 422) throw e;
+              const list = await github.rest.repos.listReleases({ owner, repo });
+              release = list.data.find(r => r.tag_name === tag);
+              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            }
+            for (const [name, path] of [['module.json', 'Hero6NpcMaker/module.json'], ['Hero6NpcMaker.zip', 'Hero6NpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update Hero6 floating latest release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { repo, owner } = context.repo;
+            const tag = 'hero6-latest';
+            const version = '${{ steps.version.outputs.version }}';
+
+            const list = await github.rest.repos.listReleases({ owner, repo });
+            const existing = list.data.find(r => r.tag_name === tag);
+            if (existing) {
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
+              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
             }
 
-            for (const [name, path] of [['module.json', 'Hero6NpcMaker/module.json'], ['Hero6NpcMaker.zip', 'Hero6NpcMaker.zip']]) {
-              await github.rest.repos.uploadReleaseAsset({
-                owner, repo,
-                release_id: release.id,
-                name,
-                data: fs.readFileSync(path),
-              });
-            }
+            const release = (await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: `Hero6NpcMaker latest (v${version})`,
+              body: `Always points to the latest Hero6NpcMaker release. Current: v${version}`,
+              draft: false, prerelease: false,
+            })).data;
+            for (const [name, path] of [['module.json', 'Hero6NpcMaker/module.json'], ['Hero6NpcMaker.zip', 'Hero6NpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       # PF2E PACKAGE RELEASE
       - name: Notify Foundry PF2e Package
@@ -205,7 +231,7 @@ jobs:
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-v${VERSION}/module.json\",
+                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-latest/module.json\",
                 \"notes\": \"https://github.com/JamesCfer/CferNpcMaker/releases/tag/pf2e-v${VERSION}\",
                 \"compatibility\": {
                   \"minimum\": \"13\",
@@ -236,7 +262,7 @@ jobs:
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/dnd5e-v${VERSION}/module.json\",
+                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/dnd5e-latest/module.json\",
                 \"notes\": \"https://github.com/JamesCfer/CferNpcMaker/releases/tag/dnd5e-v${VERSION}\",
                 \"compatibility\": {
                   \"minimum\": \"13\",
