@@ -101,19 +101,25 @@ jobs:
             const tag = 'dnd5e-latest';
             const version = '${{ steps.version.outputs.version }}';
 
-            // Delete existing release and tag if present
+            // Find or create the release without ever deleting it (avoids 404 window)
             const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
-            const existing = list.data.find(r => r.tag_name === tag);
-            if (existing) {
-              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              // Delete only the assets, keeping the release live throughout
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `DnD5eNpcMaker latest (v${version})`,
+                body: `Always points to the latest DnD5eNpcMaker release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `DnD5eNpcMaker latest (v${version})`,
+                body: `Always points to the latest DnD5eNpcMaker release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
             }
-
-            const release = (await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, name: `DnD5eNpcMaker latest (v${version})`,
-              body: `Always points to the latest DnD5eNpcMaker release. Current: v${version}`,
-              draft: false, prerelease: false,
-            })).data;
             for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
@@ -153,17 +159,22 @@ jobs:
             const version = '${{ steps.version.outputs.version }}';
 
             const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
-            const existing = list.data.find(r => r.tag_name === tag);
-            if (existing) {
-              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `Pf2eNpcMaker latest (v${version})`,
+                body: `Always points to the latest Pf2eNpcMaker release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `Pf2eNpcMaker latest (v${version})`,
+                body: `Always points to the latest Pf2eNpcMaker release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
             }
-
-            const release = (await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, name: `Pf2eNpcMaker latest (v${version})`,
-              body: `Always points to the latest Pf2eNpcMaker release. Current: v${version}`,
-              draft: false, prerelease: false,
-            })).data;
             for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
@@ -203,17 +214,22 @@ jobs:
             const version = '${{ steps.version.outputs.version }}';
 
             const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
-            const existing = list.data.find(r => r.tag_name === tag);
-            if (existing) {
-              await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `Hero6NpcMaker latest (v${version})`,
+                body: `Always points to the latest Hero6NpcMaker release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `Hero6NpcMaker latest (v${version})`,
+                body: `Always points to the latest Hero6NpcMaker release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
             }
-
-            const release = (await github.rest.repos.createRelease({
-              owner, repo, tag_name: tag, name: `Hero6NpcMaker latest (v${version})`,
-              body: `Always points to the latest Hero6NpcMaker release. Current: v${version}`,
-              draft: false, prerelease: false,
-            })).data;
             for (const [name, path] of [['module.json', 'Hero6NpcMaker/module.json'], ['Hero6NpcMaker.zip', 'Hero6NpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
