@@ -18,14 +18,52 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version module.json)" >> $GITHUB_OUTPUT
 
-      - name: Create module zip
+      - name: Build module zips
         run: |
-          zip -r Pf2eNpcMaker.zip \
-            module.json \
-            scripts/ \
-            styles/ \
-            templates/ \
-            README.md
+          VERSION="${{ steps.version.outputs.version }}"
+          BASE_URL="https://github.com/JamesCfer/CferNpcMaker/releases/download/v${VERSION}"
+
+          # --- DnD5eNpcMaker ---
+          mkdir -p DnD5eNpcMaker
+          jq --arg base "$BASE_URL" '
+            .id = "DnD5eNpcMaker" |
+            .title = "DnD 5e NPC Auto-Builder" |
+            .description = "Generate D&D 5e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
+            .systems = ["dnd5e"] |
+            .manifest = ($base + "/dnd5e-module.json") |
+            .download = ($base + "/DnD5eNpcMaker.zip")
+          ' module.json > DnD5eNpcMaker/module.json
+          cp -r scripts styles templates README.md DnD5eNpcMaker/
+          zip -r DnD5eNpcMaker.zip DnD5eNpcMaker/
+          cp DnD5eNpcMaker/module.json dnd5e-module.json
+
+          # --- Pf2eNpcMaker ---
+          mkdir -p Pf2eNpcMaker
+          jq --arg base "$BASE_URL" '
+            .id = "Pf2eNpcMaker" |
+            .title = "PF2E NPC Auto-Builder" |
+            .description = "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
+            .systems = ["pf2e"] |
+            .manifest = ($base + "/pf2e-module.json") |
+            .download = ($base + "/Pf2eNpcMaker.zip")
+          ' module.json > Pf2eNpcMaker/module.json
+          cp -r scripts styles templates README.md Pf2eNpcMaker/
+          zip -r Pf2eNpcMaker.zip Pf2eNpcMaker/
+          cp Pf2eNpcMaker/module.json pf2e-module.json
+
+          # --- Hero6NpcMaker ---
+          mkdir -p Hero6NpcMaker
+          jq --arg base "$BASE_URL" '
+            .id = "Hero6NpcMaker" |
+            .title = "Hero 6e NPC Auto-Builder" |
+            .description = "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
+            .systems = ["hero6e"] |
+            .manifest = ($base + "/hero6-module.json") |
+            .download = ($base + "/Hero6NpcMaker.zip")
+          ' module.json > Hero6NpcMaker/module.json
+          cp -r scripts styles templates README.md Hero6NpcMaker/
+          zip -r Hero6NpcMaker.zip Hero6NpcMaker/
+          cp Hero6NpcMaker/module.json hero6-module.json
 
       - name: Create GitHub Release and upload assets
         uses: actions/github-script@v7
@@ -60,19 +98,23 @@ jobs:
               }
             }
 
-            await github.rest.repos.uploadReleaseAsset({
-              owner, repo,
-              release_id: release.id,
-              name: 'module.json',
-              data: fs.readFileSync('module.json'),
-            });
+            const assets = [
+              'dnd5e-module.json',
+              'pf2e-module.json',
+              'hero6-module.json',
+              'DnD5eNpcMaker.zip',
+              'Pf2eNpcMaker.zip',
+              'Hero6NpcMaker.zip',
+            ];
 
-            await github.rest.repos.uploadReleaseAsset({
-              owner, repo,
-              release_id: release.id,
-              name: 'Pf2eNpcMaker.zip',
-              data: fs.readFileSync('Pf2eNpcMaker.zip'),
-            });
+            for (const name of assets) {
+              await github.rest.repos.uploadReleaseAsset({
+                owner, repo,
+                release_id: release.id,
+                name,
+                data: fs.readFileSync(name),
+              });
+            }
 
       # PF2E PACKAGE RELEASE
       - name: Notify Foundry PF2e Package
@@ -88,8 +130,8 @@ jobs:
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/download/v${VERSION}/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/v${VERSION}/pf2e-module.json\",
+                \"notes\": \"https://github.com/JamesCfer/CferNpcMaker/releases/tag/v${VERSION}\",
                 \"compatibility\": {
                   \"minimum\": \"13\",
                   \"verified\": \"13\"
@@ -119,8 +161,8 @@ jobs:
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/download/v${VERSION}/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/CferNpcMaker/releases/download/v${VERSION}/dnd5e-module.json\",
+                \"notes\": \"https://github.com/JamesCfer/CferNpcMaker/releases/tag/v${VERSION}\",
                 \"compatibility\": {
                   \"minimum\": \"13\",
                   \"verified\": \"13\"
