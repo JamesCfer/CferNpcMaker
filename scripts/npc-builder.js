@@ -1219,8 +1219,23 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
    *   OPTION      — companion to OPTIONID.
    *   OPTION_ALIAS — display label for the selected option.
    *   CHARACTERISTIC — required by skills (DEX, INT, PRE, etc.) and some talents.
-   *   ADDER       — required by PSYCHOLOGICALLIMITATION (INTENSITY adder).
+   *   ADDER       — required by REPUTATION, ACCIDENTALCHANGE, HUNTED, SOCIALLIMITATION,
+   *                 ENRAGED, PSYCHOLOGICALLIMITATION; missing causes a fatal TypeError.
+   *   xmlTag      — required by getPowerInfo() to resolve the correct power definition.
    *   is5e        — must be false on every item to suppress 5e-mode warnings.
+   *
+   * CHARACTERISTIC STORAGE — two paths must both be populated:
+   *
+   *   system.characteristics[KEY] — what this sanitizer reads (LEVELS → max/value).
+   *
+   *   system[KEY] e.g. system.STR  — EmbeddedDataField HeroItemCharacteristic.
+   *     hero6efoundryvttv2's _preCreate iterates all uppercase system keys and, when
+   *     XMLID is MISSING, does:
+   *       actorChanges.system[KEY] = { XMLID: KEY, xmlTag: KEY }
+   *     then calls updateSource(actorChanges) which REPLACES the embedded object,
+   *     wiping LEVELS back to 0.
+   *     Fix: always write { LEVELS, XMLID, xmlTag } onto every direct uppercase key
+   *     so the `!char.XMLID` guard is false and _preCreate skips it entirely.
    *
    * This function only handles structural concerns (IDs, type coercion, required
    * defaults). It trusts n8n's validated XMLIDs and injected fields completely.
@@ -1248,14 +1263,18 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const sys = actorData.system;
 
     if (typeof sys.is5e === 'undefined') sys.is5e = false;
-    if (!sys.genre)          sys.genre          = 'standard';
-    if (!sys.totalPoints)    sys.totalPoints    = 150;
-    if (!sys.basePoints)     sys.basePoints     = sys.totalPoints;
-    if (typeof sys.experiencePoints === 'undefined') sys.experiencePoints = 0;
-    if (!sys.notes)          sys.notes          = '';
-    if (!sys.biography)      sys.biography      = '';
 
-    // ── Characteristics: enforce all 17 keys, coerce to numbers ──────────────
+    // ── Characteristics ───────────────────────────────────────────────────────
+    // hero6efoundryvttv2 stores characteristics in TWO places that must both be set:
+    //
+    // 1. system.characteristics[KEY]  (HeroCharacteristicsModel — what THIS code reads)
+    //    { LEVELS, value, max } where value = max = base + LEVELS.
+    //
+    // 2. system[KEY]  e.g. system.STR  (EmbeddedDataField HeroItemCharacteristic)
+    //    _preCreate reads these. If XMLID is absent it REPLACES the whole object with
+    //    { XMLID, xmlTag }, zeroing LEVELS. We must include XMLID so _preCreate skips
+    //    the field. After Actor.create() the _onUpdate hook reads system[KEY].LEVELS
+    //    and propagates it into system.characteristics[key].max / .value.
     const CHAR_BASES = {
       STR:10, DEX:10, CON:10, INT:10, EGO:10, PRE:10,
       OCV:3,  DCV:3,  OMCV:3, DMCV:3,
@@ -1267,6 +1286,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const chars = sys.characteristics;
 
     for (const [key, base] of Object.entries(CHAR_BASES)) {
+      // 1. Validate / compute system.characteristics[key]
       if (!chars[key]) {
         chars[key] = { value: base, max: base, LEVELS: 0 };
       } else {
@@ -1276,6 +1296,11 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         c.max        = base + levels;
         c.value      = Math.min(parseInt(c.value) || c.max, c.max);
       }
+
+      // 2. Mirror onto the direct uppercase field with XMLID present.
+      //    This prevents _preCreate from replacing the object and zeroing LEVELS.
+      const levels = chars[key].LEVELS;
+      sys[key] = { LEVELS: levels, XMLID: key, xmlTag: key };
     }
 
     // Remove any non-standard characteristic keys (e.g. "Natural", lowercase dupes).
