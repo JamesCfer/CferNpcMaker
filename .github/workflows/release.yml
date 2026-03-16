@@ -102,11 +102,11 @@ jobs:
             const version = '${{ steps.version.outputs.version }}';
 
             // Delete existing release and tag if present
-            const list = await github.rest.repos.listReleases({ owner, repo });
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
             const existing = list.data.find(r => r.tag_name === tag);
             if (existing) {
               await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
+              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
             }
 
             const release = (await github.rest.repos.createRelease({
@@ -152,11 +152,11 @@ jobs:
             const tag = 'pf2e-latest';
             const version = '${{ steps.version.outputs.version }}';
 
-            const list = await github.rest.repos.listReleases({ owner, repo });
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
             const existing = list.data.find(r => r.tag_name === tag);
             if (existing) {
               await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
+              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
             }
 
             const release = (await github.rest.repos.createRelease({
@@ -202,11 +202,11 @@ jobs:
             const tag = 'hero6-latest';
             const version = '${{ steps.version.outputs.version }}';
 
-            const list = await github.rest.repos.listReleases({ owner, repo });
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
             const existing = list.data.find(r => r.tag_name === tag);
             if (existing) {
               await github.rest.repos.deleteRelease({ owner, repo, release_id: existing.id });
-              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
+              try { await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` }); } catch (_) {}
             }
 
             const release = (await github.rest.repos.createRelease({
