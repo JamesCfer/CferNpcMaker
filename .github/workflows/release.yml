@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get version from module.json
+      - name: Get version from version.json
         id: version
-        run: echo "version=$(jq -r .version module.json)" >> $GITHUB_OUTPUT
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Build module zips
         run: |
@@ -24,45 +24,35 @@ jobs:
           BASE="https://github.com/JamesCfer/CferNpcMaker/releases/download"
 
           # --- DnD5eNpcMaker ---
-          # manifest/download use the floating tag so Foundry always finds the latest
           mkdir -p DnD5eNpcMaker
           jq \
-            --arg id          "DnD5eNpcMaker" \
-            --arg title       "DnD 5e NPC Auto-Builder" \
-            --arg desc        "Generate D&D 5e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
-            --argjson systems '["dnd5e"]' \
-            --arg manifest    "${BASE}/dnd5e-latest/module.json" \
-            --arg download    "${BASE}/dnd5e-latest/DnD5eNpcMaker.zip" \
-            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
-            module.json > DnD5eNpcMaker/module.json
+            --arg version  "$VERSION" \
+            --arg manifest "${BASE}/dnd5e-latest/module.json" \
+            --arg download "${BASE}/dnd5e-latest/DnD5eNpcMaker.zip" \
+            '.version=$version | .manifest=$manifest | .download=$download' \
+            dnd5e-module.json > DnD5eNpcMaker/module.json
           cp -r scripts styles templates README.md DnD5eNpcMaker/
           zip -r DnD5eNpcMaker.zip DnD5eNpcMaker/
 
           # --- Pf2eNpcMaker ---
           mkdir -p Pf2eNpcMaker
           jq \
-            --arg id          "Pf2eNpcMaker" \
-            --arg title       "PF2E NPC Auto-Builder" \
-            --arg desc        "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
-            --argjson systems '["pf2e"]' \
-            --arg manifest    "${BASE}/pf2e-latest/module.json" \
-            --arg download    "${BASE}/pf2e-latest/Pf2eNpcMaker.zip" \
-            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
-            module.json > Pf2eNpcMaker/module.json
+            --arg version  "$VERSION" \
+            --arg manifest "${BASE}/pf2e-latest/module.json" \
+            --arg download "${BASE}/pf2e-latest/Pf2eNpcMaker.zip" \
+            '.version=$version | .manifest=$manifest | .download=$download' \
+            pf2e-module.json > Pf2eNpcMaker/module.json
           cp -r scripts styles templates README.md Pf2eNpcMaker/
           zip -r Pf2eNpcMaker.zip Pf2eNpcMaker/
 
           # --- Hero6NpcMaker ---
           mkdir -p Hero6NpcMaker
           jq \
-            --arg id          "Hero6NpcMaker" \
-            --arg title       "Hero 6e NPC Auto-Builder" \
-            --arg desc        "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
-            --argjson systems '["hero6e"]' \
-            --arg manifest    "${BASE}/hero6-latest/module.json" \
-            --arg download    "${BASE}/hero6-latest/Hero6NpcMaker.zip" \
-            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
-            module.json > Hero6NpcMaker/module.json
+            --arg version  "$VERSION" \
+            --arg manifest "${BASE}/hero6-latest/module.json" \
+            --arg download "${BASE}/hero6-latest/Hero6NpcMaker.zip" \
+            '.version=$version | .manifest=$manifest | .download=$download' \
+            hero6-module.json > Hero6NpcMaker/module.json
           cp -r scripts styles templates README.md Hero6NpcMaker/
           zip -r Hero6NpcMaker.zip Hero6NpcMaker/
 
