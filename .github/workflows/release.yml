@@ -21,43 +21,47 @@ jobs:
       - name: Build module zips
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          BASE="https://github.com/JamesCfer/CferNpcMaker/releases/download"
 
           # --- DnD5eNpcMaker ---
           mkdir -p DnD5eNpcMaker
-          jq --arg v "$VERSION" '
-            .id = "DnD5eNpcMaker" |
-            .title = "DnD 5e NPC Auto-Builder" |
-            .description = "Generate D&D 5e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
-            .systems = ["dnd5e"] |
-            .manifest = "https://github.com/JamesCfer/CferNpcMaker/releases/download/dnd5e-v\($v)/module.json" |
-            .download = "https://github.com/JamesCfer/CferNpcMaker/releases/download/dnd5e-v\($v)/DnD5eNpcMaker.zip"
-          ' module.json > DnD5eNpcMaker/module.json
+          jq \
+            --arg id          "DnD5eNpcMaker" \
+            --arg title       "DnD 5e NPC Auto-Builder" \
+            --arg desc        "Generate D&D 5e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
+            --argjson systems '["dnd5e"]' \
+            --arg manifest    "${BASE}/dnd5e-v${VERSION}/module.json" \
+            --arg download    "${BASE}/dnd5e-v${VERSION}/DnD5eNpcMaker.zip" \
+            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
+            module.json > DnD5eNpcMaker/module.json
           cp -r scripts styles templates README.md DnD5eNpcMaker/
           zip -r DnD5eNpcMaker.zip DnD5eNpcMaker/
 
           # --- Pf2eNpcMaker ---
           mkdir -p Pf2eNpcMaker
-          jq --arg v "$VERSION" '
-            .id = "Pf2eNpcMaker" |
-            .title = "PF2E NPC Auto-Builder" |
-            .description = "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
-            .systems = ["pf2e"] |
-            .manifest = "https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-v\($v)/module.json" |
-            .download = "https://github.com/JamesCfer/CferNpcMaker/releases/download/pf2e-v\($v)/Pf2eNpcMaker.zip"
-          ' module.json > Pf2eNpcMaker/module.json
+          jq \
+            --arg id          "Pf2eNpcMaker" \
+            --arg title       "PF2E NPC Auto-Builder" \
+            --arg desc        "Generate Pathfinder 2e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
+            --argjson systems '["pf2e"]' \
+            --arg manifest    "${BASE}/pf2e-v${VERSION}/module.json" \
+            --arg download    "${BASE}/pf2e-v${VERSION}/Pf2eNpcMaker.zip" \
+            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
+            module.json > Pf2eNpcMaker/module.json
           cp -r scripts styles templates README.md Pf2eNpcMaker/
           zip -r Pf2eNpcMaker.zip Pf2eNpcMaker/
 
           # --- Hero6NpcMaker ---
           mkdir -p Hero6NpcMaker
-          jq --arg v "$VERSION" '
-            .id = "Hero6NpcMaker" |
-            .title = "Hero 6e NPC Auto-Builder" |
-            .description = "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." |
-            .systems = ["hero6e"] |
-            .manifest = "https://github.com/JamesCfer/CferNpcMaker/releases/download/hero6-v\($v)/module.json" |
-            .download = "https://github.com/JamesCfer/CferNpcMaker/releases/download/hero6-v\($v)/Hero6NpcMaker.zip"
-          ' module.json > Hero6NpcMaker/module.json
+          jq \
+            --arg id          "Hero6NpcMaker" \
+            --arg title       "Hero 6e NPC Auto-Builder" \
+            --arg desc        "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API." \
+            --argjson systems '["hero6e"]' \
+            --arg manifest    "${BASE}/hero6-v${VERSION}/module.json" \
+            --arg download    "${BASE}/hero6-v${VERSION}/Hero6NpcMaker.zip" \
+            '.id=$id | .title=$title | .description=$desc | .systems=$systems | .manifest=$manifest | .download=$download' \
+            module.json > Hero6NpcMaker/module.json
           cp -r scripts styles templates README.md Hero6NpcMaker/
           zip -r Hero6NpcMaker.zip Hero6NpcMaker/
 
