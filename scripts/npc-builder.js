@@ -101,7 +101,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static get PARTS() {
-    const modId = game.modules?.get('Pf2eNpcMaker') ? 'Pf2eNpcMaker' : 'pf2e-npc-auto-builder';
+    const modId = _resolveModuleId();
     return {
       form: { template: `modules/${modId}/templates/builder.html` },
     };
@@ -1078,6 +1078,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 let _npcBuilderApp = null;
 
+/** Returns the installed module's ID, trying all known variants. */
+function _resolveModuleId() {
+  const ids = ['Pf2eNpcMaker', 'Hero6NpcMaker', 'DnD5eNpcMaker', 'pf2e-npc-auto-builder'];
+  return ids.find(id => game.modules?.get(id)) ?? 'pf2e-npc-auto-builder';
+}
+
 function openNPCBuilder() {
   if (_npcBuilderApp?.rendered && _npcBuilderApp?.element?.isConnected) {
     _npcBuilderApp.bringToTop?.();
@@ -1111,7 +1117,7 @@ function _isNewerVersion(a, b) {
 
 async function _checkForModuleUpdate() {
   try {
-    const modId          = game.modules?.get('Pf2eNpcMaker') ? 'Pf2eNpcMaker' : 'pf2e-npc-auto-builder';
+    const modId          = _resolveModuleId();
     const mod            = game.modules?.get(modId);
     const manifestUrl    = mod?.manifest;
     const currentVersion = mod?.version || '';
@@ -1230,7 +1236,7 @@ Hooks.on('renderActorDirectoryPF2e',         injectSidebarButton);
 Hooks.on('renderCompendiumDirectoryPF2e',    injectSidebarButton);
 
 Hooks.once('ready', () => {
-  const modId         = game.modules?.get('Pf2eNpcMaker') ? 'Pf2eNpcMaker' : 'pf2e-npc-auto-builder';
+  const modId         = _resolveModuleId();
   const currentVersion = game.modules?.get(modId)?.version || '';
   const storedVersion  = NPCBuilderApp.getStoredVersion();
 
