@@ -43,6 +43,18 @@ import { sanitizeActorDataHero6e }                      from './systems/hero6e.j
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
+/**
+ * The actual folder name this module is installed under, derived from the
+ * script's own URL.  This is the only reliable source — it works regardless
+ * of module id, legacy install paths, or which system variant is loaded.
+ */
+const _MODULE_FOLDER = (() => {
+  const match = (import.meta?.url ?? '').match(/\/modules\/([^/]+)\//);
+  if (match) return match[1];
+  const ids = ['Pf2eNpcMaker', 'Hero6NpcMaker', 'DnD5eNpcMaker', 'pf2e-npc-auto-builder'];
+  return ids.find(id => game.modules?.get(id)) ?? 'pf2e-npc-auto-builder';
+})();
+
 class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** n8n endpoints */
   static N8N_AUTH_URL   = 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login';
@@ -52,16 +64,16 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static PATREON_URL    = 'https://www.patreon.com/cw/CelestiaTools';
 
   /** localStorage slots */
-  static STORAGE_KEYS = ['pf2e-npc-builder.key', 'pf2e-npc-builder:key'];
+  static STORAGE_KEYS = [`${_MODULE_FOLDER}.key`, `${_MODULE_FOLDER}:key`];
 
   /** localStorage slot for NPC history */
-  static HISTORY_KEY = 'pf2e-npc-builder.history';
+  static HISTORY_KEY = `${_MODULE_FOLDER}.history`;
 
   /** localStorage slot for selected game system */
-  static SYSTEM_KEY = 'pf2e-npc-builder.system';
+  static SYSTEM_KEY = `${_MODULE_FOLDER}.system`;
 
   /** localStorage slot for last-seen module version (used to force sign-out on updates) */
-  static VERSION_KEY = 'pf2e-npc-builder.module-version';
+  static VERSION_KEY = `${_MODULE_FOLDER}.module-version`;
 
   /** Max history entries to retain */
   static MAX_HISTORY = 50;
@@ -81,8 +93,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static HERO6E_GENRES = ['standard', 'superhero', 'pulp', 'dark_champions', 'fantasy', 'sci-fi'];
 
   static DEFAULT_OPTIONS = {
-    id: 'pf2e-npc-builder',
-    classes: ['pf2e', 'npc-builder'],
+    id: `${_MODULE_FOLDER}-app`,
+    classes: ['npc-builder'],
     window: {
       title: 'NPC Builder',
       resizable: true,
@@ -101,9 +113,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static get PARTS() {
-    const modId = _resolveModuleId();
     return {
-      form: { template: `modules/${modId}/templates/builder.html` },
+      form: { template: `modules/${_MODULE_FOLDER}/templates/builder.html` },
     };
   }
 
@@ -1078,25 +1089,6 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 let _npcBuilderApp = null;
 
-/**
- * Returns the module's actual folder name by reading it from this script's
- * own URL (/modules/<folder>/scripts/npc-builder.js).  This is the only
- * reliable source: it works regardless of whether the `id` in module.json
- * ever changed (e.g. old PF2e installs where the folder is still
- * `pf2e-npc-auto-builder` but the id is now `Pf2eNpcMaker`), and it
- * automatically handles Hero6NpcMaker, DnD5eNpcMaker, etc.
- */
-const _MODULE_FOLDER = (() => {
-  const url   = import.meta?.url ?? '';
-  const match = url.match(/\/modules\/([^/]+)\//);
-  if (match) return match[1];
-  // Fallback: probe game.modules for any known id
-  const ids = ['Pf2eNpcMaker', 'Hero6NpcMaker', 'DnD5eNpcMaker', 'pf2e-npc-auto-builder'];
-  return ids.find(id => game.modules?.get(id)) ?? 'pf2e-npc-auto-builder';
-})();
-
-function _resolveModuleId() { return _MODULE_FOLDER; }
-
 function openNPCBuilder() {
   if (_npcBuilderApp?.rendered && _npcBuilderApp?.element?.isConnected) {
     _npcBuilderApp.bringToTop?.();
@@ -1130,7 +1122,7 @@ function _isNewerVersion(a, b) {
 
 async function _checkForModuleUpdate() {
   try {
-    const modId          = _resolveModuleId();
+    const modId          = _MODULE_FOLDER;
     const mod            = game.modules?.get(modId);
     const manifestUrl    = mod?.manifest;
     const currentVersion = mod?.version || '';
@@ -1197,10 +1189,10 @@ async function _checkForModuleUpdate() {
 
 function registerNPCBuilderControl(app, controls) {
   if (!game.user?.isGM) return;
-  const exists = controls.some(c => c.action === 'pf2e-npc-builder');
+  const exists = controls.some(c => c.action === `${_MODULE_FOLDER}-control`);
   if (exists) return;
   controls.push({
-    action:  'pf2e-npc-builder',
+    action:  `${_MODULE_FOLDER}-control`,
     icon:    'fa-solid fa-star',
     label:   'NPC Builder',
     onClick: () => openNPCBuilder(),
@@ -1249,7 +1241,7 @@ Hooks.on('renderActorDirectoryPF2e',         injectSidebarButton);
 Hooks.on('renderCompendiumDirectoryPF2e',    injectSidebarButton);
 
 Hooks.once('ready', () => {
-  const modId         = _resolveModuleId();
+  const modId         = _MODULE_FOLDER;
   const currentVersion = game.modules?.get(modId)?.version || '';
   const storedVersion  = NPCBuilderApp.getStoredVersion();
 
