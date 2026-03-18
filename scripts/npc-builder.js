@@ -1078,11 +1078,24 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
 let _npcBuilderApp = null;
 
-/** Returns the installed module's ID, trying all known variants. */
-function _resolveModuleId() {
+/**
+ * Returns the module's actual folder name by reading it from this script's
+ * own URL (/modules/<folder>/scripts/npc-builder.js).  This is the only
+ * reliable source: it works regardless of whether the `id` in module.json
+ * ever changed (e.g. old PF2e installs where the folder is still
+ * `pf2e-npc-auto-builder` but the id is now `Pf2eNpcMaker`), and it
+ * automatically handles Hero6NpcMaker, DnD5eNpcMaker, etc.
+ */
+const _MODULE_FOLDER = (() => {
+  const url   = import.meta?.url ?? '';
+  const match = url.match(/\/modules\/([^/]+)\//);
+  if (match) return match[1];
+  // Fallback: probe game.modules for any known id
   const ids = ['Pf2eNpcMaker', 'Hero6NpcMaker', 'DnD5eNpcMaker', 'pf2e-npc-auto-builder'];
   return ids.find(id => game.modules?.get(id)) ?? 'pf2e-npc-auto-builder';
-}
+})();
+
+function _resolveModuleId() { return _MODULE_FOLDER; }
 
 function openNPCBuilder() {
   if (_npcBuilderApp?.rendered && _npcBuilderApp?.element?.isConnected) {
