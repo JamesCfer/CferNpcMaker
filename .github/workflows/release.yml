@@ -125,15 +125,15 @@ jobs:
 
             let release;
             try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
               release = (await github.rest.repos.createRelease({
                 owner, repo, tag_name: tag, name: `v${version}`,
                 body: `Pf2eNpcMaker v${version}`, draft: false, prerelease: false,
               })).data;
-            } catch (e) {
-              if (e.status !== 422) throw e;
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
             for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
@@ -151,15 +151,15 @@ jobs:
 
             let release;
             try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
               release = (await github.rest.repos.createRelease({
                 owner, repo, tag_name: tag, name: `v${version}`,
                 body: `DnD5eNpcMaker v${version}`, draft: false, prerelease: false,
               })).data;
-            } catch (e) {
-              if (e.status !== 422) throw e;
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
             for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
@@ -177,15 +177,15 @@ jobs:
 
             let release;
             try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
               release = (await github.rest.repos.createRelease({
                 owner, repo, tag_name: tag, name: `v${version}`,
                 body: `Hero6eNpcMaker v${version}`, draft: false, prerelease: false,
               })).data;
-            } catch (e) {
-              if (e.status !== 422) throw e;
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
