@@ -21,7 +21,7 @@
     "styles/builder.css"
   ],
   "templateDir": "templates",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "manifest": "https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/module.json",
   "download": "https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/Hero6eNpcMaker.zip"
 }
