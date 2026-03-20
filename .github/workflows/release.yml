@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v4
@@ -126,9 +128,7 @@ jobs:
               })).data;
             } catch (e) {
               if (e.status !== 422) throw e;
-              const list = await github.rest.repos.listReleases({ owner, repo });
-              release = list.data.find(r => r.tag_name === tag);
-              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
               for (const asset of release.assets)
                 await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
@@ -154,9 +154,7 @@ jobs:
               })).data;
             } catch (e) {
               if (e.status !== 422) throw e;
-              const list = await github.rest.repos.listReleases({ owner, repo });
-              release = list.data.find(r => r.tag_name === tag);
-              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
               for (const asset of release.assets)
                 await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
@@ -182,9 +180,7 @@ jobs:
               })).data;
             } catch (e) {
               if (e.status !== 422) throw e;
-              const list = await github.rest.repos.listReleases({ owner, repo });
-              release = list.data.find(r => r.tag_name === tag);
-              if (!release) throw new Error(`Tag ${tag} exists but release not found`);
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
               for (const asset of release.assets)
                 await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
             }
