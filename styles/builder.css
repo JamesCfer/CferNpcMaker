@@ -43,6 +43,38 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* System tab group (tab button + GitHub icon link) */
+.application.npc-builder .system-tab-group {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+
+.application.npc-builder .system-tab-group .system-tab {
+  flex: 1;
+}
+
+.application.npc-builder .system-tab-github {
+  display: flex;
+  align-items: center;
+  padding: 0 0.55em;
+  color: rgba(255, 255, 255, 0.35);
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 3px solid transparent;
+  text-decoration: none;
+  font-size: 0.9em;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.application.npc-builder .system-tab-github:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+}
+
 /* Home tab — visually distinct, narrower */
 .application.npc-builder .system-tab--home {
   flex: 0 0 auto;
