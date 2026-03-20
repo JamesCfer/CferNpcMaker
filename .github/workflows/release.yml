@@ -72,7 +72,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           rm -rf _pf2e_repo
           git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eNpcMaker.git _pf2e_repo
-          rsync -a --delete Pf2eNpcMaker/ _pf2e_repo/
+          rsync -a --exclude=.git --delete Pf2eNpcMaker/ _pf2e_repo/
           cd _pf2e_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -87,7 +87,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           rm -rf _dnd5e_repo
           git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/DnD5eNpcMaker.git _dnd5e_repo
-          rsync -a --delete DnD5eNpcMaker/ _dnd5e_repo/
+          rsync -a --exclude=.git --delete DnD5eNpcMaker/ _dnd5e_repo/
           cd _dnd5e_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -102,7 +102,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           rm -rf _hero6e_repo
           git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Hero6eNpcMaker.git _hero6e_repo
-          rsync -a --delete Hero6eNpcMaker/ _hero6e_repo/
+          rsync -a --exclude=.git --delete Hero6eNpcMaker/ _hero6e_repo/
           cd _hero6e_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
