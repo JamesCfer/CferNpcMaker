@@ -1,0 +1,27 @@
+{
+  "id": "Hero6NpcMaker",
+  "title": "Hero 6e NPC Auto-Builder",
+  "description": "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API.",
+  "authors": [
+    {
+      "name": "JamesCfer"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "systems": [
+    "hero6e"
+  ],
+  "esmodules": [
+    "scripts/npc-builder.js"
+  ],
+  "styles": [
+    "styles/builder.css"
+  ],
+  "templateDir": "templates",
+  "version": "2.0.0",
+  "manifest": "https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/module.json",
+  "download": "https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/Hero6eNpcMaker.zip"
+}
