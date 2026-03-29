@@ -60,8 +60,9 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static N8N_AUTH_URL   = 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login';
   static N8N_NPC_URL    = 'https://foundryrelay.dedicated2.com/webhook/npc-builder';
   static N8N_DND5E_URL  = 'https://foundryrelay.dedicated2.com/webhook/dnd5e-npc-builder';
-  static N8N_HERO6E_URL = 'https://foundryrelay.dedicated2.com/webhook/hero6e-npc-builder';
-  static PATREON_URL    = 'https://www.patreon.com/cw/CelestiaTools';
+  static N8N_HERO6E_URL    = 'https://foundryrelay.dedicated2.com/webhook/hero6e-npc-builder';
+  static N8N_FEEDBACK_URL  = 'https://foundryrelay.dedicated2.com/webhook/feedback';
+  static PATREON_URL       = 'https://www.patreon.com/cw/CelestiaTools';
 
   /** localStorage slots */
   static STORAGE_KEYS = [`${_MODULE_FOLDER}.key`, `${_MODULE_FOLDER}:key`];
@@ -92,6 +93,12 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   static HERO6E_GENRES = ['standard', 'superhero', 'pulp', 'dark_champions', 'fantasy', 'sci-fi'];
 
+  /**
+   * Valid Hero System 6e universe / campaign setting values.
+   * Controls stat caps, power structure rules, and complication suggestions.
+   */
+  static HERO6E_UNIVERSES = ['standard', 'mha', 'dc', 'marvel'];
+
   static DEFAULT_OPTIONS = {
     id: `${_MODULE_FOLDER}-app`,
     classes: ['npc-builder'],
@@ -108,6 +115,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       generate:      function(event) { this._generateNPC(event); },
       export:        function(event) { this._exportJSON(event); },
       patreon:       function()      { window.open(this.constructor.PATREON_URL, '_blank'); },
+      sendfeedback:  function(event) { this._sendFeedback(event); },
       selectsystem:  function(event) { this._selectSystem(event); },
     },
   };
@@ -195,6 +203,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.lastGeneratedNPC  = null;
     this.selectedHistoryId = null;
     this.selectedSystem    = NPCBuilderApp.getStoredSystem();
+    this.patreonTier       = null;
 
     // Load history; clean up any entries stuck in "generating" from a prior session
     this.npcHistory = NPCBuilderApp.loadHistory();
@@ -345,7 +354,13 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         levelStep:       '25',
         levelDefault:    '150',
         namePlaceholder: 'e.g. Ironclad',
-        descPlaceholder: 'Describe this character: their powers, combat style, skills, limitations, background…\n\nOptionally add "genre: superhero/standard/pulp/dark_champions/fantasy/sci-fi" to set the genre.',
+        descPlaceholder: [
+          'Describe this character: their powers, combat style, skills, limitations, background…',
+          '',
+          'Optional tags (add anywhere in description):',
+          '  genre: superhero / standard / pulp / dark_champions / fantasy / sci-fi',
+          '  universe: mha / dc / marvel / standard',
+        ].join('\n'),
         historyLabel:    'Created Characters',
       },
     };
@@ -427,12 +442,16 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const escapedName  = this._escapeHtml(entry.name);
     const escapedError = entry.error ? this._escapeHtml(entry.error) : '';
 
-    // Pick the right label for the secondary meta column
+    // Build the secondary meta label
     let metaLabel;
     if (entry.system === 'dnd5e') {
       metaLabel = `CR&nbsp;${entry.level}`;
     } else if (entry.system === 'hero6e') {
-      metaLabel = `${entry.level}&nbsp;pts`;
+      // Include universe tag when non-standard so history is self-explanatory
+      const universePart = (entry.universe && entry.universe !== 'standard')
+        ? `&nbsp;<span class="history-entry-universe">[${entry.universe.toUpperCase()}]</span>`
+        : '';
+      metaLabel = `${entry.level}&nbsp;pts${universePart}`;
     } else {
       metaLabel = `Lv.&nbsp;${entry.level}`;
     }
@@ -477,12 +496,20 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const descTextarea     = form.querySelector('[name="description"]');
       const spellsCheckbox   = form.querySelector('[name="includeSpells"]');
       const casterTypeSelect = form.querySelector('[name="casterType"]');
+      // Hero 6e-specific fields
+      const universeSelect   = form.querySelector('[name="hero6eUniverse"]');
+      const genreSelect      = form.querySelector('[name="hero6eGenre"]');
+      const gearSelect       = form.querySelector('[name="hero6eCreateGear"]');
 
       if (nameInput)        nameInput.value         = entry.name;
       if (levelInput)       levelInput.value        = entry.level;
       if (descTextarea)     descTextarea.value      = entry.description;
       if (spellsCheckbox)   spellsCheckbox.checked  = !!entry.includeSpells;
       if (casterTypeSelect) casterTypeSelect.value  = entry.casterType || 'none';
+      // Restore Hero 6e settings from history
+      if (universeSelect)   universeSelect.value    = entry.universe || 'standard';
+      if (genreSelect)      genreSelect.value       = entry.genre    || 'standard';
+      if (gearSelect)       gearSelect.checked       = !!entry.createGear;
     }
 
     // Show the "editing from history" banner
@@ -754,6 +781,41 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const includeSpells = fd.get('includeSpells') === 'on';
     const casterType    = fd.get('casterType') || 'none';
 
+    // ── Hero 6e-specific fields ───────────────────────────────
+    // Primary source: dedicated form controls (select + checkbox).
+    // Fallback: parse inline tags from description for backwards compatibility
+    // and convenience (e.g. "universe: mha" anywhere in the text).
+    const universeEl = form.querySelector('[name="hero6eUniverse"]');
+    let hero6eUniverse = (fd.get('hero6eUniverse') || universeEl?.value || '').toLowerCase().trim();
+    if (!NPCBuilderApp.HERO6E_UNIVERSES.includes(hero6eUniverse)) {
+      // Fallback: extract "universe: mha" tag from description
+      const uMatch = description.match(/\buniverse\s*:\s*([\w-]+)/i);
+      if (uMatch) {
+        const extracted = uMatch[1].toLowerCase();
+        if (NPCBuilderApp.HERO6E_UNIVERSES.includes(extracted)) hero6eUniverse = extracted;
+      }
+    }
+    if (!NPCBuilderApp.HERO6E_UNIVERSES.includes(hero6eUniverse)) hero6eUniverse = 'standard';
+
+    // genre: dedicated select wins; fallback to "genre: <value>" in description
+    const genreEl = form.querySelector('[name="hero6eGenre"]');
+    let hero6eGenre = (fd.get('hero6eGenre') || genreEl?.value || '').toLowerCase().trim();
+    if (!NPCBuilderApp.HERO6E_GENRES.includes(hero6eGenre)) {
+      const genreMatch = description.match(/\bgenre\s*:\s*([\w_-]+)/i);
+      if (genreMatch) {
+        const extracted = genreMatch[1].toLowerCase();
+        if (NPCBuilderApp.HERO6E_GENRES.includes(extracted)) hero6eGenre = extracted;
+      }
+    }
+    if (!NPCBuilderApp.HERO6E_GENRES.includes(hero6eGenre)) hero6eGenre = 'standard';
+
+    // createGear: checkbox — .checked is authoritative; 'on' is the FormData value when checked
+    const gearEl = form.querySelector('[name="hero6eCreateGear"]');
+    let hero6eCreateGear = gearEl?.checked === true || fd.get('hero6eCreateGear') === 'on';
+    if (!hero6eCreateGear) {
+      hero6eCreateGear = /\bgear\s*:\s*(yes|true|1)\b/i.test(description);
+    }
+
     if (!description) {
       ui.notifications.warn('Please provide a description for the NPC.');
       return;
@@ -776,6 +838,10 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       includeSpells,
       casterType,
       system:        this.selectedSystem,
+      // Hero 6e extras — persisted for history recall
+      universe:      this.selectedSystem === 'hero6e' ? hero6eUniverse   : undefined,
+      genre:         this.selectedSystem === 'hero6e' ? hero6eGenre      : undefined,
+      createGear:    this.selectedSystem === 'hero6e' ? hero6eCreateGear : undefined,
       status:        'generating',
       createdAt:     Date.now(),
       error:         null,
@@ -802,11 +868,33 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element?.querySelectorAll('.history-entry.is-selected').forEach(el => el.classList.remove('is-selected'));
 
     // ── Run generation (no await on outer scope — truly concurrent) ──
-    this._runGeneration(historyEntry, key, name, level, description, includeSpells, casterType, this.selectedSystem);
+    this._runGeneration(
+      historyEntry, key, name, level, description,
+      includeSpells, casterType, this.selectedSystem,
+      hero6eUniverse, hero6eCreateGear, hero6eGenre
+    );
   }
 
-  /** Internal async worker for a single NPC generation. */
-  async _runGeneration(historyEntry, key, name, level, description, includeSpells, casterType = 'none', system = 'pf2e') {
+  /**
+   * Internal async worker for a single NPC generation.
+   *
+   * @param {object} historyEntry
+   * @param {string} key           Patreon session key
+   * @param {string} name
+   * @param {number} level         Level / CR / point value
+   * @param {string} description
+   * @param {boolean} includeSpells  PF2e only
+   * @param {string} casterType      D&D 5e only
+   * @param {string} system          pf2e | dnd5e | hero6e
+   * @param {string} hero6eUniverse  standard | mha | dc | marvel
+   * @param {boolean} hero6eCreateGear  Whether to generate gear items
+   * @param {string} hero6eGenre  standard | superhero | pulp | dark_champions | fantasy | sci-fi
+   */
+  async _runGeneration(
+    historyEntry, key, name, level, description,
+    includeSpells, casterType = 'none', system = 'pf2e',
+    hero6eUniverse = 'standard', hero6eCreateGear = false, hero6eGenre = 'standard'
+  ) {
     try {
       let endpoint, payload;
 
@@ -829,16 +917,20 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // Snap points to nearest valid tier
         const points = NPCBuilderApp._snapToHero6eTier(level);
 
-        // Extract optional genre tag from description (e.g. "genre: superhero")
-        let genre = 'standard';
-        const genreMatch = description.match(/\bgenre\s*:\s*([\w_-]+)/i);
-        if (genreMatch) {
-          const extracted = genreMatch[1].toLowerCase();
-          if (NPCBuilderApp.HERO6E_GENRES.includes(extracted)) genre = extracted;
-        }
+        payload = {
+          name,
+          points,
+          genre: hero6eGenre,
+          description,
+          universe:    hero6eUniverse,
+          createGear:  hero6eCreateGear,
+        };
 
-        payload = { name, points, genre, description };
-        console.log('[NPC Builder] Hero System 6e generation request:', { name, points, genre });
+        console.log('[NPC Builder] Hero System 6e generation request:', {
+          name, points, genre: hero6eGenre,
+          universe: hero6eUniverse,
+          createGear: hero6eCreateGear,
+        });
 
       } else {
         // ── Pathfinder 2e (default) ───────────────────────────────────────────
@@ -926,6 +1018,9 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const message      = data?.message || 'Monthly NPC limit reached.';
         const currentUsage = data?.currentUsage || 0;
         const limit        = data?.limit || 0;
+        // Infer and cache the tier for feedback submissions
+        const tierMap = { 3: 'Free', 15: 'Local Adventurer', 50: 'Standard', 80: 'Champion' };
+        if (limit && tierMap[limit]) this.patreonTier = tierMap[limit];
         ui.notifications.error(message, { permanent: true });
         ui.notifications.warn(
           `You've used ${currentUsage}/${limit} NPCs this month. Opening Patreon to upgrade…`,
@@ -1087,6 +1182,67 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     URL.revokeObjectURL(url);
 
     ui.notifications.info('NPC exported to JSON file.');
+  }
+
+  /* ── Send feedback ───────────────────────────────────────── */
+
+  async _sendFeedback(event) {
+    event?.preventDefault?.();
+
+    const root = this.element;
+    if (!root) return;
+
+    const textarea = root.querySelector('.feedback-textarea');
+    const sendBtn  = root.querySelector('.feedback-send-btn');
+    const status   = root.querySelector('.feedback-status');
+
+    const message = textarea?.value?.trim() || '';
+    if (!message) {
+      ui.notifications?.warn?.('Please enter a feedback message before sending.');
+      return;
+    }
+
+    if (sendBtn) sendBtn.disabled = true;
+
+    try {
+      const tabLabels = { home: 'Home', pf2e: 'Pathfinder 2e', dnd5e: 'D&D 5e', hero6e: 'HERO 6e' };
+      const tab   = tabLabels[this.selectedSystem] || this.selectedSystem || 'Unknown';
+      const email = game.user?.email || '';
+      const tier  = this.patreonTier || (this.authenticated ? 'Supporter (tier unknown)' : 'Free');
+
+      const response = await fetch(NPCBuilderApp.N8N_FEEDBACK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          message,
+          tab,
+          email,
+          tier,
+          sessionKey: this.accessKey || '',
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
+
+      if (textarea) textarea.value = '';
+      if (status) {
+        status.textContent = 'Feedback sent! Thank you.';
+        status.className   = 'feedback-status feedback-status--success';
+        status.style.display = '';
+        setTimeout(() => { status.style.display = 'none'; }, 4000);
+      }
+
+    } catch (err) {
+      console.error('[NPC Builder] feedback send error', err);
+      if (status) {
+        status.textContent   = 'Failed to send feedback. Please try again.';
+        status.className     = 'feedback-status feedback-status--error';
+        status.style.display = '';
+        setTimeout(() => { status.style.display = 'none'; }, 5000);
+      }
+    } finally {
+      if (sendBtn) sendBtn.disabled = false;
+    }
   }
 }
 
