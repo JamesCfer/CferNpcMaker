@@ -1,0 +1,95 @@
+{
+  "name": "NPC Builder - Feedback to Discord",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "feedback",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-create-dm",
+      "name": "Create DM Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/v10/users/@me/channels",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bot YOUR_BOT_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\"recipient_id\":\"230235640992759808\"}"
+      }
+    },
+    {
+      "id": "node-send-message",
+      "name": "Send Discord Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://discord.com/api/v10/channels/' + $('Create DM Channel').item.json.id + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bot YOUR_BOT_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ content: '📝 **NPC Builder Feedback**\\n\\n**Email:** ' + ($('Webhook').item.json.body?.email || 'Unknown') + '\\n**Tab:** ' + ($('Webhook').item.json.body?.tab || 'Unknown') + '\\n**Tier:** ' + ($('Webhook').item.json.body?.tier || 'Unknown') + '\\n\\n**Message:**\\n' + ($('Webhook').item.json.body?.message || '(empty)') }) }}"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Create DM Channel", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create DM Channel": {
+      "main": [
+        [{ "node": "Send Discord Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Discord Message": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
