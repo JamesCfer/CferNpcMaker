@@ -1369,25 +1369,43 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const currentLevel = actor.system?.details?.level?.value ?? actor.system?.details?.level ?? 0;
 
-    // Prompt for target level
-    const targetLevel = await new Promise(resolve => {
+    // Prompt for target level + level-up instructions
+    const result = await new Promise(resolve => {
       const DialogV2 = foundry.applications?.api?.DialogV2;
       const content  = `
-        <div style="display:flex;flex-direction:column;gap:0.6em;padding:0.25em 0;">
+        <div style="display:flex;flex-direction:column;gap:0.7em;padding:0.25em 0;">
           <p style="margin:0;">
             Level up (or down) <strong>${this._escapeHtml(actor.name)}</strong>
             (currently level <strong>${currentLevel}</strong>).
           </p>
-          <div style="display:flex;align-items:center;gap:0.5em;">
-            <label for="npc-levelup-target" style="font-weight:600;">Target Level:</label>
-            <input type="number" id="npc-levelup-target" value="${currentLevel}" min="0" max="25" step="1"
-              style="width:70px;text-align:center;padding:0.3em;border:1px solid #999;border-radius:4px;" />
+          <div style="display:flex;flex-direction:column;gap:0.25em;">
+            <label for="npc-levelup-target" style="font-weight:600;font-size:0.88em;">Target Level</label>
+            <input type="number" id="npc-levelup-target" value="${currentLevel + 1}" min="0" max="25" step="1"
+              style="width:80px;text-align:center;padding:0.35em;border:1px solid #999;border-radius:4px;" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.25em;">
+            <label for="npc-levelup-instructions" style="font-weight:600;font-size:0.88em;">Level-Up Instructions</label>
+            <textarea id="npc-levelup-instructions" rows="4"
+              placeholder="Describe what the NPC gains at this level: new abilities, improved spells, stronger attacks, additional resistances…"
+              style="width:100%;padding:0.4em 0.5em;border:1px solid #999;border-radius:4px;font-family:inherit;font-size:0.92em;resize:vertical;box-sizing:border-box;"></textarea>
+            <span style="font-size:0.78em;color:#777;font-style:italic;">
+              Describe how this NPC should change. The more detail, the better the result.
+            </span>
           </div>
           <p style="margin:0;font-size:0.85em;color:#666;">
             The NPC will be re-processed through the builder at the selected level.
             This costs <strong>1 NPC use</strong>.
           </p>
         </div>`;
+
+      const _extractValues = (container) => {
+        const root = container instanceof HTMLElement ? container : container?.[0] ?? document;
+        const levelInput = root.querySelector?.('#npc-levelup-target') ?? document.getElementById('npc-levelup-target');
+        const instrInput = root.querySelector?.('#npc-levelup-instructions') ?? document.getElementById('npc-levelup-instructions');
+        const level = levelInput ? parseInt(levelInput.value) : null;
+        const instructions = instrInput ? instrInput.value.trim() : '';
+        return (level !== null && !isNaN(level)) ? { level, instructions } : null;
+      };
 
       if (DialogV2) {
         DialogV2.prompt({
@@ -1396,8 +1414,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ok: { label: 'Level Up', icon: 'fa-solid fa-arrow-up' },
           rejectClose: false,
         }).then(() => {
-          const input = document.getElementById('npc-levelup-target');
-          resolve(input ? parseInt(input.value) : null);
+          resolve(_extractValues(document));
         }).catch(() => resolve(null));
       } else {
         new Dialog({
@@ -1406,10 +1423,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           buttons: {
             confirm: {
               label:    '<i class="fa-solid fa-arrow-up"></i> Level Up',
-              callback: (html) => {
-                const input = html.find ? html.find('#npc-levelup-target')[0] : html.querySelector('#npc-levelup-target');
-                resolve(input ? parseInt(input.value) : null);
-              },
+              callback: (html) => resolve(_extractValues(html)),
             },
             cancel: { label: 'Cancel', callback: () => resolve(null) },
           },
@@ -1419,7 +1433,8 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     });
 
-    if (targetLevel === null || isNaN(targetLevel)) return;
+    if (!result) return;
+    const { level: targetLevel, instructions: levelUpInstructions } = result;
     if (targetLevel === currentLevel) {
       ui.notifications.info('Target level is the same as current level.');
       return;
@@ -1439,9 +1454,10 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const actorJson = actor.toObject();
 
       const payload = {
-        npcData:     actorJson,
-        targetLevel: targetLevel,
-        system:      'pf2e',
+        npcData:      actorJson,
+        targetLevel:  targetLevel,
+        instructions: levelUpInstructions || '',
+        system:       'pf2e',
       };
 
       const response = await fetch(NPCBuilderApp._url(NPCBuilderApp.N8N_LEVELUP_URL), {
