@@ -20,6 +20,31 @@
  *   xmlTag      — required by getPowerInfo() to resolve the correct power definition.
  *   is5e        — must be false on every item to suppress 5e-mode warnings.
  *
+ * POWER FRAMEWORKS — VPP, Multipower, and compound-power lists:
+ *
+ *   VPP (Variable Power Pool) — framework power with XMLID "VPP". Has:
+ *     LEVELS          — pool point size
+ *     ADDER[CONTROLCOST] — control cost adder (LVLCOST/LVLVAL)
+ *     MODIFIER[]      — framework-level modifiers (apply to all child powers)
+ *   Child powers reference the VPP via PARENTID matching the VPP's ID.
+ *
+ *   MULTIPOWER — framework power with XMLID "MULTIPOWER". Has:
+ *     BASECOST        — reserve point size
+ *     MODIFIER[]      — framework-level modifiers
+ *   Child slots reference the Multipower via PARENTID. Slots may have
+ *     ULTRA_SLOT = "true" (fixed slot) or absent/false (variable slot).
+ *
+ *   LIST — compound power grouping with XMLID "LIST". Has its own MODIFIER[]
+ *     that apply to all children. Children reference the LIST via PARENTID.
+ *
+ *   Fields that MUST be preserved on framework children:
+ *     PARENTID            — links child to its framework parent's ID
+ *     ULTRA_SLOT          — fixed vs variable slot in Multipowers
+ *     ADD_MODIFIERS_TO_BASE — whether parent modifiers apply to base cost
+ *     QUANTITY            — number of instances (used by some powers)
+ *     AFFECTS_PRIMARY     — whether power affects primary characteristics
+ *     AFFECTS_TOTAL       — whether power affects total characteristics
+ *
  * CHARACTERISTIC STORAGE — two paths must both be populated:
  *
  *   system.characteristics[KEY] — uppercase key, what Foundry/hero6e reads at runtime.
