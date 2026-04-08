@@ -1,5 +1,5 @@
 {
-  "id": "Hero6NpcMaker",
+  "id": "Hero6eNpcMaker",
   "title": "Hero 6e NPC Auto-Builder",
   "description": "Generate Hero System 6e NPCs from feats, spells, actions, and equipment. Optionally export them or upload via the Foundry REST API.",
   "authors": [
