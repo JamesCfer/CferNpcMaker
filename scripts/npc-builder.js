@@ -55,6 +55,17 @@ const _MODULE_FOLDER = (() => {
   return ids.find(id => game.modules?.get(id)) ?? 'pf2e-npc-auto-builder';
 })();
 
+/** Map installed module folder / ID to its primary game system. */
+const _MODULE_SYSTEM = (() => {
+  const map = {
+    'Pf2eNpcMaker':           'pf2e',
+    'pf2e-npc-auto-builder':  'pf2e',
+    'DnD5eNpcMaker':          'dnd5e',
+    'Hero6eNpcMaker':         'hero6e',
+  };
+  return map[_MODULE_FOLDER] ?? null;
+})();
+
 class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** n8n endpoints */
   static N8N_AUTH_URL   = 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login';
@@ -174,7 +185,9 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const v = localStorage.getItem(NPCBuilderApp.SYSTEM_KEY);
       if (v && NPCBuilderApp.SYSTEMS.includes(v)) return v;
     } catch (_) {}
-    // Default to whatever system is active in Foundry
+    // Default to the system this module was installed for
+    if (_MODULE_SYSTEM) return _MODULE_SYSTEM;
+    // Fallback to whatever system is active in Foundry
     try {
       const gameSystem = game?.system?.id;
       if (gameSystem && NPCBuilderApp.SYSTEMS.includes(gameSystem)) return gameSystem;
@@ -331,7 +344,7 @@ class NPCBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const root = this.element;
     if (!root) return;
 
-    const system = this.selectedSystem || 'pf2e';
+    const system = this.selectedSystem || _MODULE_SYSTEM || 'pf2e';
 
     // Update system tab active state (includes 'home')
     root.querySelectorAll('.system-tab').forEach(btn => {
