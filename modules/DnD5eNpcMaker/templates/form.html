@@ -1,0 +1,55 @@
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name">Creature Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. Bandit Captain" />
+          </div>
+          <div class="field field--level">
+            <label for="npc-level">Challenge Rating</label>
+            <input type="number" id="npc-level" name="level" value="1" min="0" max="30" step="0.125" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <textarea id="npc-desc" name="description" rows="5"
+            placeholder="Describe this creature: their role, attacks, special abilities, legendary actions, lore…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+        </div>
+
+        <div class="field">
+          <label for="npc-caster-type">Caster Type</label>
+          <select id="npc-caster-type" name="casterType">
+            <option value="none">None (martial / non-caster)</option>
+            <option value="half">Half Caster (up to 5th-level spells)</option>
+            <option value="full">Full Caster (up to 9th-level spells)</option>
+          </select>
+          <span class="field-hint">Determines spell slot progression included in the stat block.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate Creature</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+        <div class="form-actions form-actions--image">
+          <button type="button" data-action="generateimage" class="btn-image" disabled>
+            <i class="fa-solid fa-image"></i>
+            <span>Generate Creature Image</span>
+            <span class="btn-cost-badge">4 uses</span>
+          </button>
+        </div>
+
+      </form>

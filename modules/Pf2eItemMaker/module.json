@@ -1,0 +1,22 @@
+{
+  "id": "Pf2eItemMaker",
+  "title": "PF2E Item Auto-Builder",
+  "description": "Generate Pathfinder 2e items (weapons, armor, consumables, treasure, and more) from a short description. Items are created directly in your world.",
+  "authors": [
+    {
+      "name": "JamesCfer"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "systems": ["pf2e"],
+  "esmodules": [
+    "scripts/entry.js"
+  ],
+  "styles": [
+    "styles/builder.css"
+  ],
+  "templateDir": "templates"
+}

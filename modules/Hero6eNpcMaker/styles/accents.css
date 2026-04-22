@@ -1,0 +1,230 @@
+/* ============================================================
+   Hero 6e NPC Maker — Comic Book Panel accents
+   Halftone Ben-Day dots, bold blue + action yellow, thick black
+   strokes, Impact-style headings, hard "POW" shadows.
+   ============================================================ */
+
+.application.npc-builder .builder-tab[data-tab="builder"].is-active {
+  border-bottom-color: #2980b9;
+}
+
+.application.npc-builder .npc-panel-form {
+  background:
+    radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.10) 1.2px, transparent 1.6px) 0 0 / 10px 10px,
+    linear-gradient(135deg, #eaf3ff 0%, #fff8d9 100%);
+  border-top: 5px solid #0a0a0a;
+  box-shadow: inset 0 -4px 0 #0a0a0a;
+  color: #0a0a0a;
+}
+
+.application.npc-builder .npc-panel-history {
+  background:
+    radial-gradient(circle at 2px 2px, rgba(41, 128, 185, 0.18) 1.2px, transparent 1.6px) 0 0 / 8px 8px,
+    linear-gradient(135deg, #e0ebff 0%, #fff3b8 100%);
+  border-left: 5px solid #0a0a0a;
+}
+
+.application.npc-builder .history-header {
+  font-family: "Impact", "Bebas Neue", "Oswald", "Signika", sans-serif;
+  font-weight: 900;
+  font-size: 0.95em;
+  letter-spacing: 0.14em;
+  font-style: italic;
+  color: #fff;
+  background: #2980b9;
+  border-bottom: 4px solid #0a0a0a;
+  text-shadow: 2px 2px 0 #0a0a0a, 3px 3px 0 #f1c40f;
+  padding: 0.7em 0.8em;
+}
+.application.npc-builder .history-header i {
+  color: #f1c40f;
+  text-shadow: 1px 1px 0 #0a0a0a;
+}
+
+.application.npc-builder .history-entry {
+  background: #fff;
+  border: 2px solid #0a0a0a;
+  border-left: 5px solid #0a0a0a;
+  border-radius: 0;
+  margin: 0.45em 0.5em;
+  padding: 0.5em 0.65em;
+  box-shadow: 3px 3px 0 #0a0a0a;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.1s;
+}
+.application.npc-builder .history-entry:hover {
+  background: #fff3b8;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #0a0a0a;
+}
+.application.npc-builder .history-entry.is-selected {
+  background: #f1c40f;
+  border-left-color: #2980b9;
+  box-shadow: 3px 3px 0 #2980b9;
+}
+.application.npc-builder .history-entry-name {
+  font-family: "Impact", "Bebas Neue", "Oswald", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #0a0a0a;
+  text-transform: uppercase;
+}
+.application.npc-builder .history-entry-meta {
+  color: #0a0a0a;
+  font-weight: 700;
+  font-size: 0.72em;
+}
+.application.npc-builder .history-entry-universe {
+  display: inline-block;
+  padding: 0 0.3em;
+  background: #0a0a0a;
+  color: #f1c40f;
+  font-size: 0.9em;
+  letter-spacing: 0.08em;
+}
+
+.application.npc-builder .history-selected-banner {
+  background: #f1c40f;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  color: #0a0a0a;
+  font-family: "Impact", "Bebas Neue", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 3px 3px 0 #0a0a0a;
+}
+
+.application.npc-builder .field > label {
+  font-family: "Impact", "Bebas Neue", "Oswald", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #0a0a0a;
+  font-size: 0.82em;
+  text-transform: uppercase;
+}
+
+.application.npc-builder .field input[type="text"],
+.application.npc-builder .field input[type="number"],
+.application.npc-builder .field textarea,
+.application.npc-builder .field select {
+  background: #fff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  color: #0a0a0a;
+  box-shadow: 3px 3px 0 rgba(10, 10, 10, 0.85);
+  font-weight: 600;
+}
+.application.npc-builder .field input:focus,
+.application.npc-builder .field textarea:focus,
+.application.npc-builder .field select:focus {
+  border-color: #2980b9;
+  box-shadow: 3px 3px 0 #2980b9;
+}
+.application.npc-builder .field-hint {
+  color: #1a5278;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.application.npc-builder .field--check {
+  background: #fff3b8;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #0a0a0a;
+}
+.application.npc-builder .checkbox-label {
+  font-weight: 700;
+  color: #0a0a0a;
+}
+.application.npc-builder .checkbox-label input[type="checkbox"] { accent-color: #2980b9; }
+
+.application.npc-builder button.btn-primary {
+  background: #2980b9;
+  color: #fff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #0a0a0a;
+  text-shadow: 1px 1px 0 #0a0a0a;
+  font-family: "Impact", "Bebas Neue", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-style: italic;
+}
+.application.npc-builder button.btn-primary:hover:not(:disabled) {
+  filter: none;
+  background: #3498db;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #0a0a0a;
+}
+.application.npc-builder button.btn-primary:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #0a0a0a;
+}
+
+.application.npc-builder button.btn-secondary {
+  background: #f1c40f;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #0a0a0a;
+  font-family: "Impact", "Bebas Neue", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.application.npc-builder button.btn-secondary:hover:not(:disabled) {
+  background: #ffd93d;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #0a0a0a;
+}
+
+.application.npc-builder button.btn-image {
+  background: #e74c3c;
+  color: #fff;
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #0a0a0a;
+  text-shadow: 1px 1px 0 #0a0a0a;
+  font-family: "Impact", "Bebas Neue", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.application.npc-builder .history-progress {
+  background: rgba(10, 10, 10, 0.15);
+  border: 1px solid #0a0a0a;
+  border-radius: 0;
+  height: 4px;
+}
+.application.npc-builder .history-progress-bar {
+  background: linear-gradient(90deg, transparent, #2980b9 30%, #f1c40f 70%, transparent);
+}
+
+.application.npc-builder .auth-unsigned {
+  background:
+    radial-gradient(circle at 2px 2px, rgba(10, 10, 10, 0.12) 1.2px, transparent 1.6px) 0 0 / 8px 8px,
+    #fff3b8;
+  border-bottom: 3px solid #0a0a0a;
+}
+.application.npc-builder .auth-unsigned-text { color: #0a0a0a; font-weight: 700; }
+.application.npc-builder .auth-signed {
+  background:
+    radial-gradient(circle at 2px 2px, rgba(41, 128, 185, 0.18) 1.2px, transparent 1.6px) 0 0 / 8px 8px,
+    #eaf3ff;
+  border-bottom: 3px solid #0a0a0a;
+}
+.application.npc-builder .auth-signed-status { color: #0a0a0a; font-weight: 800; }
+
+.application.npc-builder button.btn-patreon,
+.application.npc-builder button.btn-join,
+.application.npc-builder button.btn-signout {
+  border: 2px solid #0a0a0a;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #0a0a0a;
+  font-family: "Impact", "Bebas Neue", sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

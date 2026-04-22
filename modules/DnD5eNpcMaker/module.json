@@ -13,7 +13,7 @@
   },
   "systems": ["dnd5e"],
   "esmodules": [
-    "scripts/npc-builder.js"
+    "scripts/entry.js"
   ],
   "styles": [
     "styles/builder.css"

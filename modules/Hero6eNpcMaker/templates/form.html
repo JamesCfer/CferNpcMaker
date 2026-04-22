@@ -1,0 +1,77 @@
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name">Character Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. Ironclad" />
+          </div>
+          <div class="field field--level">
+            <label for="npc-level">Point Value</label>
+            <input type="number" id="npc-level" name="level" value="150" min="25" max="600" step="1" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <textarea id="npc-desc" name="description" rows="6"
+            placeholder="Describe this character: their powers, combat style, skills, limitations, background…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+        </div>
+
+        <div class="field">
+          <label for="npc-hero6e-universe">Universe / Setting</label>
+          <select id="npc-hero6e-universe" name="hero6eUniverse">
+            <option value="standard">Standard (no universe rules)</option>
+            <option value="mha">My Hero Academia</option>
+            <option value="dc">DC Universe</option>
+            <option value="marvel">Marvel Comics</option>
+          </select>
+          <span class="field-hint">Sets stat caps, power structure rules, and complication suggestions for the chosen universe.</span>
+        </div>
+
+        <div class="field">
+          <label for="npc-hero6e-genre">Genre</label>
+          <select id="npc-hero6e-genre" name="hero6eGenre">
+            <option value="standard">Standard</option>
+            <option value="superhero">Superhero</option>
+            <option value="pulp">Pulp</option>
+            <option value="dark_champions">Dark Champions</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="sci-fi">Sci-Fi</option>
+          </select>
+          <span class="field-hint">Shapes the tone, power scale, and ability suggestions for the generated character.</span>
+        </div>
+
+        <div class="field field--check">
+          <label class="checkbox-label">
+            <input type="checkbox" id="npc-hero6e-gear" name="hero6eCreateGear" />
+            <span>Create Gear</span>
+          </label>
+          <span class="field-hint">When enabled, adds 2–4 gear items (weapons, armor, gadgets) with appropriate Focus limitations.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate Character</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export HDC</span>
+          </button>
+        </div>
+
+        <div class="form-actions form-actions--image">
+          <button type="button" data-action="generateimage" class="btn-image" disabled>
+            <i class="fa-solid fa-image"></i>
+            <span>Generate Character Image</span>
+            <span class="btn-cost-badge">4 uses</span>
+          </button>
+        </div>
+
+      </form>

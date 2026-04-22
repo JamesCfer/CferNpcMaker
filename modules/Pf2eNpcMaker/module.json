@@ -13,7 +13,7 @@
   },
   "systems": ["pf2e"],
   "esmodules": [
-    "scripts/npc-builder.js"
+    "scripts/entry.js"
   ],
   "styles": [
     "styles/builder.css"
