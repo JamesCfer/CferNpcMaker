@@ -1,1 +1,6 @@
-Pf2eNpcMaker.zip
+# Build outputs (created by build.sh and the release workflow)
+/Pf2eNpcMaker/
+/DnD5eNpcMaker/
+/Hero6eNpcMaker/
+/Pf2eItemMaker/
+*.zip

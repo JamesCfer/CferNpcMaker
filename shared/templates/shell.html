@@ -1,0 +1,87 @@
+<div class="npc-builder-layout">
+
+  <!-- ── Tab strip (Home + this module's builder) ──────────────────────── -->
+  <div class="builder-tabs">
+    <button type="button" class="builder-tab builder-tab--home" data-tab="home">
+      <i class="fa-solid fa-house"></i> Home
+    </button>
+    <div class="builder-tab-group">
+      <button type="button" class="builder-tab builder-tab--builder" data-tab="builder">
+        <i class="{{module.icon}}"></i> {{module.label}}
+      </button>
+      <a href="{{module.githubUrl}}" target="_blank" rel="noopener noreferrer" class="builder-tab-github" title="View on GitHub">
+        <i class="fa-brands fa-github"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Home panel (links to all 4 modules) ──────────────────────────── -->
+  <div class="home-panel" style="display:none;">
+    <!-- HOME_PANEL_INSERT -->
+  </div>
+
+  <!-- ── Main builder content ─────────────────────────────────────────── -->
+  <div class="builder-inner">
+
+    <!-- Left: form panel -->
+    <div class="npc-panel-form">
+
+      <!-- Auth banner -->
+      <div class="auth-banner">
+        <div class="auth-unsigned">
+          <div class="auth-unsigned-text">
+            <i class="fa-brands fa-patreon auth-patreon-icon"></i>
+            <span>Sign in with Patreon to use this module</span>
+          </div>
+          <div class="auth-unsigned-actions">
+            <button type="button" data-action="signin" class="btn-patreon">
+              <i class="fa-brands fa-patreon"></i> Sign in with Patreon
+            </button>
+            <button type="button" data-action="patreon" class="btn-join">
+              Join Patreon
+            </button>
+          </div>
+        </div>
+        <div class="auth-signed">
+          <div class="auth-signed-status">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Signed in via Patreon</span>
+          </div>
+          <button type="button" data-action="signout" class="btn-signout">
+            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Module-specific form -->
+      <!-- FORM_INSERT -->
+    </div>
+
+    <!-- Right: history panel -->
+    <div class="npc-panel-history">
+      <div class="history-header">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span class="history-header-label">{{module.historyLabel}}</span>
+      </div>
+      <div class="history-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Feedback section ─────────────────────────────────────────────── -->
+  <div class="feedback-section">
+    <div class="feedback-header">
+      <i class="fa-solid fa-comment-dots"></i>
+      <span>Send Feedback</span>
+    </div>
+    <div class="feedback-body">
+      <textarea class="feedback-textarea" placeholder="Found a bug? Have a suggestion? Let us know…" rows="2"></textarea>
+      <button type="button" data-action="sendfeedback" class="feedback-send-btn">
+        <i class="fa-solid fa-paper-plane"></i>
+        <span>Send</span>
+      </button>
+    </div>
+    <div class="feedback-status" style="display:none;"></div>
+  </div>
+
+</div>

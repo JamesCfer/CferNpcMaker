@@ -22,46 +22,38 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
-      - name: Build module packages
+      - name: Build all module packages
+        run: |
+          chmod +x ./build.sh
+          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemMaker
+
+      - name: Inject version + manifest URLs into each module.json
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          PF2E_BASE="https://github.com/JamesCfer/Pf2eNpcMaker/releases/download"
-          DND5E_BASE="https://github.com/JamesCfer/DnD5eNpcMaker/releases/download"
-          HERO6E_BASE="https://github.com/JamesCfer/Hero6eNpcMaker/releases/download"
+          inject() {
+            local NAME="$1"
+            local BASE="https://github.com/JamesCfer/${NAME}/releases/download"
+            jq \
+              --arg version  "$VERSION" \
+              --arg manifest "${BASE}/latest/module.json" \
+              --arg download "${BASE}/latest/${NAME}.zip" \
+              '.version=$version | .manifest=$manifest | .download=$download' \
+              "${NAME}/module.json" > "${NAME}/module.json.tmp"
+            mv "${NAME}/module.json.tmp" "${NAME}/module.json"
+          }
 
-          # --- Pf2eNpcMaker ---
-          mkdir -p Pf2eNpcMaker
-          jq \
-            --arg version  "$VERSION" \
-            --arg manifest "${PF2E_BASE}/latest/module.json" \
-            --arg download "${PF2E_BASE}/latest/Pf2eNpcMaker.zip" \
-            '.version=$version | .manifest=$manifest | .download=$download' \
-            pf2e-module.json > Pf2eNpcMaker/module.json
-          cp -r scripts styles templates README.md Pf2eNpcMaker/
-          zip -r Pf2eNpcMaker.zip Pf2eNpcMaker/
+          inject Pf2eNpcMaker
+          inject DnD5eNpcMaker
+          inject Hero6eNpcMaker
+          inject Pf2eItemMaker
 
-          # --- DnD5eNpcMaker ---
-          mkdir -p DnD5eNpcMaker
-          jq \
-            --arg version  "$VERSION" \
-            --arg manifest "${DND5E_BASE}/latest/module.json" \
-            --arg download "${DND5E_BASE}/latest/DnD5eNpcMaker.zip" \
-            '.version=$version | .manifest=$manifest | .download=$download' \
-            dnd5e-module.json > DnD5eNpcMaker/module.json
-          cp -r scripts styles templates README.md DnD5eNpcMaker/
-          zip -r DnD5eNpcMaker.zip DnD5eNpcMaker/
-
-          # --- Hero6eNpcMaker ---
-          mkdir -p Hero6eNpcMaker
-          jq \
-            --arg version  "$VERSION" \
-            --arg manifest "${HERO6E_BASE}/latest/module.json" \
-            --arg download "${HERO6E_BASE}/latest/Hero6eNpcMaker.zip" \
-            '.version=$version | .manifest=$manifest | .download=$download' \
-            hero6-module.json > Hero6eNpcMaker/module.json
-          cp -r scripts styles templates README.md Hero6eNpcMaker/
+      - name: Zip all module packages
+        run: |
+          zip -r Pf2eNpcMaker.zip   Pf2eNpcMaker/
+          zip -r DnD5eNpcMaker.zip  DnD5eNpcMaker/
           zip -r Hero6eNpcMaker.zip Hero6eNpcMaker/
+          zip -r Pf2eItemMaker.zip  Pf2eItemMaker/
 
       # ── Push source to each individual repo ──────────────────────────────
 
@@ -104,6 +96,21 @@ jobs:
           git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Hero6eNpcMaker.git _hero6e_repo
           rsync -a --exclude=.git --delete Hero6eNpcMaker/ _hero6e_repo/
           cd _hero6e_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Push source to Pf2eItemMaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _pf2eitem_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemMaker.git _pf2eitem_repo
+          rsync -a --exclude=.git --delete Pf2eItemMaker/ _pf2eitem_repo/
+          cd _pf2eitem_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -188,6 +195,32 @@ jobs:
               })).data;
             }
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Create Pf2eItemMaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eItemMaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Pf2eItemMaker v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eItemMaker/module.json'], ['Pf2eItemMaker.zip', 'Pf2eItemMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       # ── Update floating latest releases in each individual repo ──────────
@@ -285,9 +318,40 @@ jobs:
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
+      - name: Update Pf2eItemMaker latest release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eItemMaker';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eItemMaker/module.json'], ['Pf2eItemMaker.zip', 'Pf2eItemMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
       # ── Notify Foundry VTT ───────────────────────────────────────────────
 
-      - name: Notify Foundry PF2e Package
+      - name: Notify Foundry PF2e NPC Package
         env:
           FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
         run: |
@@ -317,7 +381,7 @@ jobs:
             exit 1
           fi
 
-      - name: Notify Foundry DnD5e Package
+      - name: Notify Foundry DnD5e NPC Package
         env:
           FOUNDRYVTT_DND5E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_RELEASE_TOKEN }}
         run: |

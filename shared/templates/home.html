@@ -1,0 +1,54 @@
+    <div class="home-content">
+      <div class="home-logo">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <h2>CferNpcMaker — {{module.label}}</h2>
+      </div>
+      <p class="home-intro">
+        You're using <strong>{{module.label}}</strong>. The CferNpcMaker family ships
+        a separate Foundry module for each system so each install only contains the
+        code it needs. Install any of the others to round out your toolset.
+      </p>
+
+      <div class="home-modules-grid">
+        {{#each homeModules}}
+        <div class="home-module-card {{accentClass}}{{#if isCurrent}} home-module-card--current{{/if}}">
+          <div class="home-module-icon"><i class="{{icon}}"></i></div>
+          <div class="home-module-body">
+            <div class="home-module-title">{{label}}</div>
+            <div class="home-module-desc">{{description}}</div>
+          </div>
+          <div class="home-module-cta">
+            {{#if isCurrent}}
+              <span class="home-module-current-badge"><i class="fa-solid fa-check"></i> Installed</span>
+            {{else}}
+              <a href="{{install}}" target="_blank" rel="noopener noreferrer" class="home-module-install">
+                <i class="fa-brands fa-github"></i> Install
+              </a>
+            {{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+
+      <!-- Custom art style -->
+      <div class="home-art-style">
+        <label for="npc-art-style" class="home-art-style-label">
+          <i class="fa-solid fa-palette"></i>
+          <span>Custom Art Style</span>
+        </label>
+        <input type="text" id="npc-art-style" class="home-art-style-input"
+          placeholder="e.g. watercolor fantasy, anime, oil painting, comic book…" />
+        <span class="home-art-style-hint">
+          Specify an art style for generated NPC images. Leave blank to use the system default.
+        </span>
+      </div>
+
+      <div class="home-links">
+        <a href="https://discord.gg/6AJxmtjZvX" target="_blank" rel="noopener noreferrer" class="btn-discord">
+          <i class="fa-brands fa-discord"></i> Join our Discord
+        </a>
+        <a href="https://www.patreon.com/cw/CelestiaTools" target="_blank" rel="noopener noreferrer" class="btn-patreon-link">
+          <i class="fa-brands fa-patreon"></i> Support on Patreon
+        </a>
+      </div>
+    </div>
