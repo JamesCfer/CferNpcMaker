@@ -421,7 +421,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: ${FOUNDRYVTT_HERO6E_RELEASE_TOKEN}" \
             -d "{
-              \"id\": \"Hero6eNpcMaker\",
+              \"id\": \"Hero6e-Npc-Maker\",
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
@@ -451,7 +451,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: ${FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN}" \
             -d "{
-              \"id\": \"Pf2eItemGenerator\",
+              \"id\": \"PF2E-Item-Generator\",
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
