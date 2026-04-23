@@ -411,3 +411,63 @@ jobs:
             echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
             exit 1
           fi
+
+      - name: Notify Foundry Hero6e NPC Package
+        env:
+          FOUNDRYVTT_HERO6E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_HERO6E_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_HERO6E_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"Hero6eNpcMaker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Notify Foundry PF2e Item Generator Package
+        env:
+          FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"Pf2eItemGenerator\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
