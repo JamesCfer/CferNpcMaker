@@ -61,19 +61,15 @@ Hooks.once('ready', () => {
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
 <h3>Welcome to the PF2e Item Generator!</h3>
-<p>Here's how to get started:</p>
-<ol>
-  <li><strong>Open the Generator</strong> — Click the <em>Item Generator</em> button in the <strong>Items</strong> or <strong>Compendium</strong> sidebar header.</li>
-  <li><strong>Sign In</strong> — Click <em>Sign in with Patreon</em> to authenticate.</li>
-  <li><strong>Describe Your Item</strong> — Name, level, type (weapon/armor/consumable/etc.), and description.</li>
-  <li><strong>Generate!</strong> — A fully-statted item is created directly in your Items directory.</li>
-</ol>
-<p>Check the <strong>Home</strong> tab inside the generator to discover the other CferNpcMaker modules (PF2e NPC, D&amp;D 5e NPC, and Hero 6e NPC).</p>`.trim();
+<p>The generator has opened automatically. The <strong>Home</strong> tab inside it walks you through how to get started.</p>
+<p>You can reopen it any time from the <em>Item Generator</em> button in the <strong>Items</strong> or <strong>Compendium</strong> sidebar header.</p>`.trim();
 
     ChatMessage.create({
       content: welcomeContent,
       whisper: game.users.filter(u => u.isGM).map(u => u.id),
     });
     game.settings.set(MODULE_ID, 'welcomeMessageShown', true);
+    openBuilder(adapter, { initialTab: 'home' });
+    checkForModuleUpdate(MODULE_ID, adapter.module.githubUrl).catch(() => {});
   }
 });
