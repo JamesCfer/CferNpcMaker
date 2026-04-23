@@ -33,7 +33,8 @@ jobs:
 
           inject() {
             local NAME="$1"
-            local BASE="https://github.com/JamesCfer/${NAME}/releases/download"
+            local REPO="${2:-$1}"
+            local BASE="https://github.com/JamesCfer/${REPO}/releases/download"
             jq \
               --arg version  "$VERSION" \
               --arg manifest "${BASE}/latest/module.json" \
@@ -46,7 +47,7 @@ jobs:
           inject Pf2eNpcMaker
           inject DnD5eNpcMaker
           inject Hero6eNpcMaker
-          inject Pf2eItemGenerator
+          inject Pf2eItemGenerator Pf2eItemMaker
 
       - name: Zip all module packages
         run: |
@@ -102,13 +103,13 @@ jobs:
           git diff --cached --quiet || git commit -m "Release v${VERSION}"
           git push -u origin HEAD
 
-      - name: Push source to Pf2eItemGenerator
+      - name: Push source to Pf2eItemMaker
         env:
           MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           rm -rf _pf2eitem_repo
-          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemGenerator.git _pf2eitem_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemMaker.git _pf2eitem_repo
           rsync -a --exclude=.git --delete Pf2eItemGenerator/ _pf2eitem_repo/
           cd _pf2eitem_repo
           git config user.name "github-actions[bot]"
@@ -197,14 +198,14 @@ jobs:
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-      - name: Create Pf2eItemGenerator versioned release
+      - name: Create Pf2eItemMaker versioned release
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
           script: |
             const fs = require('fs');
             const owner = 'JamesCfer';
-            const repo = 'Pf2eItemGenerator';
+            const repo = 'Pf2eItemMaker';
             const version = '${{ steps.version.outputs.version }}';
             const tag = `v${version}`;
 
@@ -318,14 +319,14 @@ jobs:
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-      - name: Update Pf2eItemGenerator latest release
+      - name: Update Pf2eItemMaker latest release
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
           script: |
             const fs = require('fs');
             const owner = 'JamesCfer';
-            const repo = 'Pf2eItemGenerator';
+            const repo = 'Pf2eItemMaker';
             const tag = 'latest';
             const version = '${{ steps.version.outputs.version }}';
 

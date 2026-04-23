@@ -39,8 +39,8 @@ export const ALL_MODULES = [
     icon:        'fa-solid fa-flask',
     accentClass: 'card--pf2eitem',
     description: 'Generate PF2e items (weapons, armor, consumables, treasure) from a description.',
-    github:      'https://github.com/JamesCfer/Pf2eItemGenerator',
-    install:     'https://github.com/JamesCfer/Pf2eItemGenerator/releases/latest',
+    github:      'https://github.com/JamesCfer/Pf2eItemMaker',
+    install:     'https://github.com/JamesCfer/Pf2eItemMaker/releases/latest',
   },
 ];
 

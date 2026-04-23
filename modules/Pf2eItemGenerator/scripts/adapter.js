@@ -32,7 +32,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
       id:           'Pf2eItemGenerator',
       label:        'PF2e Item',
       icon:         'fa-solid fa-flask',
-      githubUrl:    'https://github.com/JamesCfer/Pf2eItemGenerator',
+      githubUrl:    'https://github.com/JamesCfer/Pf2eItemMaker',
       historyLabel: 'Created Items',
     };
   }
