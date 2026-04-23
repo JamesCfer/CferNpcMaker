@@ -1,5 +1,5 @@
 /**
- * PF2e Item Maker — module entry point.
+ * PF2e Item Generator — module entry point.
  * Registers in the Items directory (not Actors) since output goes to game.items.
  */
 
@@ -17,7 +17,7 @@ const openFn = () => {
 };
 
 registerSidebar(MODULE_ID, openFn, {
-  buttonLabel: 'Item Builder',
+  buttonLabel: 'Item Generator',
   buttonIcon:  '✦',
   directories: ['items', 'compendium'],
 });
@@ -47,7 +47,7 @@ Hooks.once('ready', () => {
       localStorage.removeItem(`${MODULE_ID}.key`);
       localStorage.removeItem(`${MODULE_ID}:key`);
     } catch (_) {}
-    ui.notifications?.info?.('Item Builder was updated — please sign in again.');
+    ui.notifications?.info?.('Item Generator was updated — please sign in again.');
   }
   if (currentVersion) {
     try { localStorage.setItem(storedVersionKey, currentVersion); } catch (_) {}
@@ -56,19 +56,19 @@ Hooks.once('ready', () => {
   (foundry.applications.handlebars?.loadTemplates ?? loadTemplates)([
     `modules/${MODULE_ID}/templates/builder.html`,
   ]);
-  console.log(`PF2E Item Auto-Builder ready (version: ${currentVersion}).`);
+  console.log(`PF2e Item Generator ready (version: ${currentVersion}).`);
 
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
-<h3>Welcome to the PF2e Item Auto-Builder!</h3>
+<h3>Welcome to the PF2e Item Generator!</h3>
 <p>Here's how to get started:</p>
 <ol>
-  <li><strong>Open the Builder</strong> — Click the <em>Item Builder</em> button in the <strong>Items</strong> or <strong>Compendium</strong> sidebar header.</li>
+  <li><strong>Open the Generator</strong> — Click the <em>Item Generator</em> button in the <strong>Items</strong> or <strong>Compendium</strong> sidebar header.</li>
   <li><strong>Sign In</strong> — Click <em>Sign in with Patreon</em> to authenticate.</li>
   <li><strong>Describe Your Item</strong> — Name, level, type (weapon/armor/consumable/etc.), and description.</li>
   <li><strong>Generate!</strong> — A fully-statted item is created directly in your Items directory.</li>
 </ol>
-<p>Check the <strong>Home</strong> tab inside the builder to discover the other CferNpcMaker modules (PF2e NPC, D&amp;D 5e NPC, and Hero 6e NPC).</p>`.trim();
+<p>Check the <strong>Home</strong> tab inside the generator to discover the other CferNpcMaker modules (PF2e NPC, D&amp;D 5e NPC, and Hero 6e NPC).</p>`.trim();
 
     ChatMessage.create({
       content: welcomeContent,

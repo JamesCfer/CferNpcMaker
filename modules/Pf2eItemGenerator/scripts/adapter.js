@@ -10,7 +10,7 @@ import { detectModuleFolder }        from './core/utils.js';
 import { sanitizeItemDataPf2e,
          tryFixItemValidationError } from './sanitizer.js';
 
-const MODULE_FOLDER = detectModuleFolder('Pf2eItemMaker');
+const MODULE_FOLDER = detectModuleFolder('Pf2eItemGenerator');
 const ITEM_ENDPOINT = `${N8N_BASE}/webhook/pf2e-item-builder`;
 
 const ITEM_TYPE_LABELS = {
@@ -29,7 +29,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
 
   get module() {
     return {
-      id:           'Pf2eItemMaker',
+      id:           'Pf2eItemGenerator',
       label:        'PF2e Item',
       icon:         'fa-solid fa-flask',
       githubUrl:    'https://github.com/JamesCfer/Pf2eItemMaker',
@@ -39,7 +39,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
 
   get systemId() { return 'pf2e'; }
 
-  // Item maker does not use image generation.
+  // Item generator does not use image generation.
   get supportsImageGeneration() { return false; }
 
   get formConfig() { return { documentNoun: 'item' }; }

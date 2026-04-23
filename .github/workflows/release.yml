@@ -25,7 +25,7 @@ jobs:
       - name: Build all module packages
         run: |
           chmod +x ./build.sh
-          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemMaker
+          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator
 
       - name: Inject version + manifest URLs into each module.json
         run: |
@@ -33,7 +33,8 @@ jobs:
 
           inject() {
             local NAME="$1"
-            local BASE="https://github.com/JamesCfer/${NAME}/releases/download"
+            local REPO="${2:-$1}"
+            local BASE="https://github.com/JamesCfer/${REPO}/releases/download"
             jq \
               --arg version  "$VERSION" \
               --arg manifest "${BASE}/latest/module.json" \
@@ -46,14 +47,14 @@ jobs:
           inject Pf2eNpcMaker
           inject DnD5eNpcMaker
           inject Hero6eNpcMaker
-          inject Pf2eItemMaker
+          inject Pf2eItemGenerator Pf2eItemMaker
 
       - name: Zip all module packages
         run: |
           zip -r Pf2eNpcMaker.zip   Pf2eNpcMaker/
           zip -r DnD5eNpcMaker.zip  DnD5eNpcMaker/
           zip -r Hero6eNpcMaker.zip Hero6eNpcMaker/
-          zip -r Pf2eItemMaker.zip  Pf2eItemMaker/
+          zip -r Pf2eItemGenerator.zip  Pf2eItemGenerator/
 
       # ── Push source to each individual repo ──────────────────────────────
 
@@ -109,7 +110,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           rm -rf _pf2eitem_repo
           git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemMaker.git _pf2eitem_repo
-          rsync -a --exclude=.git --delete Pf2eItemMaker/ _pf2eitem_repo/
+          rsync -a --exclude=.git --delete Pf2eItemGenerator/ _pf2eitem_repo/
           cd _pf2eitem_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -217,10 +218,10 @@ jobs:
               if (e.status !== 404) throw e;
               release = (await github.rest.repos.createRelease({
                 owner, repo, tag_name: tag, name: `v${version}`,
-                body: `Pf2eItemMaker v${version}`, draft: false, prerelease: false,
+                body: `Pf2eItemGenerator v${version}`, draft: false, prerelease: false,
               })).data;
             }
-            for (const [name, path] of [['module.json', 'Pf2eItemMaker/module.json'], ['Pf2eItemMaker.zip', 'Pf2eItemMaker.zip']])
+            for (const [name, path] of [['module.json', 'Pf2eItemGenerator/module.json'], ['Pf2eItemGenerator.zip', 'Pf2eItemGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       # ── Update floating latest releases in each individual repo ──────────
@@ -346,7 +347,7 @@ jobs:
                 draft: false, prerelease: false,
               })).data;
             }
-            for (const [name, path] of [['module.json', 'Pf2eItemMaker/module.json'], ['Pf2eItemMaker.zip', 'Pf2eItemMaker.zip']])
+            for (const [name, path] of [['module.json', 'Pf2eItemGenerator/module.json'], ['Pf2eItemGenerator.zip', 'Pf2eItemGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       # ── Notify Foundry VTT ───────────────────────────────────────────────
