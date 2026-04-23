@@ -60,19 +60,15 @@ Hooks.once('ready', () => {
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
 <h3>Welcome to the Hero 6e NPC Auto-Builder!</h3>
-<p>Here's how to get started:</p>
-<ol>
-  <li><strong>Open the Builder</strong> — Click the <em>NPC Builder</em> button in the <strong>Actors</strong> sidebar header.</li>
-  <li><strong>Sign In</strong> — Click <em>Sign in with Patreon</em> to authenticate.</li>
-  <li><strong>Describe Your Character</strong> — Name, point value, universe, genre, description.</li>
-  <li><strong>Generate!</strong> — A .hdc file is downloaded and imported into Foundry.</li>
-</ol>
-<p>Check the <strong>Home</strong> tab inside the builder to discover the other CferNpcMaker modules (PF2e, D&amp;D 5e, and PF2e Items).</p>`.trim();
+<p>The builder has opened automatically. The <strong>Home</strong> tab inside it walks you through how to get started.</p>
+<p>You can reopen the builder any time from the <em>NPC Builder</em> button in the <strong>Actors</strong> sidebar header.</p>`.trim();
 
     ChatMessage.create({
       content: welcomeContent,
       whisper: game.users.filter(u => u.isGM).map(u => u.id),
     });
     game.settings.set(MODULE_ID, 'welcomeMessageShown', true);
+    openBuilder(adapter, { initialTab: 'home' });
+    checkForModuleUpdate(MODULE_ID, adapter.module.githubUrl).catch(() => {});
   }
 });
