@@ -7,7 +7,7 @@ Four sibling Foundry VTT modules for AI-assisted NPC and item generation:
 | `Pf2eNpcMaker`    | `pf2e`  | NPC actors (with level-up + image)     | `game.actors`   |
 | `DnD5eNpcMaker`   | `dnd5e` | Creature actors (with CR + spells)     | `game.actors`   |
 | `Hero6eNpcMaker`  | `hero6e`| Characters (via HDC import)            | `game.actors`   |
-| `Pf2eItemMaker`   | `pf2e`  | Items (weapons, armor, consumables…)   | `game.items`    |
+| `Pf2eItemGenerator` | `pf2e`  | Items (weapons, armor, consumables…) | `game.items`    |
 
 ## Repository layout
 
@@ -44,7 +44,7 @@ To produce a shipped module locally (e.g. to symlink into Foundry's
 ```sh
 ./build.sh Pf2eNpcMaker                 # one module
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker   # several
-./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemMaker   # all
+./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator   # all
 ```
 
 The script copies `shared/scripts/core/` into each output's `scripts/core/`,
