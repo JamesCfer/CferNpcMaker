@@ -6,6 +6,7 @@
 import { openBuilder }          from './core/app.js';
 import { checkForModuleUpdate } from './core/update-check.js';
 import { registerSidebar }      from './core/sidebar.js';
+import { startHeartbeat }       from './core/heartbeat.js';
 import { Pf2eItemAdapter }      from './adapter.js';
 
 const adapter   = new Pf2eItemAdapter();
@@ -57,6 +58,8 @@ Hooks.once('ready', () => {
     `modules/${MODULE_ID}/templates/builder.html`,
   ]);
   console.log(`PF2e Item Generator ready (version: ${currentVersion}).`);
+
+  startHeartbeat(MODULE_ID);
 
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
