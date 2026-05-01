@@ -53,8 +53,8 @@ export const ALL_MODULES = [
     icon:        'fa-solid fa-hat-wizard',
     accentClass: 'card--dnd5eitem',
     description: 'Generate D&D 5e magic items (weapons, armor, wondrous items, consumables) from a description.',
-    github:      'https://github.com/JamesCfer/Dnd5eItemMaker',
-    install:     'https://github.com/JamesCfer/Dnd5eItemMaker/releases/latest',
+    github:      'https://github.com/JamesCfer/D-Ditemmaker',
+    install:     'https://github.com/JamesCfer/D-Ditemmaker/releases/latest',
   },
 ];
 

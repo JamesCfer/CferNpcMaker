@@ -39,7 +39,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
       id:           'Dnd5eItemGenerator',
       label:        'D&D 5e Item',
       icon:         'fa-solid fa-hat-wizard',
-      githubUrl:    'https://github.com/JamesCfer/Dnd5eItemMaker',
+      githubUrl:    'https://github.com/JamesCfer/D-Ditemmaker',
       historyLabel: 'Created Items',
     };
   }
