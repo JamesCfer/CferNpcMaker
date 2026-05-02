@@ -555,7 +555,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: ${FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN}" \
             -d "{
-              \"id\": \"Dnd5eItemGenerator\",
+              \"id\": \"D&D Item Auto Maker\",
               \"dry-run\": false,
               \"release\": {
                 \"version\": \"${VERSION}\",
