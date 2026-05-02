@@ -14,6 +14,7 @@ const MODULE_FOLDER = detectModuleFolder('Dnd5eItemGenerator');
 const ITEM_ENDPOINT = `${N8N_BASE}/webhook/dnd5e-item-builder`;
 
 const RARITY_LABELS = {
+  '':        'Mundane',
   common:    'Common',
   uncommon:  'Uncommon',
   rare:      'Rare',
@@ -55,13 +56,13 @@ export class Dnd5eItemAdapter extends SystemAdapter {
   gatherFormData(form) {
     const fd = new FormData(form);
     const name        = (fd.get('name')?.toString()?.trim()) || 'Generated Item';
-    const rarity      = (fd.get('rarity')?.toString() || 'common').trim();
+    const rarity      = (fd.get('rarity')?.toString() ?? '').trim();
     const itemType    = (fd.get('itemType')?.toString() || 'loot').trim();
-    const attunement  = Number(fd.get('attunement')) || 0;
+    const subtype     = (fd.get('subtype')?.toString()?.trim()) || '';
     const description = (fd.get('description')?.toString()?.trim()) || '';
 
     if (!description) throw new Error('Please provide a description for the item.');
-    return { name, rarity, itemType, attunement, description };
+    return { name, rarity, itemType, subtype, description };
   }
 
   historyEntryFromForm(formData) {
@@ -69,27 +70,27 @@ export class Dnd5eItemAdapter extends SystemAdapter {
       name:        formData.name,
       rarity:      formData.rarity,
       itemType:    formData.itemType,
-      attunement:  formData.attunement,
+      subtype:     formData.subtype,
       description: formData.description,
     };
   }
 
   historyMeta(entry) {
-    const rarityLabel = RARITY_LABELS[entry.rarity] || 'Common';
+    const rarityLabel = RARITY_LABELS[entry.rarity] ?? 'Mundane';
     const typeLabel   = ITEM_TYPE_LABELS[entry.itemType] || 'Item';
     return `${rarityLabel}&nbsp;·&nbsp;${typeLabel}`;
   }
 
   populateForm(form, entry) {
-    const nameInput       = form.querySelector('[name="name"]');
-    const raritySelect    = form.querySelector('[name="rarity"]');
-    const typeSelect      = form.querySelector('[name="itemType"]');
-    const attunSelect     = form.querySelector('[name="attunement"]');
-    const descTextarea    = form.querySelector('[name="description"]');
+    const nameInput    = form.querySelector('[name="name"]');
+    const raritySelect = form.querySelector('[name="rarity"]');
+    const typeSelect   = form.querySelector('[name="itemType"]');
+    const subtypeInput = form.querySelector('[name="subtype"]');
+    const descTextarea = form.querySelector('[name="description"]');
     if (nameInput)    nameInput.value    = entry.name ?? '';
-    if (raritySelect) raritySelect.value = entry.rarity ?? 'common';
+    if (raritySelect) raritySelect.value = entry.rarity ?? '';
     if (typeSelect)   typeSelect.value   = entry.itemType ?? 'loot';
-    if (attunSelect)  attunSelect.value  = entry.attunement ?? 0;
+    if (subtypeInput) subtypeInput.value = entry.subtype ?? '';
     if (descTextarea) descTextarea.value = entry.description ?? '';
   }
 
@@ -101,7 +102,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
       name:        formData.name,
       rarity:      formData.rarity,
       itemType:    formData.itemType,
-      attunement:  formData.attunement,
+      subtype:     formData.subtype,
       description: formData.description,
     };
 
@@ -120,7 +121,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
     const itemData = data.foundryItem || data.item || data;
     if (!itemData || typeof itemData !== 'object') throw new Error('No valid item data returned from server');
 
-    sanitizeItemDataDnd5e(itemData, formData.itemType, formData.rarity, formData.attunement);
+    sanitizeItemDataDnd5e(itemData, formData.itemType, formData.rarity);
 
     let item, attempts = 0;
     const maxAttempts = 10;
