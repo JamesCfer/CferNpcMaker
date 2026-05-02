@@ -1,0 +1,22 @@
+{
+  "id": "Dnd5eItemGenerator",
+  "title": "D&D 5e Item Generator",
+  "description": "Generate D&D 5e magic items (weapons, armor, wondrous items, consumables, and more) from a short description. Items are created directly in your world.",
+  "authors": [
+    {
+      "name": "JamesCfer"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14"
+  },
+  "systems": ["dnd5e"],
+  "esmodules": [
+    "scripts/entry.js"
+  ],
+  "styles": [
+    "styles/builder.css"
+  ],
+  "templateDir": "templates"
+}

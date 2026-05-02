@@ -1,0 +1,65 @@
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name">Item Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. Cloak of the Shadowfell" />
+          </div>
+          <div class="field field--level">
+            <label for="item-rarity">Rarity</label>
+            <select id="item-rarity" name="rarity">
+              <option value="common">Common</option>
+              <option value="uncommon" selected>Uncommon</option>
+              <option value="rare">Rare</option>
+              <option value="veryRare">Very Rare</option>
+              <option value="legendary">Legendary</option>
+              <option value="artifact">Artifact</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="item-type">Item Type</label>
+            <select id="item-type" name="itemType">
+              <option value="weapon">Weapon</option>
+              <option value="equipment">Armor / Equipment</option>
+              <option value="consumable">Consumable (potion, scroll, wand…)</option>
+              <option value="tool">Tool</option>
+              <option value="loot" selected>Wondrous Item / Loot</option>
+              <option value="container">Container</option>
+            </select>
+          </div>
+          <div class="field field--level">
+            <label for="item-attunement">Attunement</label>
+            <select id="item-attunement" name="attunement">
+              <option value="0" selected>Not Required</option>
+              <option value="1">Required</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <textarea id="npc-desc" name="description" rows="6"
+            placeholder="Describe this item: its appearance, magical properties, activation, lore, any class or alignment restrictions…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate Item</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+      </form>

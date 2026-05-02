@@ -1,0 +1,127 @@
+/* ============================================================
+   D&D 5e Item Generator — Arcane Vault accents
+   Midnight blue, arcane silver, aged parchment — a wizard's
+   treasury of enchanted relics and wondrous curiosities.
+   ============================================================ */
+
+.application.npc-builder .builder-tab[data-tab="builder"].is-active {
+  border-bottom-color: #2c4a8a;
+}
+
+.application.npc-builder .npc-panel-form {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(44, 74, 138, 0.12), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(120, 100, 180, 0.10), transparent 55%),
+    linear-gradient(180deg, #f2ecdc 0%, #e4d9c0 100%);
+  border-top: 3px double #1a2e5e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #1a1f3a;
+}
+
+.application.npc-builder .npc-panel-history {
+  background:
+    repeating-linear-gradient(45deg, rgba(44, 74, 138, 0.03) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #dde4f4 0%, #c0cce8 100%);
+  border-left: 3px double #1a2e5e;
+}
+
+.application.npc-builder .history-header {
+  font-family: "Cinzel", "Modesto Condensed", serif;
+  font-weight: 700;
+  font-size: 0.82em;
+  letter-spacing: 0.12em;
+  color: #f0e8d0;
+  background: linear-gradient(180deg, #2c4a8a 0%, #1a2e5e 100%);
+  border-bottom: 2px solid #c9a84c;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.application.npc-builder .history-header i { color: #c9a84c; }
+
+.application.npc-builder .history-entry {
+  background: transparent;
+  border-bottom: 1px dashed rgba(26, 46, 94, 0.30);
+  border-left: 3px solid transparent;
+}
+.application.npc-builder .history-entry:hover { background: rgba(44, 74, 138, 0.09); }
+.application.npc-builder .history-entry.is-selected {
+  background: rgba(44, 74, 138, 0.16);
+  border-left-color: #2c4a8a;
+  box-shadow: inset 3px 0 0 #c9a84c;
+}
+.application.npc-builder .history-entry-name {
+  font-family: "Cinzel", "Modesto Condensed", serif;
+  color: #1a1f3a;
+}
+.application.npc-builder .history-entry-meta { color: #3a4a6a; font-style: italic; }
+
+.application.npc-builder .history-selected-banner {
+  background: linear-gradient(180deg, rgba(44, 74, 138, 0.12), rgba(120, 100, 180, 0.08));
+  border: 1px solid #1a2e5e;
+  border-left: 3px solid #2c4a8a;
+  border-radius: 2px;
+  color: #1a2e5e;
+  font-family: "Cinzel", serif;
+  font-size: 0.8em;
+  letter-spacing: 0.02em;
+}
+
+.application.npc-builder .field > label {
+  font-family: "Cinzel", "Modesto Condensed", serif;
+  letter-spacing: 0.08em;
+  color: #1a2e5e;
+  font-size: 0.8em;
+}
+
+.application.npc-builder .field input[type="text"],
+.application.npc-builder .field input[type="number"],
+.application.npc-builder .field textarea,
+.application.npc-builder .field select {
+  background: #f8f4e8;
+  border: 1px solid #2c4a8a;
+  border-radius: 3px;
+  color: #1a1f3a;
+  box-shadow: inset 0 1px 2px rgba(26, 46, 94, 0.10);
+}
+.application.npc-builder .field input:focus,
+.application.npc-builder .field textarea:focus,
+.application.npc-builder .field select:focus {
+  border-color: #4a6abf;
+  box-shadow: 0 0 0 2px rgba(44, 74, 138, 0.25), inset 0 1px 2px rgba(26, 46, 94, 0.08);
+}
+.application.npc-builder .field-hint { color: #3a4a6a; }
+
+.application.npc-builder button.btn-primary {
+  background: linear-gradient(180deg, #3d5faa 0%, #1a2e5e 100%);
+  border: 1px solid #0f1d3d;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 1px 0 #c9a84c,
+    0 2px 4px rgba(15, 29, 61, 0.4);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  font-family: "Cinzel", serif;
+  letter-spacing: 0.04em;
+}
+
+.application.npc-builder button.btn-secondary {
+  background: #f8f4e8;
+  color: #1a2e5e;
+  border: 1px solid #2c4a8a;
+  border-radius: 3px;
+  font-family: "Cinzel", serif;
+  letter-spacing: 0.04em;
+}
+.application.npc-builder button.btn-secondary:hover:not(:disabled) { background: #eae3cc; }
+
+.application.npc-builder .history-progress-bar {
+  background: linear-gradient(90deg, transparent, #2c4a8a 40%, #c9a84c 60%, transparent);
+}
+
+.application.npc-builder .auth-unsigned {
+  background: linear-gradient(180deg, #e8dfc4 0%, #d8cc9e 100%);
+  border-bottom: 2px solid #1a2e5e;
+}
+.application.npc-builder .auth-signed {
+  background: linear-gradient(180deg, #ccd8f0 0%, #a8bce0 100%);
+  border-bottom: 2px solid #1a2e5e;
+}
