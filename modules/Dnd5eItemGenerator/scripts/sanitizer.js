@@ -10,11 +10,12 @@ const VALID_ITEM_TYPES = new Set([
   'weapon', 'equipment', 'consumable', 'tool', 'loot', 'container',
 ]);
 
+// Empty string is valid (mundane item with no rarity).
 const VALID_RARITIES = new Set([
-  'common', 'uncommon', 'rare', 'veryRare', 'legendary', 'artifact',
+  '', 'common', 'uncommon', 'rare', 'veryRare', 'legendary', 'artifact',
 ]);
 
-export function sanitizeItemDataDnd5e(itemData, requestedType, requestedRarity, requestedAttunement) {
+export function sanitizeItemDataDnd5e(itemData, requestedType, requestedRarity) {
   const generateId = () => foundry.utils.randomID(16);
 
   if (!itemData._id || itemData._id.length !== 16 || !/^[a-zA-Z0-9]{16}$/.test(itemData._id)) {
@@ -44,16 +45,14 @@ export function sanitizeItemDataDnd5e(itemData, requestedType, requestedRarity, 
   if (typeof s.description.value !== 'string') s.description.value = '';
   if (typeof s.description.chat !== 'string')  s.description.chat  = '';
 
-  // Rarity — coerce to a valid value, fall back to user's requested rarity.
+  // Rarity — '' is valid (mundane). Fall back to user's requested value, then ''.
   if (!VALID_RARITIES.has(s.rarity)) {
-    s.rarity = (requestedRarity && VALID_RARITIES.has(requestedRarity))
-      ? requestedRarity
-      : 'common';
+    s.rarity = VALID_RARITIES.has(requestedRarity) ? requestedRarity : '';
   }
 
-  // Attunement — 0 = not required, 1 = required.
+  // Attunement — server sets this; just ensure it's a valid dnd5e number (0/1/2).
   if (typeof s.attunement !== 'number' || ![0, 1, 2].includes(s.attunement)) {
-    s.attunement = (requestedAttunement === 1) ? 1 : 0;
+    s.attunement = 0;
   }
 
   // Quantity / weight / price

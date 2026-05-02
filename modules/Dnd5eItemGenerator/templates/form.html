@@ -13,6 +13,7 @@
           <div class="field field--level">
             <label for="item-rarity">Rarity</label>
             <select id="item-rarity" name="rarity">
+              <option value="">Mundane (no magic)</option>
               <option value="common">Common</option>
               <option value="uncommon" selected>Uncommon</option>
               <option value="rare">Rare</option>
@@ -36,11 +37,8 @@
             </select>
           </div>
           <div class="field field--level">
-            <label for="item-attunement">Attunement</label>
-            <select id="item-attunement" name="attunement">
-              <option value="0" selected>Not Required</option>
-              <option value="1">Required</option>
-            </select>
+            <label for="item-subtype">Subtype <span class="field-hint">(optional)</span></label>
+            <input type="text" id="item-subtype" name="subtype" placeholder="e.g. ring, potion, staff" />
           </div>
         </div>
 
