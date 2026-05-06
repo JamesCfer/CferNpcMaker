@@ -2,6 +2,13 @@
  * D&D 5e Item SystemAdapter — generates D&D 5e items from a short description.
  *
  * Output lands directly in the world's Items directory (game.items).
+ *
+ * @typedef {object} Dnd5eItemFormData
+ * @property {string} name        Item name.
+ * @property {string} rarity      '' | 'common' | 'uncommon' | 'rare' | 'veryRare' | 'legendary' | 'artifact'
+ * @property {string} itemType    One of the ITEM_TYPE_LABELS keys.
+ * @property {string} subtype     Optional sub-type hint (e.g. 'longsword').
+ * @property {string} description Free-text description for the AI.
  */
 
 import { SystemAdapter, postToN8n }       from './core/adapter.js';
@@ -53,6 +60,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
 
   /* ── Form handling ──────────────────────────────────────── */
 
+  /** @returns {Dnd5eItemFormData} */
   gatherFormData(form) {
     const fd = new FormData(form);
     const name        = (fd.get('name')?.toString()?.trim()) || 'Generated Item';
@@ -96,6 +104,10 @@ export class Dnd5eItemAdapter extends SystemAdapter {
 
   /* ── Generation ─────────────────────────────────────────── */
 
+  /**
+   * @param {import('./core/adapter.js').GenerateOptions & { formData: Dnd5eItemFormData }} opts
+   * @returns {Promise<import('./core/adapter.js').AdapterResult>}
+   */
   async generate({ formData, key, devMode }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
