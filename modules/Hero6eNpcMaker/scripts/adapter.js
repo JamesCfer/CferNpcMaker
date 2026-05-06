@@ -4,6 +4,14 @@
  * The n8n hero6e endpoint returns HDC XML (either wrapped in JSON or raw).
  * On success we download the .hdc to the user's machine, then import it into
  * Foundry via the hero6efoundryvttv2 system's uploadFromXml API.
+ *
+ * @typedef {object} Hero6eNpcFormData
+ * @property {string}  name        Character name.
+ * @property {number}  level       Starting character points (e.g. 150).
+ * @property {string}  description Free-text description for the AI.
+ * @property {string}  universe    One of HERO6E_UNIVERSES.
+ * @property {string}  genre       One of HERO6E_GENRES.
+ * @property {boolean} createGear  Whether the AI should generate equipment.
  */
 
 import { SystemAdapter, postToN8n } from './core/adapter.js';
@@ -38,6 +46,7 @@ export class Hero6eNpcAdapter extends SystemAdapter {
 
   /* ── Form handling ──────────────────────────────────────── */
 
+  /** @returns {Hero6eNpcFormData} */
   gatherFormData(form) {
     const fd = new FormData(form);
     const name        = (fd.get('name')?.toString()?.trim()) || 'Generated Character';
@@ -102,6 +111,10 @@ export class Hero6eNpcAdapter extends SystemAdapter {
 
   /* ── Generation ─────────────────────────────────────────── */
 
+  /**
+   * @param {import('./core/adapter.js').GenerateOptions & { formData: Hero6eNpcFormData }} opts
+   * @returns {Promise<import('./core/adapter.js').AdapterResult>}
+   */
   async generate({ formData, key, devMode, builderApp }) {
     const endpoint = devUrl(NPC_ENDPOINT, devMode);
     const payload  = {

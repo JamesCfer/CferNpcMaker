@@ -2,6 +2,12 @@
  * PF2e Item SystemAdapter — generates PF2e items from a short description.
  *
  * Output lands directly in the world's Items directory (game.items).
+ *
+ * @typedef {object} Pf2eItemFormData
+ * @property {string} name        Item name.
+ * @property {number} level       Item level (0–20).
+ * @property {string} itemType    One of the ITEM_TYPE_LABELS keys.
+ * @property {string} description Free-text description for the AI.
  */
 
 import { SystemAdapter, postToN8n } from './core/adapter.js';
@@ -46,6 +52,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
 
   /* ── Form handling ──────────────────────────────────────── */
 
+  /** @returns {Pf2eItemFormData} */
   gatherFormData(form) {
     const fd = new FormData(form);
     const name        = (fd.get('name')?.toString()?.trim()) || 'Generated Item';
@@ -84,6 +91,10 @@ export class Pf2eItemAdapter extends SystemAdapter {
 
   /* ── Generation ─────────────────────────────────────────── */
 
+  /**
+   * @param {import('./core/adapter.js').GenerateOptions & { formData: Pf2eItemFormData }} opts
+   * @returns {Promise<import('./core/adapter.js').AdapterResult>}
+   */
   async generate({ formData, key, devMode }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
