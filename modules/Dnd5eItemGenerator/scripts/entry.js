@@ -64,7 +64,7 @@ Hooks.once('ready', () => {
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
 <h3>Welcome to the D&D 5e Item Generator!</h3>
-<p>The generator has opened automatically. The <strong>Home</strong> tab inside it walks you through how to get started.</p>
+<p>The generator has opened automatically — you're ready to start generating items right away.</p>
 <p>You can reopen it any time from the <em>Item Generator</em> button in the <strong>Items</strong> or <strong>Compendium</strong> sidebar header.</p>`.trim();
 
     ChatMessage.create({
@@ -72,7 +72,7 @@ Hooks.once('ready', () => {
       whisper: game.users.filter(u => u.isGM).map(u => u.id),
     });
     game.settings.set(MODULE_ID, 'welcomeMessageShown', true);
-    openBuilder(adapter, { initialTab: 'home' });
+    openBuilder(adapter);
     checkForModuleUpdate(MODULE_ID, adapter.module.githubUrl).catch(() => {});
   }
 });
