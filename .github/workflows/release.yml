@@ -8,12 +8,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+
+  # ── Build all packages once, upload as artifacts ─────────────────────────────
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +62,42 @@ jobs:
           zip -r Pf2eItemGenerator.zip   Pf2eItemGenerator/
           zip -r Dnd5eItemGenerator.zip  Dnd5eItemGenerator/
 
-      # ── Push source to each individual repo ──────────────────────────────
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          retention-days: 2
+          path: |
+            version.json
+            Pf2eNpcMaker/
+            DnD5eNpcMaker/
+            Hero6eNpcMaker/
+            Pf2eItemGenerator/
+            Dnd5eItemGenerator/
+            Pf2eNpcMaker.zip
+            DnD5eNpcMaker.zip
+            Hero6eNpcMaker.zip
+            Pf2eItemGenerator.zip
+            Dnd5eItemGenerator.zip
+
+  # ── Release 1 of 5: Pf2eNpcMaker (immediate) ─────────────────────────────────
+  release-pf2e-npc:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Push source to Pf2eNpcMaker
         env:
@@ -74,68 +113,6 @@ jobs:
           git add -A
           git diff --cached --quiet || git commit -m "Release v${VERSION}"
           git push -u origin HEAD
-
-      - name: Push source to DnD5eNpcMaker
-        env:
-          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          rm -rf _dnd5e_repo
-          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/DnD5eNpcMaker.git _dnd5e_repo
-          rsync -a --exclude=.git --delete DnD5eNpcMaker/ _dnd5e_repo/
-          cd _dnd5e_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Release v${VERSION}"
-          git push -u origin HEAD
-
-      - name: Push source to Hero6eNpcMaker
-        env:
-          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          rm -rf _hero6e_repo
-          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Hero6eNpcMaker.git _hero6e_repo
-          rsync -a --exclude=.git --delete Hero6eNpcMaker/ _hero6e_repo/
-          cd _hero6e_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Release v${VERSION}"
-          git push -u origin HEAD
-
-      - name: Push source to Pf2eItemMaker
-        env:
-          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          rm -rf _pf2eitem_repo
-          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemMaker.git _pf2eitem_repo
-          rsync -a --exclude=.git --delete Pf2eItemGenerator/ _pf2eitem_repo/
-          cd _pf2eitem_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Release v${VERSION}"
-          git push -u origin HEAD
-
-      - name: Push source to D-Ditemmaker
-        env:
-          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          rm -rf _dnd5eitem_repo
-          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/D-Ditemmaker.git _dnd5eitem_repo
-          rsync -a --exclude=.git --delete Dnd5eItemGenerator/ _dnd5eitem_repo/
-          cd _dnd5eitem_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "Release v${VERSION}"
-          git push -u origin HEAD
-
-      # ── Create versioned releases in each individual repo ────────────────
 
       - name: Create Pf2eNpcMaker versioned release
         uses: actions/github-script@v7
@@ -162,112 +139,6 @@ jobs:
             }
             for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      - name: Create DnD5eNpcMaker versioned release
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
-          script: |
-            const fs = require('fs');
-            const owner = 'JamesCfer';
-            const repo = 'DnD5eNpcMaker';
-            const version = '${{ steps.version.outputs.version }}';
-            const tag = `v${version}`;
-
-            let release;
-            try {
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-            } catch (e) {
-              if (e.status !== 404) throw e;
-              release = (await github.rest.repos.createRelease({
-                owner, repo, tag_name: tag, name: `v${version}`,
-                body: `DnD5eNpcMaker v${version}`, draft: false, prerelease: false,
-              })).data;
-            }
-            for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
-              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      - name: Create Hero6eNpcMaker versioned release
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
-          script: |
-            const fs = require('fs');
-            const owner = 'JamesCfer';
-            const repo = 'Hero6eNpcMaker';
-            const version = '${{ steps.version.outputs.version }}';
-            const tag = `v${version}`;
-
-            let release;
-            try {
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-            } catch (e) {
-              if (e.status !== 404) throw e;
-              release = (await github.rest.repos.createRelease({
-                owner, repo, tag_name: tag, name: `v${version}`,
-                body: `Hero6eNpcMaker v${version}`, draft: false, prerelease: false,
-              })).data;
-            }
-            for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
-              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      - name: Create Pf2eItemMaker versioned release
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
-          script: |
-            const fs = require('fs');
-            const owner = 'JamesCfer';
-            const repo = 'Pf2eItemMaker';
-            const version = '${{ steps.version.outputs.version }}';
-            const tag = `v${version}`;
-
-            let release;
-            try {
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-            } catch (e) {
-              if (e.status !== 404) throw e;
-              release = (await github.rest.repos.createRelease({
-                owner, repo, tag_name: tag, name: `v${version}`,
-                body: `Pf2eItemGenerator v${version}`, draft: false, prerelease: false,
-              })).data;
-            }
-            for (const [name, path] of [['module.json', 'Pf2eItemGenerator/module.json'], ['Pf2eItemGenerator.zip', 'Pf2eItemGenerator.zip']])
-              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      - name: Create D-Ditemmaker versioned release
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
-          script: |
-            const fs = require('fs');
-            const owner = 'JamesCfer';
-            const repo = 'D-Ditemmaker';
-            const version = '${{ steps.version.outputs.version }}';
-            const tag = `v${version}`;
-
-            let release;
-            try {
-              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
-              for (const asset of release.assets)
-                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
-            } catch (e) {
-              if (e.status !== 404) throw e;
-              release = (await github.rest.repos.createRelease({
-                owner, repo, tag_name: tag, name: `v${version}`,
-                body: `Dnd5eItemGenerator v${version}`, draft: false, prerelease: false,
-              })).data;
-            }
-            for (const [name, path] of [['module.json', 'Dnd5eItemGenerator/module.json'], ['Dnd5eItemGenerator.zip', 'Dnd5eItemGenerator.zip']])
-              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      # ── Update floating latest releases in each individual repo ──────────
 
       - name: Update Pf2eNpcMaker latest release
         uses: actions/github-script@v7
@@ -298,6 +169,99 @@ jobs:
               })).data;
             }
             for (const [name, path] of [['module.json', 'Pf2eNpcMaker/module.json'], ['Pf2eNpcMaker.zip', 'Pf2eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Notify Foundry PF2e NPC Package
+        env:
+          FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"Pf2eNpcMaker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  # ── Release 2 of 5: DnD5eNpcMaker (~4h 48m after release 1) ─────────────────
+  release-dnd5e-npc:
+    needs: release-pf2e-npc
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait 4h 48m (stagger over 24h, interval 2/5)
+        run: sleep 17280
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to DnD5eNpcMaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _dnd5e_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/DnD5eNpcMaker.git _dnd5e_repo
+          rsync -a --exclude=.git --delete DnD5eNpcMaker/ _dnd5e_repo/
+          cd _dnd5e_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create DnD5eNpcMaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'DnD5eNpcMaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `DnD5eNpcMaker v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update DnD5eNpcMaker latest release
@@ -331,6 +295,99 @@ jobs:
             for (const [name, path] of [['module.json', 'DnD5eNpcMaker/module.json'], ['DnD5eNpcMaker.zip', 'DnD5eNpcMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
+      - name: Notify Foundry DnD5e NPC Package
+        env:
+          FOUNDRYVTT_DND5E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_DND5E_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"DnD5eNpcMaker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/DnD5eNpcMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/DnD5eNpcMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  # ── Release 3 of 5: Hero6eNpcMaker (~9h 36m after release 1) ────────────────
+  release-hero6e-npc:
+    needs: release-dnd5e-npc
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait 4h 48m (stagger over 24h, interval 3/5)
+        run: sleep 17280
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Hero6eNpcMaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _hero6e_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Hero6eNpcMaker.git _hero6e_repo
+          rsync -a --exclude=.git --delete Hero6eNpcMaker/ _hero6e_repo/
+          cd _hero6e_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Hero6eNpcMaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Hero6eNpcMaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Hero6eNpcMaker v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
       - name: Update Hero6eNpcMaker latest release
         uses: actions/github-script@v7
         with:
@@ -360,6 +417,99 @@ jobs:
               })).data;
             }
             for (const [name, path] of [['module.json', 'Hero6eNpcMaker/module.json'], ['Hero6eNpcMaker.zip', 'Hero6eNpcMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Notify Foundry Hero6e NPC Package
+        env:
+          FOUNDRYVTT_HERO6E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_HERO6E_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_HERO6E_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"Hero6e-Npc-Maker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  # ── Release 4 of 5: Pf2eItemMaker (~14h 24m after release 1) ────────────────
+  release-pf2e-item:
+    needs: release-hero6e-npc
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait 4h 48m (stagger over 24h, interval 4/5)
+        run: sleep 17280
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Pf2eItemMaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _pf2eitem_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eItemMaker.git _pf2eitem_repo
+          rsync -a --exclude=.git --delete Pf2eItemGenerator/ _pf2eitem_repo/
+          cd _pf2eitem_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Pf2eItemMaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eItemMaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Pf2eItemGenerator v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eItemGenerator/module.json'], ['Pf2eItemGenerator.zip', 'Pf2eItemGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update Pf2eItemMaker latest release
@@ -393,6 +543,99 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eItemGenerator/module.json'], ['Pf2eItemGenerator.zip', 'Pf2eItemGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
+      - name: Notify Foundry PF2e Item Generator Package
+        env:
+          FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+            -H "Content-Type: application/json" \
+            -H "Authorization: ${FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN}" \
+            -d "{
+              \"id\": \"PF2E-Item-Generator\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"13\"
+                }
+              }
+            }")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body: $BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  # ── Release 5 of 5: D-Ditemmaker (~19h 12m after release 1) ─────────────────
+  release-dnd5e-item:
+    needs: release-pf2e-item
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait 4h 48m (stagger over 24h, interval 5/5)
+        run: sleep 17280
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to D-Ditemmaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _dnd5eitem_repo
+          git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/D-Ditemmaker.git _dnd5eitem_repo
+          rsync -a --exclude=.git --delete Dnd5eItemGenerator/ _dnd5eitem_repo/
+          cd _dnd5eitem_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create D-Ditemmaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'D-Ditemmaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Dnd5eItemGenerator v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Dnd5eItemGenerator/module.json'], ['Dnd5eItemGenerator.zip', 'Dnd5eItemGenerator.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
       - name: Update D-Ditemmaker latest release
         uses: actions/github-script@v7
         with:
@@ -423,128 +666,6 @@ jobs:
             }
             for (const [name, path] of [['module.json', 'Dnd5eItemGenerator/module.json'], ['Dnd5eItemGenerator.zip', 'Dnd5eItemGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
-
-      # ── Notify Foundry VTT ───────────────────────────────────────────────
-
-      - name: Notify Foundry PF2e NPC Package
-        env:
-          FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_RELEASE_TOKEN}" \
-            -d "{
-              \"id\": \"Pf2eNpcMaker\",
-              \"dry-run\": false,
-              \"release\": {
-                \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/download/latest/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/Pf2eNpcMaker/releases/tag/v${VERSION}\",
-                \"compatibility\": {
-                  \"minimum\": \"13\",
-                  \"verified\": \"13\"
-                }
-              }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-
-      - name: Notify Foundry DnD5e NPC Package
-        env:
-          FOUNDRYVTT_DND5E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_RELEASE_TOKEN }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_DND5E_RELEASE_TOKEN}" \
-            -d "{
-              \"id\": \"DnD5eNpcMaker\",
-              \"dry-run\": false,
-              \"release\": {
-                \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/DnD5eNpcMaker/releases/download/latest/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/DnD5eNpcMaker/releases/tag/v${VERSION}\",
-                \"compatibility\": {
-                  \"minimum\": \"13\",
-                  \"verified\": \"13\"
-                }
-              }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-
-      - name: Notify Foundry Hero6e NPC Package
-        env:
-          FOUNDRYVTT_HERO6E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_HERO6E_RELEASE_TOKEN }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_HERO6E_RELEASE_TOKEN}" \
-            -d "{
-              \"id\": \"Hero6e-Npc-Maker\",
-              \"dry-run\": false,
-              \"release\": {
-                \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/download/latest/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/Hero6eNpcMaker/releases/tag/v${VERSION}\",
-                \"compatibility\": {
-                  \"minimum\": \"13\",
-                  \"verified\": \"13\"
-                }
-              }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
-
-      - name: Notify Foundry PF2e Item Generator Package
-        env:
-          FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN}" \
-            -d "{
-              \"id\": \"PF2E-Item-Generator\",
-              \"dry-run\": false,
-              \"release\": {
-                \"version\": \"${VERSION}\",
-                \"manifest\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/download/latest/module.json\",
-                \"notes\": \"https://github.com/JamesCfer/Pf2eItemMaker/releases/tag/v${VERSION}\",
-                \"compatibility\": {
-                  \"minimum\": \"13\",
-                  \"verified\": \"13\"
-                }
-              }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
 
       - name: Notify Foundry DnD5e Item Generator Package
         env:
