@@ -4,7 +4,7 @@ Work through this list one item per cycle using the instructions in `CYCLE.md`.
 Check off each item when merged.
 
 ## User Experience
-- [ ] 1. **Retry button on failed history entries** — failed entries show a Retry button that re-submits the same form data without re-typing
+- [x] 1. **Retry button on failed history entries** — failed entries show a Retry button that re-submits the same form data without re-typing
 - [ ] 2. **Generation progress steps** — replace the spinner with labelled steps ("Sending request… Building spell mapping… Creating actor…")
 - [ ] 3. **History entry deletion** — delete individual history entries or clear all with a "Clear History" button
 - [ ] 4. **History search/filter** — search box above the history panel that filters entries by name
