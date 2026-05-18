@@ -7,6 +7,7 @@ import { openBuilder }          from './core/app.js';
 import { checkForModuleUpdate } from './core/update-check.js';
 import { registerSidebar }      from './core/sidebar.js';
 import { startHeartbeat }       from './core/heartbeat.js';
+import { Storage }              from './core/storage.js';
 import { Dnd5eItemAdapter }     from './adapter.js';
 
 const adapter   = new Dnd5eItemAdapter();
@@ -19,7 +20,7 @@ const openFn = () => {
 
 registerSidebar(MODULE_ID, openFn, {
   buttonLabel: 'Item Generator',
-  buttonIcon:  '✦',
+  buttonIcon:  adapter.module.icon,
   directories: ['items', 'compendium'],
 });
 
@@ -39,20 +40,14 @@ Hooks.once('ready', () => {
   const mod = game.modules?.get(MODULE_ID);
   const currentVersion = mod?.version || '';
 
-  const storedVersionKey = `${MODULE_ID}.module-version`;
-  let storedVersion = '';
-  try { storedVersion = localStorage.getItem(storedVersionKey) || ''; } catch (_) {}
+  const storage = new Storage(MODULE_ID);
+  const storedVersion = storage.getVersion();
 
   if (currentVersion && storedVersion && currentVersion !== storedVersion) {
-    try {
-      localStorage.removeItem(`${MODULE_ID}.key`);
-      localStorage.removeItem(`${MODULE_ID}:key`);
-    } catch (_) {}
+    storage.setKey('');
     ui.notifications?.info?.('D&D 5e Item Generator was updated — please sign in again.');
   }
-  if (currentVersion) {
-    try { localStorage.setItem(storedVersionKey, currentVersion); } catch (_) {}
-  }
+  if (currentVersion) storage.setVersion(currentVersion);
 
   foundry.applications.handlebars.loadTemplates([
     `modules/${MODULE_ID}/templates/builder.html`,
