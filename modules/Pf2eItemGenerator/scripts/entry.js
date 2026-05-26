@@ -3,7 +3,7 @@
  * Registers in the Items directory (not Actors) since output goes to game.items.
  */
 
-import { openBuilder }          from './core/app.js';
+import { openBuilder, ensureBuilder } from './core/app.js';
 import { checkForModuleUpdate } from './core/update-check.js';
 import { registerSidebar }      from './core/sidebar.js';
 import { startHeartbeat }       from './core/heartbeat.js';
@@ -34,6 +34,33 @@ Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'welcomeMessageShown', {
     scope:  'world', config: false, type: Boolean, default: false,
   });
+});
+
+// Cross-module bridge — lets sibling modules pre-fill the item builder.
+Hooks.on('Pf2eItemGenerator.openWithPrefill', (payload = {}) => {
+  try {
+    const app = ensureBuilder(adapter);
+    app.render({ force: true });
+    const tryFill = (attemptsLeft) => {
+      const form = app.element?.querySelector?.('.npc-form');
+      if (!form) {
+        if (attemptsLeft > 0) setTimeout(() => tryFill(attemptsLeft - 1), 100);
+        return;
+      }
+      const set = (sel, val) => { const el = form.querySelector(sel); if (el != null && val != null) el.value = val; };
+      set('[name="name"]',        payload.name);
+      set('[name="level"]',       payload.level);
+      set('[name="itemType"]',    payload.itemType);
+      set('[name="description"]', payload.description);
+    };
+    tryFill(20);
+    if (typeof payload.onCreate === 'function') {
+      const handler = (item) => { try { payload.onCreate(item); } catch (e) { console.error(e); } };
+      const id = Hooks.on('createItem', (item) => { handler(item); Hooks.off('createItem', id); });
+    }
+  } catch (err) {
+    console.error('[Pf2eItemGenerator] openWithPrefill failed', err);
+  }
 });
 
 Hooks.once('ready', () => {

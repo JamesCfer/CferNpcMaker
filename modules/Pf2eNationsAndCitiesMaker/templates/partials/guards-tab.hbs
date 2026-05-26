@@ -1,0 +1,48 @@
+<div class="pf2e-guards">
+
+  <div class="pf2e-guards-summary">
+    <div class="pf2e-guards-total">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>{{settlement.military.totalGuards}} guards total</span>
+    </div>
+    <div class="pf2e-commander">
+      <label>Commander</label>
+      <input type="text" data-settlement-path="military.commanderName" value="{{settlement.military.commanderName}}" />
+      {{#if settlement.military.commanderActorId}}
+        <button type="button" class="pf2e-icon-btn"
+                data-action="openLinkedActor" data-actor-id="{{settlement.military.commanderActorId}}" title="Open commander">
+          <i class="fa-solid fa-user"></i>
+        </button>
+      {{/if}}
+      {{#if canGenerateNpc}}
+        <button type="button" class="pf2e-settlement-btn" data-action="generateCommander">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Commander
+        </button>
+      {{/if}}
+    </div>
+  </div>
+
+  <h4><i class="fa-solid fa-bars-staggered"></i> Rank Pyramid</h4>
+  <table class="pf2e-rank-table">
+    <thead><tr><th>Rank</th><th>Count</th><th>Lead</th><th></th></tr></thead>
+    <tbody>
+      {{#each settlement.military.ranks}}
+        <tr>
+          <td><input type="text"   data-settlement-path="military.ranks.{{@index}}.rank"       value="{{rank}}" /></td>
+          <td><input type="number" min="0" data-settlement-path="military.ranks.{{@index}}.count" value="{{count}}" /></td>
+          <td><input type="text"   data-settlement-path="military.ranks.{{@index}}.leaderName" value="{{leaderName}}" /></td>
+          <td>
+            <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                    data-action="removeRank" data-index="{{@index}}" title="Remove rank">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  <button type="button" class="pf2e-settlement-btn" data-action="addRank">
+    <i class="fa-solid fa-plus"></i> Add Rank
+  </button>
+
+</div>

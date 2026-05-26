@@ -1,0 +1,71 @@
+<div class="pf2e-nation">
+
+  <div class="pf2e-nation-header">
+    <i class="fa-solid fa-flag"></i>
+    <h2>{{doc.name}}</h2>
+    <span class="pf2e-settlement-kind-pill">Nation</span>
+  </div>
+
+  <div class="pf2e-nation-summary">
+    <div class="pf2e-nation-stat"><label>Population (sum)</label><span>{{totals.population}}</span></div>
+    <div class="pf2e-nation-stat"><label>Treasury (sum gp)</label><span>{{totals.treasuryGp}}</span></div>
+    <div class="pf2e-nation-stat"><label>Guards (sum)</label><span>{{totals.guards}}</span></div>
+  </div>
+
+  <h3><i class="fa-solid fa-crown"></i> Government</h3>
+  <div class="pf2e-nation-government">
+    <label>Type
+      <input type="text" data-path="government.type" data-action="saveField" value="{{nation.government.type}}" />
+    </label>
+    <label>Head of state
+      <input type="text" data-path="government.leaderName" data-action="saveField" value="{{nation.government.leaderName}}" />
+    </label>
+  </div>
+
+  <h3><i class="fa-solid fa-city"></i> Cities</h3>
+  {{#if cities.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Name</th><th>Kind</th><th>Population</th><th>HP%</th><th>Treasury (gp)</th><th>Guards</th><th></th></tr></thead>
+      <tbody>
+        {{#each cities}}
+          <tr>
+            <td><a href="#" data-action="openChildCity" data-city-id="{{id}}">{{name}}</a></td>
+            <td>{{kind}}</td>
+            <td>{{population}}</td>
+            <td>{{hpPct}}%</td>
+            <td>{{treasuryGp}}</td>
+            <td>{{guards}}</td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeChildCity" data-city-id="{{id}}" title="Detach from nation">
+                <i class="fa-solid fa-link-slash"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No cities linked to this nation yet.</em>
+  {{/if}}
+
+  <div class="pf2e-nation-add-city">
+    <select name="addCityId">
+      {{#if availableJournals.length}}
+        {{#each availableJournals}}<option value="{{id}}">{{name}}</option>{{/each}}
+      {{else}}
+        <option value="">— no candidate settlements —</option>
+      {{/if}}
+    </select>
+    <button type="button" class="pf2e-settlement-btn" data-action="addChildCity">
+      <i class="fa-solid fa-link"></i> Link City
+    </button>
+  </div>
+
+  <h3><i class="fa-solid fa-scroll"></i> Notes</h3>
+  <textarea data-path="notes" rows="8">{{nation.notes}}</textarea>
+  <button type="button" class="pf2e-settlement-btn" data-action="saveNotes">
+    <i class="fa-solid fa-floppy-disk"></i> Save notes
+  </button>
+
+</div>

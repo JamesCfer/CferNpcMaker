@@ -1,0 +1,115 @@
+<div class="pf2e-cal">
+
+  <div class="pf2e-cal-header">
+    <div class="pf2e-cal-title">
+      <i class="fa-solid fa-calendar-days"></i>
+      <h2>PF2e Calendar</h2>
+    </div>
+    <div class="pf2e-cal-quick">
+      <button type="button" data-action="tickDay"><i class="fa-solid fa-sun"></i> +1 Day</button>
+      <button type="button" data-action="tickWeek"><i class="fa-solid fa-calendar-week"></i> +1 Week</button>
+      <button type="button" data-action="advanceN"><i class="fa-solid fa-forward"></i> Advance…</button>
+    </div>
+  </div>
+
+  <div class="pf2e-calendar-current">
+    <div class="pf2e-cal-current-label">
+      <strong>Today:</strong> {{currentLabel}} <span class="pf2e-cal-weekday">({{currentWeekday}})</span>
+    </div>
+    <div class="pf2e-cal-current-edit">
+      <label>Y <input type="number" name="curYear"  value="{{state.currentDate.year}}"  /></label>
+      <label>M <input type="number" name="curMonth" value="{{state.currentDate.month}}" min="1" /></label>
+      <label>D <input type="number" name="curDay"   value="{{state.currentDate.day}}"   min="1" /></label>
+      <button type="button" data-action="saveDate"><i class="fa-solid fa-floppy-disk"></i> Set</button>
+    </div>
+  </div>
+
+  <div class="pf2e-cal-body">
+
+    <div class="pf2e-cal-grid-wrap">
+      <div class="pf2e-cal-grid-nav">
+        <button type="button" data-action="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
+        <strong>{{monthName}} {{year}}</strong>
+        <button type="button" data-action="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="pf2e-cal-weekdays">
+        {{#each weekdays}}<div class="pf2e-cal-weekday-cell">{{this}}</div>{{/each}}
+      </div>
+      <div class="pf2e-cal-grid">
+        {{#each grid}}
+          {{#if blank}}
+            <div class="pf2e-cal-day pf2e-cal-day--blank"></div>
+          {{else}}
+            <div class="pf2e-cal-day{{#if isCurrent}} pf2e-cal-day--today{{/if}}">
+              <span class="pf2e-cal-daynum">{{day}}</span>
+              {{#if eventCount}}<span class="pf2e-cal-event-dot" title="{{eventCount}} event(s)">●</span>{{/if}}
+            </div>
+          {{/if}}
+        {{/each}}
+      </div>
+    </div>
+
+    <div class="pf2e-cal-sidebar">
+      <h3><i class="fa-solid fa-list-check"></i> Upcoming events</h3>
+      {{#if upcoming.length}}
+        <ul class="pf2e-cal-event-list">
+          {{#each upcoming}}
+            <li class="pf2e-cal-event-row">
+              <div class="pf2e-cal-event-top">
+                <strong>{{label}}</strong>
+                <button type="button" class="pf2e-cal-event-x" data-action="removeEvent" data-event-id="{{id}}"
+                        title="Delete event"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div class="pf2e-cal-event-meta">
+                <span class="pf2e-cal-pill">{{ruleLabel}}</span>
+                <span class="pf2e-cal-pill pf2e-cal-pill--accent">{{whenLabel}}</span>
+                {{#if payload.ratePct}}<span class="pf2e-cal-pill">{{payload.taxType}} @ {{payload.ratePct}}%</span>{{/if}}
+              </div>
+              {{#if targetLabel}}
+                <div class="pf2e-cal-event-targets">→ {{targetLabel}}</div>
+              {{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <em class="pf2e-cal-empty">No scheduled events yet.</em>
+      {{/if}}
+
+      <h3><i class="fa-solid fa-plus"></i> Add event</h3>
+      <div class="pf2e-cal-add">
+        <label>Label <input type="text" name="evLabel" placeholder="Weekly market tax" /></label>
+        <label>Type
+          <select name="evTaxType">
+            {{#each taxTypes}}<option value="{{value}}">{{label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>Rate (%) <input type="number" name="evRate" min="0" max="100" value="5" /></label>
+        <div class="pf2e-cal-rule">
+          <label>Repeat
+            <select name="evUnit">
+              <option value="day">Every N days</option>
+              <option value="week">Every N weeks</option>
+              <option value="month">Every N months on day X</option>
+              <option value="year">Yearly on date</option>
+            </select>
+          </label>
+          <label>N <input type="number" name="evEvery" min="1" value="1" /></label>
+          <label>Day of month <input type="number" name="evDom" min="1" value="1" /></label>
+          <label>Month <input type="number" name="evMonth" min="1" value="1" /></label>
+          <label>Day <input type="number" name="evDay" min="1" value="1" /></label>
+        </div>
+        <label>Targets
+          <select name="evTargets" multiple size="4">
+            {{#each settlementJournals}}
+              <option value="{{id}}">{{name}}</option>
+            {{/each}}
+          </select>
+        </label>
+        <button type="button" data-action="addEvent" class="pf2e-cal-add-btn">
+          <i class="fa-solid fa-plus"></i> Schedule Event
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

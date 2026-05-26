@@ -1,0 +1,11 @@
+{
+  "id": "Pf2eCalendarTimeline",
+  "title": "PF2E Calendar & Timeline",
+  "description": "Customisable in-world calendar for Pathfinder 2e games. Schedule recurring events (taxes, paydays, festivals) and fire hooks that other modules (e.g. Pf2eNationsAndCitiesMaker) can listen for.",
+  "authors": [{ "name": "JamesCfer" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "systems": ["pf2e"],
+  "esmodules": ["scripts/entry.js"],
+  "styles":    ["styles/builder.css"],
+  "templateDir": "templates"
+}

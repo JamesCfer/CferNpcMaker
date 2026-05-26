@@ -1,0 +1,71 @@
+<div class="pf2e-settlement">
+
+  <div class="pf2e-settlement-header">
+    <div class="pf2e-settlement-title">
+      <i class="fa-solid fa-city"></i>
+      <h2>{{doc.name}}</h2>
+      <span class="pf2e-settlement-kind-pill">{{settlement.kind}} · {{settlement.size}}</span>
+    </div>
+    <div class="pf2e-settlement-header-actions">
+      {{#if calendarActive}}
+        <span class="pf2e-tag pf2e-tag--ok"><i class="fa-solid fa-calendar-check"></i> Calendar linked</span>
+      {{else}}
+        <button type="button" data-action="tickDay"><i class="fa-solid fa-sun"></i> Tick Day</button>
+        <button type="button" data-action="tickWeek"><i class="fa-solid fa-calendar-week"></i> Tick Week</button>
+      {{/if}}
+      <button type="button" data-action="manualTax"><i class="fa-solid fa-coins"></i> Apply Tax</button>
+      <button type="button" data-action="openBuilder"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Builder</button>
+    </div>
+  </div>
+
+  <div class="pf2e-settlement-body">
+
+    <nav class="pf2e-settlement-tabs">
+      {{#each tabs}}
+        <button type="button"
+                class="pf2e-settlement-tab{{#if isActive}} is-active{{/if}}"
+                data-action="switchTab" data-tab="{{key}}">
+          <i class="{{icon}}"></i> {{label}}
+        </button>
+      {{/each}}
+    </nav>
+
+    <section class="pf2e-settlement-tab-body">
+
+      {{#if isOverviewActive}}
+        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/statblock.hbs"
+            settlement=settlement hpPct=hpPct moralePct=moralePct unrestPct=unrestPct}}
+      {{/if}}
+
+      {{#if isStoresActive}}
+        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/stores-tab.hbs"
+            settlement=settlement storeTabs=storeTabs storeTypeOptions=storeTypeOptions
+            canGenerateNpc=canGenerateNpc canGenerateItem=canGenerateItem}}
+      {{/if}}
+
+      {{#if isGuardsActive}}
+        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/guards-tab.hbs"
+            settlement=settlement canGenerateNpc=canGenerateNpc}}
+      {{/if}}
+
+      {{#if isLeadershipActive}}
+        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/leadership-tab.hbs"
+            settlement=settlement canGenerateNpc=canGenerateNpc}}
+      {{/if}}
+
+      {{#if isProductionActive}}
+        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/production-tab.hbs"
+            settlement=settlement}}
+      {{/if}}
+
+      {{#if isNotesActive}}
+        <div class="pf2e-settlement-notes">
+          <textarea data-settlement-path="notes" rows="20" placeholder="Freeform notes about this settlement (history, rumours, hooks…)">{{settlement.notes}}</textarea>
+          <button type="button" class="pf2e-settlement-btn" data-action="saveNotes"><i class="fa-solid fa-floppy-disk"></i> Save notes</button>
+        </div>
+      {{/if}}
+
+    </section>
+
+  </div>
+</div>

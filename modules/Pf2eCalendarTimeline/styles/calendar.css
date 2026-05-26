@@ -1,0 +1,99 @@
+/* ── PF2e Calendar Timeline UI ─────────────────────────────────────────── */
+
+.pf2e-calendar-app {
+  font-family: "Signika", "Roboto", sans-serif;
+  background: #f6efe1;
+  color: #2c1f10;
+}
+
+.pf2e-cal { display: flex; flex-direction: column; padding: 0.75em 1em; gap: 0.75em; height: 100%; }
+
+.pf2e-cal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 2px solid #785038; padding-bottom: 0.4em;
+}
+.pf2e-cal-title { display: flex; align-items: center; gap: 0.5em; }
+.pf2e-cal-title i { color: #785038; font-size: 1.3em; }
+.pf2e-cal-title h2 { margin: 0; color: #4a2818; }
+
+.pf2e-cal-quick { display: flex; gap: 0.4em; }
+.pf2e-cal-quick button {
+  background: #fff8e8; border: 1px solid #b08a5a; color: #5a3d18;
+  padding: 0.35em 0.7em; border-radius: 4px; cursor: pointer; font-weight: 600;
+}
+.pf2e-cal-quick button:hover { background: #f0e3c0; }
+
+.pf2e-calendar-current {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5em;
+  padding: 0.4em 0.6em; background: rgba(120,80,56,0.07); border: 1px solid #d8b888; border-radius: 4px;
+}
+.pf2e-cal-weekday { color: #876338; font-style: italic; }
+.pf2e-cal-current-edit { display: flex; gap: 0.4em; align-items: center; }
+.pf2e-cal-current-edit input { width: 4em; padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-cal-current-edit button {
+  border: 1px solid #785038; background: #fff8e8; color: #4a2818; padding: 0.25em 0.5em; border-radius: 4px; cursor: pointer;
+}
+
+.pf2e-cal-body { display: grid; grid-template-columns: 2fr 1fr; gap: 0.75em; flex: 1; min-height: 0; }
+
+.pf2e-cal-grid-wrap { display: flex; flex-direction: column; gap: 0.4em; min-width: 0; }
+.pf2e-cal-grid-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #785038; color: #fff; padding: 0.3em 0.6em; border-radius: 4px;
+}
+.pf2e-cal-grid-nav button {
+  background: transparent; border: 1px solid #fff; color: #fff;
+  width: 28px; height: 28px; border-radius: 4px; cursor: pointer;
+}
+.pf2e-cal-grid-nav button:hover { background: rgba(255,255,255,0.2); }
+
+.pf2e-cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  text-align: center; font-size: 0.75em; font-weight: 700; color: #5a3d18; text-transform: uppercase;
+}
+.pf2e-cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; flex: 1; min-height: 0;
+}
+.pf2e-cal-day {
+  background: #fffbef; border: 1px solid #d8b888; border-radius: 3px;
+  min-height: 56px; padding: 0.25em; position: relative;
+}
+.pf2e-cal-day--blank { background: transparent; border-color: transparent; }
+.pf2e-cal-day--today { background: #ffe2b6; border-color: #b6792b; box-shadow: inset 0 0 0 1px #b6792b; }
+.pf2e-cal-daynum { font-weight: 700; color: #4a2818; }
+.pf2e-cal-event-dot { color: #b6792b; position: absolute; bottom: 4px; right: 6px; font-size: 0.8em; }
+
+.pf2e-cal-sidebar { display: flex; flex-direction: column; gap: 0.4em; overflow: auto; min-width: 0; }
+.pf2e-cal-sidebar h3 { margin: 0.3em 0 0.2em 0; color: #4a2818; font-size: 1em; }
+
+.pf2e-cal-event-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.3em; }
+.pf2e-cal-event-row {
+  background: #fffbef; border: 1px solid #d8b888; border-radius: 4px;
+  padding: 0.4em; display: flex; flex-direction: column; gap: 0.25em;
+}
+.pf2e-cal-event-top { display: flex; justify-content: space-between; align-items: center; }
+.pf2e-cal-event-x {
+  border: 1px solid #b6512b; background: #fff; color: #6a2218;
+  width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
+}
+.pf2e-cal-event-meta { display: flex; flex-wrap: wrap; gap: 0.25em; }
+.pf2e-cal-pill {
+  background: #e8d8b0; color: #5a3d18; padding: 0.15em 0.5em; border-radius: 999px;
+  border: 1px solid #b08a5a; font-size: 0.75em;
+}
+.pf2e-cal-pill--accent { background: #785038; color: #fff8e8; border-color: #4a2818; }
+.pf2e-cal-event-targets { font-size: 0.78em; color: #876338; }
+.pf2e-cal-empty { color: #876338; font-style: italic; }
+
+.pf2e-cal-add { display: flex; flex-direction: column; gap: 0.35em; padding: 0.4em; background: rgba(120,80,56,0.05); border: 1px solid #d8b888; border-radius: 4px; }
+.pf2e-cal-add label { display: flex; flex-direction: column; gap: 0.15em; font-size: 0.85em; }
+.pf2e-cal-add input,
+.pf2e-cal-add select {
+  padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px;
+}
+.pf2e-cal-rule { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 0.3em; }
+.pf2e-cal-add-btn {
+  background: linear-gradient(180deg, #8a5a3a, #5a3018); color: #fff;
+  border: 1px solid #2a1808; padding: 0.45em; border-radius: 4px; cursor: pointer; font-weight: 700;
+}
+.pf2e-cal-add-btn:hover { filter: brightness(1.1); }

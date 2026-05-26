@@ -29,7 +29,7 @@ jobs:
       - name: Build all module packages
         run: |
           chmod +x ./build.sh
-          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator
+          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline
 
       - name: Inject version + manifest URLs into each module.json
         run: |
@@ -53,14 +53,18 @@ jobs:
           inject Hero6eNpcMaker
           inject Pf2eItemGenerator Pf2eItemMaker
           inject Dnd5eItemGenerator D-Ditemmaker
+          inject Pf2eNationsAndCitiesMaker
+          inject Pf2eCalendarTimeline
 
       - name: Zip all module packages
         run: |
-          zip -r Pf2eNpcMaker.zip        Pf2eNpcMaker/
-          zip -r DnD5eNpcMaker.zip       DnD5eNpcMaker/
-          zip -r Hero6eNpcMaker.zip      Hero6eNpcMaker/
-          zip -r Pf2eItemGenerator.zip   Pf2eItemGenerator/
-          zip -r Dnd5eItemGenerator.zip  Dnd5eItemGenerator/
+          zip -r Pf2eNpcMaker.zip               Pf2eNpcMaker/
+          zip -r DnD5eNpcMaker.zip              DnD5eNpcMaker/
+          zip -r Hero6eNpcMaker.zip             Hero6eNpcMaker/
+          zip -r Pf2eItemGenerator.zip          Pf2eItemGenerator/
+          zip -r Dnd5eItemGenerator.zip         Dnd5eItemGenerator/
+          zip -r Pf2eNationsAndCitiesMaker.zip  Pf2eNationsAndCitiesMaker/
+          zip -r Pf2eCalendarTimeline.zip       Pf2eCalendarTimeline/
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
@@ -74,11 +78,15 @@ jobs:
             Hero6eNpcMaker/
             Pf2eItemGenerator/
             Dnd5eItemGenerator/
+            Pf2eNationsAndCitiesMaker/
+            Pf2eCalendarTimeline/
             Pf2eNpcMaker.zip
             DnD5eNpcMaker.zip
             Hero6eNpcMaker.zip
             Pf2eItemGenerator.zip
             Dnd5eItemGenerator.zip
+            Pf2eNationsAndCitiesMaker.zip
+            Pf2eCalendarTimeline.zip
 
   # ── Release 1 of 5: Pf2eNpcMaker (immediate) ─────────────────────────────────
   release-pf2e-npc:
@@ -696,3 +704,197 @@ jobs:
             echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
             exit 1
           fi
+
+  # ── Release 6 of 7: Pf2eNationsAndCitiesMaker ───────────────────────────────
+  # NOTE: Requires GitHub repo JamesCfer/Pf2eNationsAndCitiesMaker to exist and
+  # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
+  # intentionally skipped — add it once the Foundry package id is registered
+  # and a FOUNDRYVTT_PF2E_SETTLEMENTS_RELEASE_TOKEN secret is set.
+  release-pf2e-settlements:
+    needs: release-dnd5e-item
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait briefly to stagger
+        run: sleep 60
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Pf2eNationsAndCitiesMaker
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _pf2esettle_repo
+          if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eNationsAndCitiesMaker.git _pf2esettle_repo; then
+            echo "::warning::Clone failed (does the repo exist?). Skipping settlement release."
+            exit 0
+          fi
+          rsync -a --exclude=.git --delete Pf2eNationsAndCitiesMaker/ _pf2esettle_repo/
+          cd _pf2esettle_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Pf2eNationsAndCitiesMaker versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eNationsAndCitiesMaker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Pf2eNationsAndCitiesMaker v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eNationsAndCitiesMaker/module.json'], ['Pf2eNationsAndCitiesMaker.zip', 'Pf2eNationsAndCitiesMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update Pf2eNationsAndCitiesMaker latest release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eNationsAndCitiesMaker';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eNationsAndCitiesMaker/module.json'], ['Pf2eNationsAndCitiesMaker.zip', 'Pf2eNationsAndCitiesMaker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+  # ── Release 7 of 7: Pf2eCalendarTimeline ────────────────────────────────────
+  release-pf2e-calendar:
+    needs: release-pf2e-settlements
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Wait briefly to stagger
+        run: sleep 60
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Pf2eCalendarTimeline
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _pf2ecal_repo
+          if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eCalendarTimeline.git _pf2ecal_repo; then
+            echo "::warning::Clone failed (does the repo exist?). Skipping calendar release."
+            exit 0
+          fi
+          rsync -a --exclude=.git --delete Pf2eCalendarTimeline/ _pf2ecal_repo/
+          cd _pf2ecal_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Pf2eCalendarTimeline versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eCalendarTimeline';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Pf2eCalendarTimeline v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eCalendarTimeline/module.json'], ['Pf2eCalendarTimeline.zip', 'Pf2eCalendarTimeline.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update Pf2eCalendarTimeline latest release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eCalendarTimeline';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eCalendarTimeline/module.json'], ['Pf2eCalendarTimeline.zip', 'Pf2eCalendarTimeline.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
