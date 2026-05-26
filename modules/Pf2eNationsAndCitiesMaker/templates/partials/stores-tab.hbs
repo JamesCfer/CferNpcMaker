@@ -1,0 +1,167 @@
+<div class="pf2e-stores">
+
+  <div class="pf2e-stores-toolbar">
+    <button type="button" class="pf2e-settlement-btn" data-action="addStore">
+      <i class="fa-solid fa-plus"></i> Add Store
+    </button>
+  </div>
+
+  {{#if storeTabs.length}}
+    <nav class="pf2e-store-tabs">
+      {{#each storeTabs}}
+        <button type="button"
+                class="pf2e-store-tab{{#if isActive}} is-active{{/if}}"
+                data-action="switchStoreTab" data-store-tab="{{type}}">
+          {{label}} <span class="pf2e-store-tab-count">{{count}}</span>
+        </button>
+      {{/each}}
+    </nav>
+
+    {{#each storeTabs}}
+      {{#if isActive}}
+        {{#each stores}}
+          <article class="pf2e-store-card" data-store-id="{{id}}">
+
+            <header class="pf2e-store-card-header">
+              <div class="pf2e-store-card-name">
+                <input type="text" data-settlement-path="stores.{{@index}}.name"
+                       value="{{name}}" class="pf2e-store-name-input" />
+                <select data-settlement-path="stores.{{@index}}.type" class="pf2e-store-type-select">
+                  {{#each ../../storeTypeOptions}}
+                    <option value="{{value}}" {{#if (eqStr value ../type)}}selected{{/if}}>{{label}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeStore" data-store-id="{{id}}" title="Remove store">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </header>
+
+            <div class="pf2e-store-grid">
+
+              <section class="pf2e-store-info">
+                <div class="pf2e-store-owner">
+                  <label>Owner</label>
+                  <div class="pf2e-store-owner-row">
+                    <input type="text" data-settlement-path="stores.{{@index}}.owner.name" value="{{owner.name}}" />
+                    {{#if owner.actorId}}
+                      <button type="button" class="pf2e-icon-btn"
+                              data-action="openLinkedActor" data-actor-id="{{owner.actorId}}" title="Open linked actor">
+                        <i class="fa-solid fa-user"></i>
+                      </button>
+                    {{/if}}
+                    <button type="button" class="pf2e-icon-btn"
+                            data-action="generateShopkeeper"
+                            data-store-id="{{id}}" data-staff-id="owner"
+                            title="Generate NPC for owner (uses Pf2eNpcMaker if installed)">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="pf2e-store-hours">
+                  <label>Hours</label>
+                  <div class="pf2e-store-hours-row">
+                    <input type="text" data-settlement-path="stores.{{@index}}.hours.open"  value="{{hours.open}}" />
+                    <span>→</span>
+                    <input type="text" data-settlement-path="stores.{{@index}}.hours.close" value="{{hours.close}}" />
+                  </div>
+                </div>
+                <div class="pf2e-store-income">
+                  <label>Income</label>
+                  <div class="pf2e-store-income-row">
+                    <span>Balance</span>
+                    <input type="number" data-settlement-path="stores.{{@index}}.income.balance"  value="{{income.balance}}" />
+                    <span>gp/day</span>
+                    <input type="number" data-settlement-path="stores.{{@index}}.income.dailyAvg" value="{{income.dailyAvg}}" />
+                  </div>
+                </div>
+              </section>
+
+              <section class="pf2e-store-staff">
+                <header>
+                  <h4>Staff</h4>
+                  <button type="button" class="pf2e-icon-btn"
+                          data-action="addStaff" data-store-id="{{id}}" title="Add staff">
+                    <i class="fa-solid fa-user-plus"></i>
+                  </button>
+                </header>
+                {{#if staff.length}}
+                  <ul class="pf2e-staff-list">
+                    {{#each staff}}
+                      <li class="pf2e-staff-row">
+                        <input type="text" class="pf2e-staff-name"
+                               data-settlement-path="stores.{{@../index}}.staff.{{@index}}.name"
+                               value="{{name}}" />
+                        <input type="text" class="pf2e-staff-role"
+                               data-settlement-path="stores.{{@../index}}.staff.{{@index}}.role"
+                               value="{{role}}" />
+                        <input type="text" class="pf2e-staff-shift"
+                               data-settlement-path="stores.{{@../index}}.staff.{{@index}}.shift"
+                               value="{{shift}}" />
+                        {{#if actorId}}
+                          <button type="button" class="pf2e-icon-btn"
+                                  data-action="openLinkedActor" data-actor-id="{{actorId}}" title="Open linked actor">
+                            <i class="fa-solid fa-user"></i>
+                          </button>
+                        {{/if}}
+                        <button type="button" class="pf2e-icon-btn"
+                                data-action="generateShopkeeper"
+                                data-store-id="{{@../id}}" data-staff-id="{{id}}"
+                                title="Generate NPC for this worker">
+                          <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </button>
+                        <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                                data-action="removeStaff"
+                                data-store-id="{{@../id}}" data-staff-id="{{id}}" title="Remove">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </li>
+                    {{/each}}
+                  </ul>
+                {{else}}
+                  <em class="pf2e-empty">No staff listed.</em>
+                {{/if}}
+              </section>
+
+              <section class="pf2e-store-inventory">
+                <header>
+                  <h4>Inventory</h4>
+                  <button type="button" class="pf2e-icon-btn"
+                          data-action="generateStoreItem" data-store-id="{{id}}" data-item-type="equipment"
+                          title="Generate item (uses Pf2eItemGenerator if installed)">
+                    <i class="fa-solid fa-flask"></i>
+                  </button>
+                </header>
+                {{#if inventory.length}}
+                  <table class="pf2e-inventory-table">
+                    <thead><tr><th>Item</th><th>Stock</th><th>Price (gp)</th></tr></thead>
+                    <tbody>
+                      {{#each inventory}}
+                        <tr>
+                          <td><input type="text"   data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.name"  value="{{name}}" /></td>
+                          <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.stock" value="{{stock}}" /></td>
+                          <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.price" value="{{price}}" /></td>
+                        </tr>
+                      {{/each}}
+                    </tbody>
+                  </table>
+                {{else}}
+                  <em class="pf2e-empty">Empty shelves — generate an item to populate.</em>
+                {{/if}}
+              </section>
+
+            </div>
+
+          </article>
+        {{/each}}
+      {{/if}}
+    {{/each}}
+
+  {{else}}
+    <div class="pf2e-empty-state">
+      <i class="fa-solid fa-store-slash"></i>
+      <p>No stores yet — click <em>Add Store</em> above.</p>
+    </div>
+  {{/if}}
+</div>

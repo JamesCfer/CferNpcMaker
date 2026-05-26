@@ -1,0 +1,28 @@
+/* Pf2eNationsAndCitiesMaker — accents for the builder shell. Parchment + gold. */
+.application.npc-builder { --pf2e-accent: #9b6923; }
+.application.npc-builder .builder-tab--builder.is-active { border-bottom-color: #9b6923; }
+.application.npc-builder .btn-primary { background: linear-gradient(180deg, #b8884a, #8a5a1a); }
+.application.npc-builder .btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #c8985a, #9a6a2a); }
+
+.application.npc-builder .settlement-template-row {
+  display: flex; align-items: end; gap: 0.75em; margin-bottom: 0.75em;
+}
+.application.npc-builder .settlement-template-row .field { flex: 1; }
+.application.npc-builder .btn-randomize-settlement {
+  white-space: nowrap; padding: 0.45em 0.9em; border: 1px solid #9b6923;
+  background: #f4eadb; color: #5a3d18; border-radius: 4px; cursor: pointer;
+  font-weight: 600;
+}
+.application.npc-builder .btn-randomize-settlement:hover { background: #ecdcb8; }
+
+.application.npc-builder .input-with-button {
+  display: flex; gap: 0.3em;
+}
+.application.npc-builder .input-with-button input { flex: 1; }
+.application.npc-builder .input-with-button .btn-roll-name {
+  border: 1px solid #b08a5a; background: #f4eadb; color: #5a3d18;
+  padding: 0 0.7em; border-radius: 4px; cursor: pointer;
+}
+.application.npc-builder .input-with-button .btn-roll-name:hover { background: #ecdcb8; }
+
+.application.npc-builder .settlement-checks { flex-wrap: wrap; gap: 1em; }

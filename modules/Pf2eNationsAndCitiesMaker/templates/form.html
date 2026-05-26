@@ -1,0 +1,111 @@
+      <form class="npc-form settlement-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="settlement-template-row">
+          <div class="field field--template">
+            <label for="settlement-template">Template</label>
+            <select id="settlement-template" name="template" class="settlement-template-select">
+              <option value="custom">— Custom —</option>
+              <option value="farming-village">Sleepy farming village</option>
+              <option value="river-trade-town">Bustling river-trade town</option>
+              <option value="frontier-outpost">Fortified frontier outpost</option>
+              <option value="coastal-port">Coastal fishing port</option>
+              <option value="desert-waystation">Desert caravan waystation</option>
+              <option value="dwarven-hold">Mountain dwarven hold</option>
+              <option value="elven-enclave">Elven forest enclave</option>
+              <option value="capital-city">Walled capital city</option>
+              <option value="mining-boomtown">Mining boomtown</option>
+              <option value="temple-town">Pilgrim temple-town</option>
+            </select>
+          </div>
+          <button type="button" class="btn-randomize-settlement" title="Pick a random template and roll a name">
+            <i class="fa-solid fa-dice-d20"></i> Randomize Settlement
+          </button>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name field--with-button">
+            <label for="settlement-name">Settlement Name</label>
+            <div class="input-with-button">
+              <input type="text" id="settlement-name" name="name" placeholder="e.g. Ashford" />
+              <button type="button" class="btn-roll-name" title="Roll a thematic name">
+                <i class="fa-solid fa-dice"></i>
+              </button>
+            </div>
+          </div>
+          <div class="field field--kind">
+            <label for="settlement-kind">Kind</label>
+            <select id="settlement-kind" name="kind">
+              <option value="village">Village</option>
+              <option value="town" selected>Town</option>
+              <option value="city">City</option>
+              <option value="nation">Nation</option>
+            </select>
+          </div>
+          <div class="field field--size">
+            <label for="settlement-size">Size</label>
+            <select id="settlement-size" name="size">
+              <option value="thorp">Thorp</option>
+              <option value="hamlet">Hamlet</option>
+              <option value="village">Village</option>
+              <option value="town" selected>Town</option>
+              <option value="city">City</option>
+              <option value="metropolis">Metropolis</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="settlement-biome">Biome / setting</label>
+            <input type="text" id="settlement-biome" name="biome" placeholder="e.g. coastal, mountain, forest" />
+          </div>
+          <div class="field">
+            <label for="settlement-population">Population (optional)</label>
+            <input type="number" id="settlement-population" name="populationHint" min="0" step="50" placeholder="auto" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="settlement-government">Government hint (optional)</label>
+          <input type="text" id="settlement-government" name="governmentHint" placeholder="e.g. Mayor + merchant guild" />
+        </div>
+
+        <div class="field">
+          <label for="settlement-desc">Description</label>
+          <textarea id="settlement-desc" name="description" rows="5"
+            placeholder="Describe this settlement: its mood, economy, notable features, conflicts, who lives here…"></textarea>
+          <span class="field-hint">The more detail you provide, the more textured the result.</span>
+        </div>
+
+        <div class="field-row settlement-checks">
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeStores" checked />
+            <span>Generate stores</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeMilitary" checked />
+            <span>Generate guards / military</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="includeLeadership" checked />
+            <span>Generate leadership</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate Settlement</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+      </form>

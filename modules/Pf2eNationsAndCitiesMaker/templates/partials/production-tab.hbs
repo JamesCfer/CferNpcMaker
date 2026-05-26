@@ -1,0 +1,42 @@
+<div class="pf2e-production">
+
+  <h4><i class="fa-solid fa-wheat-awn"></i> Production goods</h4>
+  {{#if settlement.production.length}}
+    <div class="pf2e-production-tags">
+      {{#each settlement.production}}
+        <span class="pf2e-production-tag">{{this}}</span>
+      {{/each}}
+    </div>
+  {{else}}
+    <em class="pf2e-empty">No goods recorded yet.</em>
+  {{/if}}
+
+  <h4><i class="fa-solid fa-coins"></i> Treasury (live)</h4>
+  <table class="pf2e-treasury-table">
+    <tbody>
+      <tr><th>CP</th><td>{{settlement.treasury.cp}}</td></tr>
+      <tr><th>SP</th><td>{{settlement.treasury.sp}}</td></tr>
+      <tr><th>GP</th><td>{{settlement.treasury.gp}}</td></tr>
+      <tr><th>PP</th><td>{{settlement.treasury.pp}}</td></tr>
+    </tbody>
+  </table>
+
+  <h4><i class="fa-solid fa-store"></i> Store balances</h4>
+  {{#if settlement.stores.length}}
+    <table class="pf2e-store-balance-table">
+      <thead><tr><th>Store</th><th>Type</th><th>Balance (gp)</th><th>Daily avg</th></tr></thead>
+      <tbody>
+        {{#each settlement.stores}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{type}}</td>
+            <td>{{income.balance}}</td>
+            <td>{{income.dailyAvg}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No stores to balance.</em>
+  {{/if}}
+</div>

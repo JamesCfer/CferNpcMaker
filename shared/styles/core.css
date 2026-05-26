@@ -879,6 +879,12 @@
 .application.npc-builder .home-module-card.card--hero6e .home-module-icon i { color: #2980b9; }
 .application.npc-builder .home-module-card.card--pf2eitem { border-color: rgba(46, 125, 50, 0.45); }
 .application.npc-builder .home-module-card.card--pf2eitem .home-module-icon i { color: #2e7d32; }
+.application.npc-builder .home-module-card.card--dnd5eitem { border-color: rgba(170, 0, 60, 0.45); }
+.application.npc-builder .home-module-card.card--dnd5eitem .home-module-icon i { color: #aa003c; }
+.application.npc-builder .home-module-card.card--pf2esettle { border-color: rgba(155, 105, 35, 0.5); }
+.application.npc-builder .home-module-card.card--pf2esettle .home-module-icon i { color: #9b6923; }
+.application.npc-builder .home-module-card.card--pf2ecal    { border-color: rgba(120, 80, 60, 0.5); }
+.application.npc-builder .home-module-card.card--pf2ecal .home-module-icon i    { color: #785038; }
 
 /* ── Home: art style + external links ───────────────────── */
 .application.npc-builder .home-art-style {

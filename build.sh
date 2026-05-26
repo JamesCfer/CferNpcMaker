@@ -54,8 +54,12 @@ build_module() {
   # Per-module scripts (entry, adapter, sanitizer)
   cp "${overlay}/scripts/"*.js "$out/scripts/"
 
-  # Stylesheet: concat core + accents
-  cat "${SHARED}/styles/core.css" "${overlay}/styles/accents.css" > "$out/styles/builder.css"
+  # Stylesheet: concat shared core + every *.css in the overlay's styles/ (sorted)
+  cat "${SHARED}/styles/core.css" > "$out/styles/builder.css"
+  for css in "${overlay}/styles/"*.css; do
+    [ -e "$css" ] || continue
+    cat "$css" >> "$out/styles/builder.css"
+  done
 
   # Template: splice home.html and form.html into shell.html
   local tmp
@@ -63,6 +67,17 @@ build_module() {
   splice "<!-- HOME_PANEL_INSERT -->" "${SHARED}/templates/home.html" "${SHARED}/templates/shell.html" > "$tmp"
   splice "<!-- FORM_INSERT -->"       "${overlay}/templates/form.html" "$tmp" > "$out/templates/builder.html"
   rm -f "$tmp"
+
+  # Copy any other templates (Handlebars .hbs files, partials, etc.) verbatim.
+  # form.html was already consumed by the splice above so skip it.
+  if [ -d "${overlay}/templates" ]; then
+    find "${overlay}/templates" -type f ! -name 'form.html' -print0 |
+      while IFS= read -r -d '' src; do
+        rel="${src#${overlay}/templates/}"
+        mkdir -p "$out/templates/$(dirname "$rel")"
+        cp "$src" "$out/templates/$rel"
+      done
+  fi
 
   # Manifest (bare — the release workflow overwrites with version/manifest/download)
   cp "${overlay}/module.json" "$out/module.json"
