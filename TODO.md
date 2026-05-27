@@ -6,14 +6,14 @@ Check off each item when merged.
 ## User Experience
 - [x] 1. **Retry button on failed history entries** — failed entries show a Retry button that re-submits the same form data without re-typing
 - [x] 2. **Generation progress steps** — replace the spinner with labelled steps ("Sending request… Building spell mapping… Creating actor…")
-- [ ] 3. **History entry deletion** — delete individual history entries or clear all with a "Clear History" button
-- [ ] 4. **History search/filter** — search box above the history panel that filters entries by name
+- [x] 3. **History entry deletion** — delete individual history entries or clear all with a "Clear History" button
+- [x] 4. **History search/filter** — search box above the history panel that filters entries by name
 - [ ] 5. **Duplicate from history** — button on each history entry to pre-fill the form with its data
 - [ ] 6. **Undo last generation** — one-click delete of the most recently created actor/item from inside the builder
 - [ ] 7. **Name suggestions** — "Suggest a name" button that generates a random thematic name based on the description without a full generation
 - [ ] 8. **Description templates** — dropdown of starter templates ("Town guard", "Merchant", "Cult leader") that pre-fill the description field
 - [ ] 9. **Compact history panel** — toggle to collapse the history panel to a narrow strip to give the form more space
-- [ ] 10. **Keyboard shortcuts** — `Ctrl+Enter` to generate, `Escape` to clear the form
+- [x] 10. **Keyboard shortcuts** — `Ctrl+Enter` to generate, `Escape` to clear the form
 
 ## Reliability & Error Handling
 - [ ] 11. **Offline detection** — detect no network and show a clear banner instead of a confusing auth error
