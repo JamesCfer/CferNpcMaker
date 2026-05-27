@@ -18,6 +18,15 @@
 
         <div class="field">
           <label for="npc-desc">Description</label>
+          <select class="desc-template-select" aria-label="Load a description template">
+            <option value="">— Quick template… —</option>
+            <option value="A classic brick superhero: immense strength, near-invulnerability, and flight. Straightforward and direct in combat; prefers to hold the line so allies can manoeuvre. Heroic code of honour, never strikes a downed foe.">Brick</option>
+            <option value="A super-speedster capable of near-light movement, rapid punches, and time-limited phasing. Cracking with nervous energy; talks fast, thinks faster. Struggles with patience but never with reflexes.">Speedster</option>
+            <option value="An energy projector who fires blasts of plasma from the palms. Also generates force-field bubbles and can fly on plasma jets. Methodical under pressure; treats each fight as a physics problem.">Energy projector</option>
+            <option value="A peak-human martial artist with no meta-powers beyond extraordinary speed, strength, and skill. Uses a variety of fighting styles, throwing weapons, and improvised tools. Ice-cold focus in combat.">Martial artist</option>
+            <option value="A powerful mentalist: telepathy, telekinesis, and mind control. Rarely uses physical violence. Slightly detached from normal human concerns after years of hearing others' thoughts.">Mentalist</option>
+            <option value="A technological gadgeteer who relies on a suit of power armor and an arsenal of gadget grenades. Tactical thinker, patch-work repairs mid-fight. Sarcastic under fire.">Gadgeteer</option>
+          </select>
           <textarea id="npc-desc" name="description" rows="6"
             placeholder="Describe this character: their powers, combat style, skills, limitations, background…"></textarea>
           <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
