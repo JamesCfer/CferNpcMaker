@@ -9,14 +9,14 @@ Check off each item when merged.
 - [x] 3. **History entry deletion** — delete individual history entries or clear all with a "Clear History" button
 - [x] 4. **History search/filter** — search box above the history panel that filters entries by name
 - [x] 5. **Duplicate from history** — button on each history entry to pre-fill the form with its data
-- [ ] 6. **Undo last generation** — one-click delete of the most recently created actor/item from inside the builder
-- [ ] 7. **Name suggestions** — "Suggest a name" button that generates a random thematic name based on the description without a full generation
+- [x] 6. **Undo last generation** — one-click delete of the most recently created actor/item from inside the builder
+- [x] 7. **Name suggestions** — "Suggest a name" button that generates a random thematic name based on the description without a full generation
 - [x] 8. **Description templates** — dropdown of starter templates ("Town guard", "Merchant", "Cult leader") that pre-fill the description field
 - [x] 9. **Compact history panel** — toggle to collapse the history panel to a narrow strip to give the form more space
 - [x] 10. **Keyboard shortcuts** — `Ctrl+Enter` to generate, `Escape` to clear the form
 
 ## Reliability & Error Handling
-- [ ] 11. **Offline detection** — detect no network and show a clear banner instead of a confusing auth error
+- [x] 11. **Offline detection** — detect no network and show a clear banner instead of a confusing auth error
 - [ ] 12. **Session pre-validation** — on app open, silently test the stored key and proactively prompt re-auth if invalid before the user clicks Generate
 - [ ] 13. **Partial failure recovery** — if actor creation fails after all retries, offer to download the raw JSON so the user doesn't lose generated data
 - [ ] 14. **Rate limit countdown** — parse the reset timestamp from 429 responses and show "Limit resets in X days"
@@ -30,7 +30,7 @@ Check off each item when merged.
 - [ ] 20. **Image generation for item modules** — optional portrait/icon generation for PF2e and 5e items
 
 ## Developer Experience
-- [ ] 21. **Adapter validation on construction** — check all required getters return non-empty values at init time and throw descriptive errors immediately
+- [x] 21. **Adapter validation on construction** — check all required getters return non-empty values at init time and throw descriptive errors immediately
 - [x] 22. **`Storage.clear()`** — method that wipes all stored keys for a module (useful for testing and troubleshooting)
 - [ ] 23. **Build-time type checking** — add `jsconfig.json` with `checkJs: true` so VS Code surfaces type errors in the shared core
 - [ ] 24. **Shared test harness** — minimal Vitest test file covering `isNewerVersion`, `escapeHtml`, `devUrl`, and `Storage`
