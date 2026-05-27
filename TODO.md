@@ -8,11 +8,11 @@ Check off each item when merged.
 - [x] 2. **Generation progress steps** — replace the spinner with labelled steps ("Sending request… Building spell mapping… Creating actor…")
 - [x] 3. **History entry deletion** — delete individual history entries or clear all with a "Clear History" button
 - [x] 4. **History search/filter** — search box above the history panel that filters entries by name
-- [ ] 5. **Duplicate from history** — button on each history entry to pre-fill the form with its data
+- [x] 5. **Duplicate from history** — button on each history entry to pre-fill the form with its data
 - [ ] 6. **Undo last generation** — one-click delete of the most recently created actor/item from inside the builder
 - [ ] 7. **Name suggestions** — "Suggest a name" button that generates a random thematic name based on the description without a full generation
-- [ ] 8. **Description templates** — dropdown of starter templates ("Town guard", "Merchant", "Cult leader") that pre-fill the description field
-- [ ] 9. **Compact history panel** — toggle to collapse the history panel to a narrow strip to give the form more space
+- [x] 8. **Description templates** — dropdown of starter templates ("Town guard", "Merchant", "Cult leader") that pre-fill the description field
+- [x] 9. **Compact history panel** — toggle to collapse the history panel to a narrow strip to give the form more space
 - [x] 10. **Keyboard shortcuts** — `Ctrl+Enter` to generate, `Escape` to clear the form
 
 ## Reliability & Error Handling
@@ -31,7 +31,7 @@ Check off each item when merged.
 
 ## Developer Experience
 - [ ] 21. **Adapter validation on construction** — check all required getters return non-empty values at init time and throw descriptive errors immediately
-- [ ] 22. **`Storage.clear()`** — method that wipes all stored keys for a module (useful for testing and troubleshooting)
+- [x] 22. **`Storage.clear()`** — method that wipes all stored keys for a module (useful for testing and troubleshooting)
 - [ ] 23. **Build-time type checking** — add `jsconfig.json` with `checkJs: true` so VS Code surfaces type errors in the shared core
 - [ ] 24. **Shared test harness** — minimal Vitest test file covering `isNewerVersion`, `escapeHtml`, `devUrl`, and `Storage`
 
