@@ -17,10 +17,10 @@ Check off each item when merged.
 
 ## Reliability & Error Handling
 - [x] 11. **Offline detection** — detect no network and show a clear banner instead of a confusing auth error
-- [ ] 12. **Session pre-validation** — on app open, silently test the stored key and proactively prompt re-auth if invalid before the user clicks Generate
-- [ ] 13. **Partial failure recovery** — if actor creation fails after all retries, offer to download the raw JSON so the user doesn't lose generated data
-- [ ] 14. **Rate limit countdown** — parse the reset timestamp from 429 responses and show "Limit resets in X days"
-- [ ] 15. **Concurrent generation guard** — disable the Generate button (not just via CSS class) while a generation is in-flight
+- [x] 12. **Session pre-validation** — on app open, silently test the stored key and proactively prompt re-auth if invalid before the user clicks Generate
+- [x] 13. **Partial failure recovery** — if actor creation fails after all retries, offer to download the raw JSON so the user doesn't lose generated data
+- [x] 14. **Rate limit countdown** — parse the reset timestamp from 429 responses and show "Limit resets in X days"
+- [x] 15. **Concurrent generation guard** — disable the Generate button (not just via CSS class) while a generation is in-flight
 
 ## Generation Quality
 - [ ] 16. **Post-generation quick-edit dialog** — after creation, show a lightweight overlay (name, level, key stats) so users can fix small mistakes before the full sheet opens
@@ -32,8 +32,8 @@ Check off each item when merged.
 ## Developer Experience
 - [x] 21. **Adapter validation on construction** — check all required getters return non-empty values at init time and throw descriptive errors immediately
 - [x] 22. **`Storage.clear()`** — method that wipes all stored keys for a module (useful for testing and troubleshooting)
-- [ ] 23. **Build-time type checking** — add `jsconfig.json` with `checkJs: true` so VS Code surfaces type errors in the shared core
-- [ ] 24. **Shared test harness** — minimal Vitest test file covering `isNewerVersion`, `escapeHtml`, `devUrl`, and `Storage`
+- [x] 23. **Build-time type checking** — add `jsconfig.json` with `checkJs: true` so VS Code surfaces type errors in the shared core
+- [x] 24. **Shared test harness** — minimal Vitest test file covering `isNewerVersion`, `escapeHtml`, `devUrl`, and `Storage`
 
 ## Performance
 - [ ] 25. **Spell mapping cache** — cache the PF2e spell mapping in `sessionStorage` keyed by a hash of installed packs, skipping the 5–10 s build on repeat generations

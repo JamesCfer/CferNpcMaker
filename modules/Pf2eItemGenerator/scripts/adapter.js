@@ -10,7 +10,7 @@
  * @property {string} description Free-text description for the AI.
  */
 
-import { SystemAdapter, postToN8n } from './core/adapter.js';
+import { SystemAdapter, postToN8n, ActorCreationError } from './core/adapter.js';
 import { N8N_BASE, devUrl }          from './core/n8n.js';
 import { detectModuleFolder }        from './core/utils.js';
 import { sanitizeItemDataPf2e,
@@ -130,10 +130,10 @@ export class Pf2eItemAdapter extends SystemAdapter {
       } catch (error) {
         const errorText = error.toString ? error.toString() : String(error.message || error);
         if (tryFixItemValidationError(itemData, errorText)) continue;
-        throw error;
+        throw new ActorCreationError(`Foundry rejected the item: ${error.message}`, itemData);
       }
     }
-    if (!item) throw new Error('Failed to create item after maximum retry attempts');
+    if (!item) throw new ActorCreationError('Item creation returned null after maximum retries', itemData);
 
     return {
       document:   item,
