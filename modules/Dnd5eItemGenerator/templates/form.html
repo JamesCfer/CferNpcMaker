@@ -44,6 +44,14 @@
 
         <div class="field">
           <label for="npc-desc">Description</label>
+          <select class="desc-template-select" aria-label="Load a description template">
+            <option value="">— Quick template… —</option>
+            <option value="A longsword whose blade blazes with golden fire when drawn by a creature of good alignment. Deals 1d6 extra radiant damage on a hit against fiends or undead. Sheds bright light in a 20-foot radius when activated (no action).">Holy longsword</option>
+            <option value="A deep-hooded cloak that shifts colour to match the surroundings. While wearing it the bearer has advantage on Stealth checks and can use an action to become invisible until the next attack or spell cast.">Cloak of blending</option>
+            <option value="A battered leather journal that writes itself: it records everything the bearer witnesses and can be queried with a command word, returning a short relevant passage. Has 7 charges; regains 1d6+1 at dawn.">Chronicler's journal</option>
+            <option value="A pair of iron gauntlets covered in tiny sigils. While wearing them, the bearer's unarmed strikes deal 1d8 bludgeoning damage and count as magical. On a hit the bearer can expend 1 charge (3 total, recharge at dawn) to push the target 10 feet.">Titan's fist gauntlets</option>
+            <option value="A silver ring set with a black sapphire. Once per day the wearer can cast misty step as a bonus action. If they teleport into solid matter they are shunted to the nearest empty space and take 2d10 force damage.">Ring of short-step</option>
+          </select>
           <textarea id="npc-desc" name="description" rows="6"
             placeholder="Describe this item: its appearance, magical properties, activation, lore, any class or alignment restrictions…"></textarea>
           <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>

@@ -1,0 +1,11 @@
+{
+  "id": "Pf2eNationsAndCitiesMaker",
+  "title": "PF2E Nations, Cities & Towns Maker",
+  "description": "AI-generate Pathfinder 2e settlements (cities, towns, villages, nations) with stores, guards, leadership, treasury and economy. Ships custom PF2e-themed sheets stored on JournalEntries.",
+  "authors": [{ "name": "JamesCfer" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "systems": ["pf2e"],
+  "esmodules": ["scripts/entry.js"],
+  "styles":    ["styles/builder.css"],
+  "templateDir": "templates"
+}

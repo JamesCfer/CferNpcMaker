@@ -1,0 +1,87 @@
+<div class="pf2e-statblock">
+
+  <div class="pf2e-statblock-row pf2e-statblock-row--top">
+    <div class="pf2e-statblock-cell">
+      <label>Population</label>
+      <input type="number" min="0" step="50" data-settlement-path="population" value="{{settlement.population}}" />
+    </div>
+    <div class="pf2e-statblock-cell">
+      <label>Biome</label>
+      <input type="text" data-settlement-path="biome" value="{{settlement.biome}}" />
+    </div>
+    <div class="pf2e-statblock-cell">
+      <label>Government</label>
+      <input type="text" data-settlement-path="government.type" value="{{settlement.government.type}}" />
+    </div>
+    <div class="pf2e-statblock-cell">
+      <label>Leader</label>
+      <input type="text" data-settlement-path="government.leaderName" value="{{settlement.government.leaderName}}" />
+    </div>
+  </div>
+
+  <div class="pf2e-statblock-grid">
+
+    <div class="pf2e-statblock-hp">
+      <label>HP</label>
+      <div class="pf2e-hp-bar"><div class="pf2e-hp-fill" style="width:{{hpPct}}%;"></div></div>
+      <div class="pf2e-hp-numbers">
+        <input type="number" min="0" data-settlement-path="stats.hp"    value="{{settlement.stats.hp}}" />
+        <span class="pf2e-hp-sep">/</span>
+        <input type="number" min="1" data-settlement-path="stats.maxHp" value="{{settlement.stats.maxHp}}" />
+      </div>
+    </div>
+
+    <div class="pf2e-stat-cell">
+      <label>Damage Threshold</label>
+      <input type="number" min="0" data-settlement-path="stats.damageThreshold" value="{{settlement.stats.damageThreshold}}" />
+      <span class="pf2e-stat-hint">Damage ≤ this is shrugged off.</span>
+    </div>
+    <div class="pf2e-stat-cell">
+      <label>Hardness</label>
+      <input type="number" min="0" data-settlement-path="stats.hardness" value="{{settlement.stats.hardness}}" />
+      <span class="pf2e-stat-hint">Flat reduction above threshold.</span>
+    </div>
+
+    <div class="pf2e-stat-cell"><label>Fort</label>
+      <input type="number" data-settlement-path="stats.fortitude" value="{{settlement.stats.fortitude}}" /></div>
+    <div class="pf2e-stat-cell"><label>Ref</label>
+      <input type="number" data-settlement-path="stats.reflex"    value="{{settlement.stats.reflex}}" /></div>
+    <div class="pf2e-stat-cell"><label>Will</label>
+      <input type="number" data-settlement-path="stats.will"      value="{{settlement.stats.will}}" /></div>
+
+    <div class="pf2e-stat-meter">
+      <label>Morale</label>
+      <div class="pf2e-meter pf2e-meter--good"><div style="width:{{moralePct}}%;"></div></div>
+      <input type="number" min="0" max="100" data-settlement-path="stats.morale" value="{{settlement.stats.morale}}" />
+    </div>
+    <div class="pf2e-stat-meter">
+      <label>Unrest</label>
+      <div class="pf2e-meter pf2e-meter--bad"><div style="width:{{unrestPct}}%;"></div></div>
+      <input type="number" min="0" max="100" data-settlement-path="stats.unrest" value="{{settlement.stats.unrest}}" />
+    </div>
+  </div>
+
+  <div class="pf2e-statblock-treasury">
+    <h4><i class="fa-solid fa-sack-dollar"></i> Treasury</h4>
+    <div class="pf2e-treasury-row">
+      <label>CP <input type="number" min="0" data-settlement-path="treasury.cp" value="{{settlement.treasury.cp}}" /></label>
+      <label>SP <input type="number" min="0" data-settlement-path="treasury.sp" value="{{settlement.treasury.sp}}" /></label>
+      <label>GP <input type="number" min="0" data-settlement-path="treasury.gp" value="{{settlement.treasury.gp}}" /></label>
+      <label>PP <input type="number" min="0" data-settlement-path="treasury.pp" value="{{settlement.treasury.pp}}" /></label>
+    </div>
+  </div>
+
+  <div class="pf2e-statblock-production">
+    <h4><i class="fa-solid fa-wheat-awn"></i> Produces</h4>
+    {{#if settlement.production.length}}
+      <div class="pf2e-production-tags">
+        {{#each settlement.production}}
+          <span class="pf2e-production-tag">{{this}}</span>
+        {{/each}}
+      </div>
+    {{else}}
+      <em class="pf2e-empty">No recorded production.</em>
+    {{/if}}
+  </div>
+
+</div>

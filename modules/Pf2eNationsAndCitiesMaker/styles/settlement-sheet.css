@@ -1,0 +1,264 @@
+/* ── Pf2e Settlement Sheet ─────────────────────────────────────────────── */
+
+.pf2e-settlement-sheet,
+.pf2e-nation-sheet {
+  font-family: "Signika", "Roboto", sans-serif;
+  background: #f6efe1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><rect width="6" height="6" fill="%23f6efe1"/><circle cx="3" cy="3" r="0.3" fill="%23d8c89c"/></svg>');
+  color: #2c1f10;
+}
+
+.pf2e-settlement,
+.pf2e-nation {
+  display: flex; flex-direction: column;
+  padding: 0.75em 1em; gap: 0.75em; height: 100%;
+}
+
+.pf2e-settlement-header,
+.pf2e-nation-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 0.5em; border-bottom: 2px solid #9b6923;
+  gap: 1em;
+}
+
+.pf2e-settlement-title,
+.pf2e-nation-header {
+  display: flex; align-items: center; gap: 0.5em;
+}
+.pf2e-settlement-title h2,
+.pf2e-nation-header h2 { margin: 0; color: #5a2f0a; font-weight: 700; }
+
+.pf2e-settlement-title i,
+.pf2e-nation-header i { color: #9b6923; font-size: 1.4em; }
+
+.pf2e-settlement-kind-pill {
+  text-transform: capitalize;
+  background: #9b6923; color: #fff;
+  padding: 0.15em 0.7em; border-radius: 999px; font-size: 0.8em; font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.pf2e-settlement-header-actions {
+  display: flex; gap: 0.4em; flex-wrap: wrap;
+}
+.pf2e-settlement-header-actions button {
+  background: #fff8e8; border: 1px solid #b08a5a; color: #5a3d18;
+  padding: 0.35em 0.7em; border-radius: 4px; cursor: pointer;
+  font-weight: 600; font-size: 0.85em;
+}
+.pf2e-settlement-header-actions button:hover { background: #f0e3c0; }
+
+.pf2e-tag { padding: 0.2em 0.55em; border-radius: 4px; font-size: 0.78em; }
+.pf2e-tag--ok { background: #d9efd9; color: #25602a; border: 1px solid #6a9e60; }
+
+.pf2e-settlement-body {
+  display: flex; gap: 0.75em; flex: 1; min-height: 0;
+}
+.pf2e-settlement-tabs {
+  display: flex; flex-direction: column; gap: 0.2em;
+  min-width: 180px; border-right: 1px solid #d8b888; padding-right: 0.5em;
+}
+.pf2e-settlement-tab {
+  text-align: left; padding: 0.55em 0.7em; border: none; background: transparent;
+  color: #5a3d18; cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; gap: 0.5em; font-weight: 600;
+}
+.pf2e-settlement-tab:hover { background: rgba(155, 105, 35, 0.08); }
+.pf2e-settlement-tab.is-active {
+  background: #9b6923; color: #fff;
+}
+.pf2e-settlement-tab.is-active i { color: #ffe7a8; }
+
+.pf2e-settlement-tab-body { flex: 1; overflow: auto; min-width: 0; padding-right: 0.25em; }
+
+/* ── statblock ───────────────────────────────────────────── */
+.pf2e-statblock { display: flex; flex-direction: column; gap: 0.75em; }
+.pf2e-statblock-row { display: flex; gap: 0.5em; flex-wrap: wrap; }
+.pf2e-statblock-cell { flex: 1; min-width: 120px; display: flex; flex-direction: column; }
+.pf2e-statblock-cell label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
+.pf2e-statblock-cell input { padding: 0.3em 0.4em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-statblock-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 0.5em; align-items: end;
+}
+.pf2e-statblock-hp { grid-column: span 2; }
+.pf2e-statblock-hp label { font-weight: 700; color: #6a2218; }
+.pf2e-hp-bar { background: #e6cfc0; border: 1px solid #8a4022; height: 14px; border-radius: 7px; overflow: hidden; }
+.pf2e-hp-fill { background: linear-gradient(90deg, #b62b22, #d4502f); height: 100%; transition: width 0.3s; }
+.pf2e-hp-numbers { display: flex; align-items: center; gap: 0.25em; margin-top: 0.25em; }
+.pf2e-hp-numbers input { width: 4em; padding: 0.2em; text-align: center; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-hp-sep { font-weight: 700; }
+
+.pf2e-stat-cell { display: flex; flex-direction: column; }
+.pf2e-stat-cell label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
+.pf2e-stat-cell input { padding: 0.25em; text-align: center; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-stat-hint { font-size: 0.7em; color: #876338; margin-top: 0.15em; }
+
+.pf2e-stat-meter { grid-column: span 2; display: flex; flex-direction: column; }
+.pf2e-meter { background: #e6dbc4; border: 1px solid #8a6a36; height: 10px; border-radius: 5px; overflow: hidden; margin: 0.2em 0; }
+.pf2e-meter--good div { background: linear-gradient(90deg, #2e7d32, #66bb6a); height: 100%; }
+.pf2e-meter--bad  div { background: linear-gradient(90deg, #b62b22, #e57373); height: 100%; }
+.pf2e-stat-meter input { width: 4em; padding: 0.2em; text-align: center; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-statblock-treasury,
+.pf2e-statblock-production { padding: 0.5em; background: rgba(155, 105, 35, 0.05); border: 1px solid #d8b888; border-radius: 4px; }
+.pf2e-statblock-treasury h4,
+.pf2e-statblock-production h4 { margin: 0 0 0.4em 0; color: #5a2f0a; }
+.pf2e-treasury-row { display: flex; gap: 0.5em; flex-wrap: wrap; }
+.pf2e-treasury-row label { display: flex; align-items: center; gap: 0.3em; font-weight: 700; }
+.pf2e-treasury-row input { width: 5em; padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-production-tags { display: flex; flex-wrap: wrap; gap: 0.3em; }
+.pf2e-production-tag {
+  background: #e8d8b0; color: #5a3d18; padding: 0.2em 0.6em; border-radius: 999px;
+  border: 1px solid #b08a5a; font-size: 0.8em;
+}
+
+/* ── stores ──────────────────────────────────────────────── */
+.pf2e-stores { display: flex; flex-direction: column; gap: 0.5em; }
+.pf2e-stores-toolbar { display: flex; justify-content: flex-end; }
+.pf2e-store-tabs { display: flex; flex-wrap: wrap; gap: 0.25em; border-bottom: 1px solid #d8b888; padding-bottom: 0.4em; }
+.pf2e-store-tab {
+  padding: 0.3em 0.7em; border: 1px solid #b08a5a; border-radius: 4px;
+  background: #fffbef; cursor: pointer; font-weight: 600; color: #5a3d18;
+}
+.pf2e-store-tab:hover { background: #f0e3c0; }
+.pf2e-store-tab.is-active { background: #9b6923; color: #fff; }
+.pf2e-store-tab-count { background: rgba(0,0,0,0.18); padding: 0 0.4em; border-radius: 999px; margin-left: 0.3em; font-size: 0.8em; }
+
+.pf2e-store-card {
+  border: 1px solid #b08a5a; border-radius: 6px; background: #fffbef;
+  padding: 0.6em; box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+}
+.pf2e-store-card-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5em;
+  border-bottom: 1px dashed #d8b888; padding-bottom: 0.4em; margin-bottom: 0.4em;
+}
+.pf2e-store-card-name { display: flex; align-items: center; gap: 0.4em; flex: 1; }
+.pf2e-store-name-input { font-weight: 700; font-size: 1.05em; flex: 1; border: 1px solid #c2a070; background: #fffbef; padding: 0.25em 0.4em; border-radius: 3px; }
+.pf2e-store-type-select { border: 1px solid #c2a070; background: #fffbef; padding: 0.25em; border-radius: 3px; }
+
+.pf2e-store-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em;
+}
+.pf2e-store-inventory { grid-column: span 2; }
+
+.pf2e-store-info,
+.pf2e-store-staff,
+.pf2e-store-inventory { display: flex; flex-direction: column; gap: 0.3em; }
+
+.pf2e-store-info > div { display: flex; flex-direction: column; gap: 0.15em; }
+.pf2e-store-info label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
+.pf2e-store-owner-row,
+.pf2e-store-hours-row,
+.pf2e-store-income-row { display: flex; align-items: center; gap: 0.3em; flex-wrap: wrap; }
+.pf2e-store-owner-row input,
+.pf2e-store-hours-row input,
+.pf2e-store-income-row input { padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-store-income-row input { width: 5em; }
+.pf2e-store-hours-row input { width: 5em; }
+.pf2e-store-owner-row input { flex: 1; min-width: 6em; }
+
+.pf2e-store-staff header,
+.pf2e-store-inventory header { display: flex; align-items: center; justify-content: space-between; }
+.pf2e-store-staff h4,
+.pf2e-store-inventory h4 { margin: 0; font-size: 0.9em; color: #5a2f0a; }
+
+.pf2e-staff-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.2em; }
+.pf2e-staff-row { display: flex; gap: 0.25em; align-items: center; }
+.pf2e-staff-row input { padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-staff-name { flex: 1.5; }
+.pf2e-staff-role { flex: 1; }
+.pf2e-staff-shift { flex: 1; }
+
+.pf2e-inventory-table { width: 100%; border-collapse: collapse; }
+.pf2e-inventory-table th,
+.pf2e-inventory-table td { padding: 0.25em; border-bottom: 1px solid #e0cf9c; font-size: 0.85em; text-align: left; }
+.pf2e-inventory-table input { width: 100%; padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-icon-btn {
+  width: 26px; height: 26px; border: 1px solid #b08a5a; background: #fffbef;
+  color: #5a3d18; border-radius: 4px; cursor: pointer; display: inline-flex;
+  align-items: center; justify-content: center; padding: 0;
+}
+.pf2e-icon-btn:hover { background: #f0e3c0; }
+.pf2e-icon-btn--danger { border-color: #b6512b; color: #6a2218; }
+.pf2e-icon-btn--danger:hover { background: #f6dcd0; }
+
+.pf2e-settlement-btn {
+  background: linear-gradient(180deg, #b8884a, #8a5a1a); color: #fff;
+  border: 1px solid #5a3d18; padding: 0.4em 0.8em; border-radius: 4px;
+  cursor: pointer; font-weight: 600;
+}
+.pf2e-settlement-btn:hover { filter: brightness(1.05); }
+
+/* ── guards ──────────────────────────────────────────────── */
+.pf2e-guards { display: flex; flex-direction: column; gap: 0.6em; }
+.pf2e-guards-summary { display: flex; justify-content: space-between; align-items: center; gap: 0.5em; flex-wrap: wrap;
+  background: rgba(155,105,35,0.07); padding: 0.5em; border: 1px solid #d8b888; border-radius: 4px; }
+.pf2e-guards-total { font-size: 1.1em; font-weight: 700; color: #5a2f0a; display: flex; align-items: center; gap: 0.4em; }
+.pf2e-commander { display: flex; align-items: center; gap: 0.4em; }
+.pf2e-commander input { padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; min-width: 12em; }
+
+.pf2e-rank-table { width: 100%; border-collapse: collapse; }
+.pf2e-rank-table th,
+.pf2e-rank-table td { padding: 0.3em; border-bottom: 1px solid #e0cf9c; text-align: left; }
+.pf2e-rank-table input { padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; width: 100%; }
+
+/* ── leadership ──────────────────────────────────────────── */
+.pf2e-leadership { display: flex; flex-direction: column; gap: 0.5em; }
+.pf2e-leadership h4 { margin: 0.3em 0 0.2em 0; color: #5a2f0a; }
+.pf2e-leadership-mayor-row { display: flex; gap: 0.4em; }
+.pf2e-leadership-mayor-row input { flex: 1; padding: 0.35em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-leadership-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35em; }
+.pf2e-leader-card {
+  display: flex; gap: 0.3em; align-items: center;
+  border: 1px solid #d8b888; border-radius: 4px; padding: 0.35em; background: #fffbef;
+}
+.pf2e-leader-card input { padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-leader-title { flex: 1; }
+.pf2e-leader-name  { flex: 1.4; font-weight: 700; }
+.pf2e-leader-role  { flex: 1.2; }
+
+/* ── notes / empty ───────────────────────────────────────── */
+.pf2e-settlement-notes textarea {
+  width: 100%; min-height: 350px; padding: 0.5em; border: 1px solid #c2a070;
+  background: #fffbef; border-radius: 4px; font-family: inherit; font-size: 0.95em;
+}
+.pf2e-empty, em.pf2e-empty { color: #876338; font-style: italic; }
+.pf2e-empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 0.4em;
+  padding: 2em; color: #876338;
+}
+.pf2e-empty-state i { font-size: 2.5em; color: #c2a070; }
+
+/* ── production ──────────────────────────────────────────── */
+.pf2e-treasury-table,
+.pf2e-store-balance-table { width: 100%; border-collapse: collapse; margin-bottom: 0.5em; }
+.pf2e-treasury-table th,
+.pf2e-treasury-table td,
+.pf2e-store-balance-table th,
+.pf2e-store-balance-table td { padding: 0.3em; border-bottom: 1px solid #e0cf9c; text-align: left; }
+
+/* ── nation sheet ────────────────────────────────────────── */
+.pf2e-nation-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em;
+  padding: 0.5em; background: rgba(155,105,35,0.07); border: 1px solid #d8b888; border-radius: 4px;
+}
+.pf2e-nation-stat { display: flex; flex-direction: column; align-items: center; gap: 0.2em; }
+.pf2e-nation-stat label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
+.pf2e-nation-stat span { font-size: 1.2em; font-weight: 700; color: #5a2f0a; }
+
+.pf2e-nation-government { display: flex; gap: 0.5em; }
+.pf2e-nation-government label { display: flex; flex-direction: column; flex: 1; }
+.pf2e-nation-government input { padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-nation-cities { width: 100%; border-collapse: collapse; }
+.pf2e-nation-cities th,
+.pf2e-nation-cities td { padding: 0.3em; border-bottom: 1px solid #e0cf9c; text-align: left; }
+.pf2e-nation-cities a { color: #6a2218; font-weight: 700; text-decoration: none; }
+.pf2e-nation-cities a:hover { text-decoration: underline; }
+
+.pf2e-nation-add-city { display: flex; gap: 0.4em; margin-top: 0.4em; }
+.pf2e-nation-add-city select { flex: 1; padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }

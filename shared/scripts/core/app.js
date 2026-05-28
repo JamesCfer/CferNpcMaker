@@ -20,8 +20,11 @@
 
 import { Storage }                from './storage.js';
 import { AuthError,
-         RateLimitError }         from './adapter.js';
+         RateLimitError,
+         ActorCreationError,
+         SystemAdapter }          from './adapter.js';
 import { startPatreonSignIn,
+         validateSessionKey,
          PATREON_URL }            from './auth.js';
 import { sendFeedback }           from './feedback.js';
 import { initConsoleCapture,
@@ -32,7 +35,8 @@ import { isDevMode }              from './n8n.js';
 import { ALL_MODULES,
          getModuleMeta }          from './home-data.js';
 import { escapeHtml,
-         detectModuleFolder }     from './utils.js';
+         detectModuleFolder,
+         generateThematicName }   from './utils.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -46,6 +50,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(adapter, options = {}) {
     const { initialTab, ...appOptions } = options;
     super(appOptions);
+    SystemAdapter.validate(adapter);
     this.adapter        = adapter;
     this.moduleFolder   = adapter.moduleFolder;
     this.storage        = new Storage(this.moduleFolder);
@@ -53,10 +58,15 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.authenticated  = !!this.accessKey;
     this.lastDocument   = null;
     this.lastExportData = null;     // adapter-defined: { content, filename, mimeType }
+    this._isOffline     = !navigator.onLine;
     // Default to the builder form — users reach the Home tab by clicking it.
     this.activeTab      = (initialTab === 'home' || initialTab === 'builder') ? initialTab : 'builder';
     this.selectedHistoryId = null;
     this.patreonTier    = null;
+
+    this._stepTimers = new Map();
+    this._historyFilter = '';
+    this._historyCompact = false;
 
     this.history = this.storage.loadHistory(MAX_HISTORY);
     let hadStale = false;
@@ -112,6 +122,15 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._applyTabUI();
     this._renderHistory();
 
+    const filterInput = this.element.querySelector('.history-search-input');
+    if (filterInput) {
+      filterInput.value = this._historyFilter;
+      filterInput.addEventListener('input', () => {
+        this._historyFilter = filterInput.value.trim().toLowerCase();
+        this._renderHistory();
+      });
+    }
+
     const artStyleInput = this.element.querySelector('#npc-art-style');
     if (artStyleInput) {
       artStyleInput.value = this.storage.getArtStyle();
@@ -119,6 +138,57 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.storage.setArtStyle(artStyleInput.value.trim());
       });
     }
+
+    const compactBtn = this.element.querySelector('.history-compact-btn');
+    if (compactBtn) {
+      compactBtn.addEventListener('click', () => this._toggleCompactHistory());
+      if (this._historyCompact) {
+        this.element.querySelector('.npc-panel-history')?.classList.add('is-compact');
+        compactBtn.setAttribute('aria-pressed', 'true');
+      }
+    }
+
+    const tmplSelect = this.element.querySelector('.desc-template-select');
+    if (tmplSelect) {
+      tmplSelect.addEventListener('change', () => {
+        if (!tmplSelect.value) return;
+        const desc = this.element.querySelector('[name="description"]');
+        if (desc) desc.value = tmplSelect.value;
+        tmplSelect.selectedIndex = 0;
+      });
+    }
+
+    const nameField = this.element.querySelector('.field--name');
+    const nameLabel = nameField?.querySelector('label');
+    if (nameLabel && !nameField.querySelector('.suggest-name-btn, .btn-roll-name')) {
+      const suggestBtn = document.createElement('button');
+      suggestBtn.type = 'button';
+      suggestBtn.className = 'suggest-name-btn';
+      suggestBtn.title = 'Suggest a thematic name based on the description';
+      suggestBtn.setAttribute('aria-label', 'Suggest a name');
+      suggestBtn.innerHTML = '<i class="fa-solid fa-dice-d20"></i> Suggest';
+      suggestBtn.addEventListener('click', () => this._suggestName());
+      nameLabel.appendChild(suggestBtn);
+    }
+
+    this._initOfflineDetection();
+    this._validateSessionOnOpen();
+
+    this.element.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+        ev.preventDefault();
+        if (this.activeTab === 'builder') this._generate(ev);
+      } else if (ev.key === 'Escape') {
+        const form = this.element.querySelector('.npc-form');
+        if (form?.contains(document.activeElement)) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          form.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(el => { el.value = ''; });
+          form.querySelectorAll('input[type="checkbox"]').forEach(el => { el.checked = false; });
+          form.querySelectorAll('select').forEach(el => { el.selectedIndex = 0; });
+        }
+      }
+    }, true);
   }
 
   /* ── Tab UI (Home vs Builder) ──────────────────────────── */
@@ -153,8 +223,13 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     for (const action of ['generate', 'export', 'generateimage']) {
       const btn = root.querySelector(`button[data-action="${action}"]`);
-      if (btn) btn.disabled = !this.authenticated;
+      if (btn) btn.disabled = !this.authenticated
+        || (action === 'generate' && this._isOffline)
+        || (action === 'generate' && anyGenerating);
     }
+
+    const undoBtn = root.querySelector('button[data-action="undolast"]');
+    if (undoBtn) undoBtn.disabled = !this.lastDocument;
   }
 
   /* ── Action wiring ──────────────────────────────────────── */
@@ -184,6 +259,8 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       patreon:       function()      { window.open(PATREON_URL, '_blank'); },
       sendfeedback:  function(event) { this._sendFeedback(event); },
       generateimage: function(event) { this._generateImage(event); },
+      clearhistory:  function(event) { this._clearHistory(event); },
+      undolast:      function(event) { this._undoLastGeneration(event); },
     },
   };
 
@@ -229,15 +306,23 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!list) return;
     list.innerHTML = '';
 
-    if (this.history.length === 0) {
+    const query    = this._historyFilter || '';
+    const reversed = [...this.history].reverse();
+    const filtered = query
+      ? reversed.filter(e => e.name?.toLowerCase().includes(query))
+      : reversed;
+
+    if (filtered.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'history-empty';
-      empty.textContent = `No ${this.adapter.formConfig.documentNoun || 'documents'} created yet.\nGenerate one to see it here.`;
+      empty.textContent = query
+        ? `No ${this.adapter.formConfig.documentNoun || 'documents'} match "${query}".`
+        : `No ${this.adapter.formConfig.documentNoun || 'documents'} created yet.\nGenerate one to see it here.`;
       list.appendChild(empty);
       return;
     }
 
-    for (const entry of [...this.history].reverse()) {
+    for (const entry of filtered) {
       list.appendChild(this._createHistoryEntryElement(entry));
     }
   }
@@ -271,10 +356,17 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           <span class="history-entry-name">${escapedName}</span>
           <span class="history-entry-meta">${metaLabel}</span>
         </div>
-        <div class="history-entry-icon">${statusIcon}</div>
+        <div class="history-entry-actions">
+          <div class="history-entry-icon">${statusIcon}</div>
+          ${entry.status !== 'generating'
+            ? `<button type="button" class="history-entry-duplicate" title="Pre-fill form with this entry" aria-label="Duplicate ${escapedName}"><i class="fa-solid fa-copy"></i></button>
+               <button type="button" class="history-entry-delete" title="Delete this entry" aria-label="Delete ${escapedName}"><i class="fa-solid fa-xmark"></i></button>`
+            : ''}
+        </div>
       </div>
       ${entry.status === 'generating'
-        ? '<div class="history-progress"><div class="history-progress-bar"></div></div>'
+        ? `<span class="history-step-label">${escapeHtml(this.adapter.progressSteps[0])}</span>
+      <div class="history-progress"><div class="history-progress-bar"></div></div>`
         : ''}
       ${entry.status === 'error'
         ? `<div class="history-entry-footer">
@@ -289,6 +381,22 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       retryBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         this._resubmit(entry);
+      });
+    }
+
+    const dupBtn = el.querySelector('.history-entry-duplicate');
+    if (dupBtn) {
+      dupBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this._duplicateFromHistory(entry);
+      });
+    }
+
+    const deleteBtn = el.querySelector('.history-entry-delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this._deleteHistoryEntry(entry.id);
       });
     }
 
@@ -324,6 +432,10 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const entry = this.history.find(e => e.id === id);
     if (!entry) return;
 
+    if (changes.status && changes.status !== 'generating') {
+      this._clearStepTimer(id);
+    }
+
     Object.assign(entry, changes);
     this.storage.saveHistory(this.history, MAX_HISTORY);
 
@@ -337,6 +449,86 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element?.classList.toggle('is-generating', anyGenerating);
   }
 
+  _deleteHistoryEntry(id) {
+    const idx = this.history.findIndex(e => e.id === id);
+    if (idx === -1) return;
+    this.history.splice(idx, 1);
+    this.storage.saveHistory(this.history, MAX_HISTORY);
+    if (this.selectedHistoryId === id) {
+      this.selectedHistoryId = null;
+      const banner = this.element?.querySelector('.history-selected-banner');
+      if (banner) banner.style.display = 'none';
+    }
+    this._renderHistory();
+  }
+
+  _duplicateFromHistory(entry) {
+    const form = this.element?.querySelector('.npc-form');
+    if (form) this.adapter.populateForm(form, entry);
+    this.selectedHistoryId = null;
+    const banner = this.element?.querySelector('.history-selected-banner');
+    if (banner) banner.style.display = 'none';
+    this.element?.querySelectorAll('.history-entry.is-selected').forEach(el => el.classList.remove('is-selected'));
+  }
+
+  _toggleCompactHistory() {
+    this._historyCompact = !this._historyCompact;
+    const panel = this.element?.querySelector('.npc-panel-history');
+    if (panel) panel.classList.toggle('is-compact', this._historyCompact);
+    const btn = this.element?.querySelector('.history-compact-btn');
+    if (btn) btn.setAttribute('aria-pressed', String(this._historyCompact));
+  }
+
+  async _clearHistory(event) {
+    event?.preventDefault?.();
+    if (this.history.length === 0) return;
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window:      { title: 'Clear History' },
+      content:     '<p>Delete all history entries? This cannot be undone.</p>',
+      yes:         { label: 'Clear All', icon: 'fa-solid fa-trash-can' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return;
+    this.history.length = 0;
+    this.storage.saveHistory(this.history, MAX_HISTORY);
+    this.selectedHistoryId = null;
+    const banner = this.element?.querySelector('.history-selected-banner');
+    if (banner) banner.style.display = 'none';
+    this._renderHistory();
+  }
+
+  /* ── Generation progress steps ──────────────────────────── */
+
+  _startStepProgression(entryId, steps) {
+    if (steps.length <= 1) return;
+    let stepIndex = 0;
+    const scheduleNext = () => {
+      stepIndex++;
+      if (stepIndex >= steps.length) {
+        this._stepTimers.delete(entryId);
+        return;
+      }
+      const timer = setTimeout(() => {
+        const el = this.element?.querySelector(
+          `.history-entry[data-entry-id="${entryId}"] .history-step-label`
+        );
+        if (el) el.textContent = steps[stepIndex];
+        scheduleNext();
+      }, 4000);
+      this._stepTimers.set(entryId, timer);
+    };
+    scheduleNext();
+  }
+
+  _clearStepTimer(entryId) {
+    const timer = this._stepTimers.get(entryId);
+    if (timer != null) {
+      clearTimeout(timer);
+      this._stepTimers.delete(entryId);
+    }
+  }
+
   /* ── Generate (delegates to adapter) ────────────────────── */
 
   async _generate(event) {
@@ -347,6 +539,10 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     if (this.activeTab === 'home') return;
+    if (this.history.some(e => e.status === 'generating')) {
+      ui.notifications.warn('A generation is already in progress.');
+      return;
+    }
 
     const form = this.element?.querySelector?.('.npc-form');
     if (!form) {
@@ -390,6 +586,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       list.insertBefore(newEntry, list.firstChild);
     }
     this.element?.classList.add('is-generating');
+    this._startStepProgression(historyEntry.id, this.adapter.progressSteps);
 
     const banner = this.element?.querySelector('.history-selected-banner');
     if (banner) banner.style.display = 'none';
@@ -413,6 +610,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.lastExportData = result.exportData || null;
 
       this._updateHistoryEntry(historyEntry.id, { status: 'success' });
+      this._applyAuthStateUI();
 
       const docName = result.document?.name || formData.name || 'document';
       ui.notifications.success(result.message || `"${docName}" created successfully!`);
@@ -431,13 +629,33 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       } else if (err instanceof RateLimitError) {
         this._updateHistoryEntry(historyEntry.id, { status: 'error', error: 'Rate limit exceeded' });
         if (err.tier) this.patreonTier = err.tier;
-        ui.notifications.error(err.message || 'Monthly limit reached.', { permanent: true });
+        let msg = err.message || 'Monthly limit reached.';
+        if (err.resetAt) {
+          const daysLeft = Math.max(1, Math.ceil((err.resetAt - Date.now()) / 86400000));
+          msg += ` Resets in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}.`;
+        }
+        ui.notifications.error(msg, { permanent: true });
         setTimeout(() => window.open(PATREON_URL, '_blank'), 1200);
+      } else if (err instanceof ActorCreationError) {
+        this._updateHistoryEntry(historyEntry.id, { status: 'error', error: err.message });
+        ui.notifications.error(`Failed to create "${formData.name || 'document'}": ${err.message}`);
+        if (err.rawData) {
+          foundry.applications.api.DialogV2.confirm({
+            window:      { title: 'Download Raw Data' },
+            content:     '<p>The AI generated data but Foundry rejected the document. Download the raw JSON to keep it?</p>',
+            yes:         { label: 'Download JSON', icon: 'fa-solid fa-download' },
+            no:          { label: 'Dismiss' },
+            rejectClose: false,
+          }).then(confirmed => {
+            if (confirmed) this._triggerJsonDownload(err.rawData, formData.name || 'document');
+          }).catch(() => {});
+        }
+        this._autoReportError(err, formData).catch(() => {});
       } else {
         this._updateHistoryEntry(historyEntry.id, { status: 'error', error: err.message });
         ui.notifications.error(`Failed to generate "${formData.name || 'document'}": ${err.message}`);
+        this._autoReportError(err, formData).catch(() => {});
       }
-      this._autoReportError(err, formData).catch(() => {});
     }
   }
 
@@ -494,11 +712,95 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       list.insertBefore(newEntry, list.firstChild);
     }
     this.element?.classList.add('is-generating');
+    this._startStepProgression(historyEntry.id, this.adapter.progressSteps);
 
     this._runGeneration(historyEntry, key, sourceEntry);
   }
 
+  /* ── Undo last generation ───────────────────────────────── */
+
+  async _undoLastGeneration(event) {
+    event?.preventDefault?.();
+    if (!this.lastDocument) {
+      ui.notifications.warn('No recent generation to undo.');
+      return;
+    }
+    const name = this.lastDocument.name || 'document';
+    try {
+      await this.lastDocument.delete();
+    } catch (err) {
+      ui.notifications.error(`Failed to delete "${name}": ${err.message}`);
+      return;
+    }
+    this.lastDocument   = null;
+    this.lastExportData = null;
+
+    let lastSuccessIdx = -1;
+    for (let i = this.history.length - 1; i >= 0; i--) {
+      if (this.history[i].status === 'success') { lastSuccessIdx = i; break; }
+    }
+    if (lastSuccessIdx !== -1) {
+      this.history.splice(lastSuccessIdx, 1);
+      this.storage.saveHistory(this.history, MAX_HISTORY);
+      this._renderHistory();
+    }
+    this._applyAuthStateUI();
+    ui.notifications.info(`"${name}" deleted.`);
+  }
+
+  /* ── Name suggestions ───────────────────────────────────── */
+
+  _suggestName() {
+    const desc      = this.element?.querySelector('[name="description"]')?.value || '';
+    const nameInput = this.element?.querySelector('[name="name"]');
+    if (!nameInput) return;
+    nameInput.value = generateThematicName(desc);
+    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  /* ── Offline detection ──────────────────────────────────── */
+
+  _initOfflineDetection() {
+    const update = () => {
+      this._isOffline = !navigator.onLine;
+      this._updateOfflineBanner(this._isOffline);
+    };
+    window.addEventListener('online',  update);
+    window.addEventListener('offline', update);
+    this._updateOfflineBanner(this._isOffline);
+  }
+
+  _updateOfflineBanner(offline) {
+    const banner = this.element?.querySelector('.offline-banner');
+    if (banner) banner.style.display = offline ? 'flex' : 'none';
+    this._applyAuthStateUI();
+  }
+
+  /* ── Session pre-validation ─────────────────────────────── */
+
+  async _validateSessionOnOpen() {
+    if (!this.authenticated || !this.accessKey) return;
+    const valid = await validateSessionKey(this.accessKey, isDevMode(this.moduleFolder));
+    if (!valid && this.element?.isConnected) {
+      this.storage.setKey('');
+      this.accessKey     = '';
+      this.authenticated = false;
+      this._applyAuthStateUI();
+      ui.notifications?.warn?.('Your session has expired — please sign in again.', { permanent: true });
+    }
+  }
+
   /* ── Export ─────────────────────────────────────────────── */
+
+  _triggerJsonDownload(data, name) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${String(name).replace(/[^a-z0-9_-]/gi, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async _export(event) {
     event?.preventDefault?.();

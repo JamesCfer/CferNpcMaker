@@ -1,0 +1,45 @@
+<div class="pf2e-leadership">
+
+  <div class="pf2e-leadership-mayor">
+    <h4><i class="fa-solid fa-crown"></i> Head of {{settlement.kind}}</h4>
+    <div class="pf2e-leadership-mayor-row">
+      <input type="text" data-settlement-path="government.leaderName" value="{{settlement.government.leaderName}}" />
+      <input type="text" data-settlement-path="government.type"       value="{{settlement.government.type}}" />
+    </div>
+  </div>
+
+  <h4><i class="fa-solid fa-user-group"></i> Council</h4>
+  {{#if settlement.leadership.length}}
+    <ul class="pf2e-leadership-list">
+      {{#each settlement.leadership}}
+        <li class="pf2e-leader-card">
+          <input type="text" class="pf2e-leader-title" data-settlement-path="leadership.{{@index}}.title" value="{{title}}" />
+          <input type="text" class="pf2e-leader-name"  data-settlement-path="leadership.{{@index}}.name"  value="{{name}}" />
+          <input type="text" class="pf2e-leader-role"  data-settlement-path="leadership.{{@index}}.role"  value="{{role}}" placeholder="role / domain" />
+          {{#if actorId}}
+            <button type="button" class="pf2e-icon-btn"
+                    data-action="openLinkedActor" data-actor-id="{{actorId}}" title="Open actor">
+              <i class="fa-solid fa-user"></i>
+            </button>
+          {{/if}}
+          {{#if ../canGenerateNpc}}
+            <button type="button" class="pf2e-icon-btn"
+                    data-action="generateLeader" data-index="{{@index}}" title="Generate NPC for this leader">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </button>
+          {{/if}}
+          <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                  data-action="removeLeader" data-index="{{@index}}" title="Remove leader">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <em class="pf2e-empty">No council members yet.</em>
+  {{/if}}
+
+  <button type="button" class="pf2e-settlement-btn" data-action="addLeader">
+    <i class="fa-solid fa-user-plus"></i> Add Council Member
+  </button>
+</div>

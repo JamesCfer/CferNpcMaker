@@ -1,13 +1,16 @@
 # CferNpcMaker
 
-Four sibling Foundry VTT modules for AI-assisted NPC and item generation:
+Sibling Foundry VTT modules for AI-assisted NPC, item, and settlement generation:
 
-| Module            | System  | Generates                              | Output lands in |
-| ----------------- | ------- | -------------------------------------- | --------------- |
-| `Pf2eNpcMaker`    | `pf2e`  | NPC actors (with level-up + image)     | `game.actors`   |
-| `DnD5eNpcMaker`   | `dnd5e` | Creature actors (with CR + spells)     | `game.actors`   |
-| `Hero6eNpcMaker`  | `hero6e`| Characters (via HDC import)            | `game.actors`   |
-| `Pf2eItemGenerator` | `pf2e`  | Items (weapons, armor, consumables…) | `game.items`    |
+| Module                          | System  | Generates                              | Output lands in   |
+| ------------------------------- | ------- | -------------------------------------- | ----------------- |
+| `Pf2eNpcMaker`                  | `pf2e`  | NPC actors (with level-up + image)     | `game.actors`     |
+| `DnD5eNpcMaker`                 | `dnd5e` | Creature actors (with CR + spells)     | `game.actors`     |
+| `Hero6eNpcMaker`                | `hero6e`| Characters (via HDC import)            | `game.actors`     |
+| `Pf2eItemGenerator`             | `pf2e`  | Items (weapons, armor, consumables…)   | `game.items`      |
+| `Dnd5eItemGenerator`            | `dnd5e` | Magic items / consumables              | `game.items`      |
+| `Pf2eNationsAndCitiesMaker`     | `pf2e`  | Settlements (cities/towns/villages/nations) with custom sheet, stores, guards, leadership, economy | `game.journal` (custom sheet swap) |
+| `Pf2eCalendarTimeline`          | `pf2e`  | In-world calendar + scheduled events (taxes, paydays, festivals); other modules listen for fired events | World setting + custom UI |
 
 ## Repository layout
 
@@ -44,7 +47,8 @@ To produce a shipped module locally (e.g. to symlink into Foundry's
 ```sh
 ./build.sh Pf2eNpcMaker                 # one module
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker   # several
-./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator   # all
+./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator \
+           Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline   # all
 ```
 
 The script copies `shared/scripts/core/` into each output's `scripts/core/`,

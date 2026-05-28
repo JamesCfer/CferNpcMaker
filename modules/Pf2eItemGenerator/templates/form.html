@@ -33,6 +33,14 @@
 
         <div class="field">
           <label for="npc-desc">Description</label>
+          <select class="desc-template-select" aria-label="Load a description template">
+            <option value="">— Quick template… —</option>
+            <option value="A rune-etched longsword whose blade glows faint blue in the presence of undead. Grants the wielder a +1 status bonus to attacks against undead and deals an extra 1d6 positive damage to them on a critical hit.">Holy blade</option>
+            <option value="A travelling cloak woven from spider silk: grants the wearer a +2 item bonus to Stealth and allows them to climb sheer surfaces at half Speed without a check, once per day.">Spider-silk cloak</option>
+            <option value="A ceramic flask that continuously fills with clean water. The water is purified of disease and mildly pleasant. Stopper it to halt the flow.">Endless water flask</option>
+            <option value="A pair of burnished steel bracers engraved with storm runes. Once per day the wearer can activate them to cast lightning bolt as a 5th-level spell. The wearer is immune to electrical damage from the cast.">Storm bracers</option>
+            <option value="A heavy amulet shaped like a serpent eating its own tail. Grants fast healing 2 while the wearer is below half HP. Cursed: the wearer cannot willingly drop below 1 HP and must make a Will save to retreat from combat.">Ouroboros amulet</option>
+          </select>
           <textarea id="npc-desc" name="description" rows="6"
             placeholder="Describe this item: its appearance, powers, rarity, traits, history, activation cost, runes…"></textarea>
           <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>

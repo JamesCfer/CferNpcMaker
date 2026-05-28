@@ -1,0 +1,3 @@
+/* Pf2eCalendarTimeline accents (parchment/ink). */
+.application.npc-builder { --pf2e-accent: #785038; }
+.application.npc-builder .builder-tab--builder.is-active { border-bottom-color: #785038; }
