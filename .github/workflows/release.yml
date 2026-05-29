@@ -183,11 +183,39 @@ jobs:
         env:
           FOUNDRYVTT_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_RELEASE_TOKEN }}
         run: |
+          # Retry on transient Foundry API errors (429 rate limit, 5xx) with
+          # exponential backoff so a momentary 429 doesn't fail the release and
+          # block all downstream staggered releases.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "ERROR: Foundry VTT API returned HTTP $http_code"
+              return 1
+            done
+          }
           VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_RELEASE_TOKEN}" \
-            -d "{
+          PAYLOAD="{
               \"id\": \"Pf2eNpcMaker\",
               \"dry-run\": false,
               \"release\": {
@@ -199,15 +227,8 @@ jobs:
                   \"verified\": \"13\"
                 }
               }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
+            }"
+          notify_foundry "$FOUNDRYVTT_RELEASE_TOKEN" "$PAYLOAD"
 
   # ── Release 2 of 5: DnD5eNpcMaker (~4h 48m after release 1) ─────────────────
   release-dnd5e-npc:
@@ -307,11 +328,38 @@ jobs:
         env:
           FOUNDRYVTT_DND5E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_RELEASE_TOKEN }}
         run: |
+          # Retry on transient Foundry API errors (429 rate limit, 5xx) with
+          # exponential backoff so a momentary 429 doesn't fail the release.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "ERROR: Foundry VTT API returned HTTP $http_code"
+              return 1
+            done
+          }
           VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_DND5E_RELEASE_TOKEN}" \
-            -d "{
+          PAYLOAD="{
               \"id\": \"DnD5eNpcMaker\",
               \"dry-run\": false,
               \"release\": {
@@ -323,15 +371,8 @@ jobs:
                   \"verified\": \"13\"
                 }
               }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
+            }"
+          notify_foundry "$FOUNDRYVTT_DND5E_RELEASE_TOKEN" "$PAYLOAD"
 
   # ── Release 3 of 5: Hero6eNpcMaker (~9h 36m after release 1) ────────────────
   release-hero6e-npc:
@@ -431,11 +472,38 @@ jobs:
         env:
           FOUNDRYVTT_HERO6E_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_HERO6E_RELEASE_TOKEN }}
         run: |
+          # Retry on transient Foundry API errors (429 rate limit, 5xx) with
+          # exponential backoff so a momentary 429 doesn't fail the release.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "ERROR: Foundry VTT API returned HTTP $http_code"
+              return 1
+            done
+          }
           VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_HERO6E_RELEASE_TOKEN}" \
-            -d "{
+          PAYLOAD="{
               \"id\": \"Hero6e-Npc-Maker\",
               \"dry-run\": false,
               \"release\": {
@@ -447,15 +515,8 @@ jobs:
                   \"verified\": \"13\"
                 }
               }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
+            }"
+          notify_foundry "$FOUNDRYVTT_HERO6E_RELEASE_TOKEN" "$PAYLOAD"
 
   # ── Release 4 of 5: Pf2eItemMaker (~14h 24m after release 1) ────────────────
   release-pf2e-item:
@@ -555,11 +616,38 @@ jobs:
         env:
           FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN }}
         run: |
+          # Retry on transient Foundry API errors (429 rate limit, 5xx) with
+          # exponential backoff so a momentary 429 doesn't fail the release.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "ERROR: Foundry VTT API returned HTTP $http_code"
+              return 1
+            done
+          }
           VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN}" \
-            -d "{
+          PAYLOAD="{
               \"id\": \"PF2E-Item-Generator\",
               \"dry-run\": false,
               \"release\": {
@@ -571,15 +659,8 @@ jobs:
                   \"verified\": \"13\"
                 }
               }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
+            }"
+          notify_foundry "$FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
   # ── Release 5 of 5: D-Ditemmaker (~19h 12m after release 1) ─────────────────
   release-dnd5e-item:
@@ -679,11 +760,38 @@ jobs:
         env:
           FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN }}
         run: |
+          # Retry on transient Foundry API errors (429 rate limit, 5xx) with
+          # exponential backoff so a momentary 429 doesn't fail the release.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "ERROR: Foundry VTT API returned HTTP $http_code"
+              return 1
+            done
+          }
           VERSION="${{ steps.version.outputs.version }}"
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
-            -H "Content-Type: application/json" \
-            -H "Authorization: ${FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN}" \
-            -d "{
+          PAYLOAD="{
               \"id\": \"DnDItemMaker\",
               \"dry-run\": false,
               \"release\": {
@@ -695,15 +803,8 @@ jobs:
                   \"verified\": \"13\"
                 }
               }
-            }")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP status: $HTTP_CODE"
-          echo "Response body: $BODY"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
-            echo "ERROR: Foundry VTT API returned HTTP $HTTP_CODE"
-            exit 1
-          fi
+            }"
+          notify_foundry "$FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
   # ── Release 6 of 7: Pf2eNationsAndCitiesMaker ───────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eNationsAndCitiesMaker to exist and
