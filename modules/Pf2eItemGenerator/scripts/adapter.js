@@ -95,13 +95,21 @@ export class Pf2eItemAdapter extends SystemAdapter {
    * @param {import('./core/adapter.js').GenerateOptions & { formData: Pf2eItemFormData }} opts
    * @returns {Promise<import('./core/adapter.js').AdapterResult>}
    */
-  async generate({ formData, key, devMode }) {
+  quickEditFields(document) {
+    return [
+      { key: 'name',               label: 'Name',  value: document.name,                        type: 'text' },
+      { key: 'system.level.value', label: 'Level', value: document.system?.level?.value ?? 0,   type: 'number', min: 0, max: 25, step: 1 },
+    ];
+  }
+
+  async generate({ formData, key, devMode, creativity = 0.5 }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
       name:        formData.name,
       level:       formData.level,
       itemType:    formData.itemType,
       description: formData.description,
+      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);

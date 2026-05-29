@@ -108,7 +108,13 @@ export class Dnd5eItemAdapter extends SystemAdapter {
    * @param {import('./core/adapter.js').GenerateOptions & { formData: Dnd5eItemFormData }} opts
    * @returns {Promise<import('./core/adapter.js').AdapterResult>}
    */
-  async generate({ formData, key, devMode }) {
+  quickEditFields(document) {
+    return [
+      { key: 'name', label: 'Name', value: document.name, type: 'text' },
+    ];
+  }
+
+  async generate({ formData, key, devMode, creativity = 0.5 }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
       name:        formData.name,
@@ -116,6 +122,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
       itemType:    formData.itemType,
       subtype:     formData.subtype,
       description: formData.description,
+      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);

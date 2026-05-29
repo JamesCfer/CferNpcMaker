@@ -115,15 +115,22 @@ export class Hero6eNpcAdapter extends SystemAdapter {
    * @param {import('./core/adapter.js').GenerateOptions & { formData: Hero6eNpcFormData }} opts
    * @returns {Promise<import('./core/adapter.js').AdapterResult>}
    */
-  async generate({ formData, key, devMode, builderApp }) {
+  quickEditFields(document) {
+    return [
+      { key: 'name', label: 'Name', value: document.name, type: 'text' },
+    ];
+  }
+
+  async generate({ formData, key, devMode, creativity = 0.5, builderApp }) {
     const endpoint = devUrl(NPC_ENDPOINT, devMode);
     const payload  = {
-      name:       formData.name,
-      points:     formData.level,
-      genre:      formData.genre,
+      name:        formData.name,
+      points:      formData.level,
+      genre:       formData.genre,
       description: formData.description,
-      universe:   formData.universe,
-      createGear: formData.createGear,
+      universe:    formData.universe,
+      createGear:  formData.createGear,
+      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);
