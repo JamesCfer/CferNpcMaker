@@ -18,5 +18,8 @@
   "styles": [
     "styles/builder.css"
   ],
-  "templateDir": "templates"
+  "templateDir": "templates",
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ]
 }

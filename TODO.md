@@ -41,9 +41,9 @@ Check off each item when merged.
 
 ## Polish & Accessibility
 - [x] 27. **Accessible focus management** — move focus to the new history entry after generation so keyboard users don't lose their place
-- [ ] 28. **CSS custom properties for colours** — replace inline hex colours in dialogs with CSS variables that respect Foundry's theme
-- [ ] 29. **Localisation scaffold** — wrap all user-facing strings in `game.i18n.localize()` and add a starter `en.json` lang file
-- [ ] 30. **Settings page audit** — surface "Reset welcome message" and "Clear session" as buttons in the Foundry module settings UI
+- [x] 28. **CSS custom properties for colours** — replace inline hex colours in dialogs with CSS variables that respect Foundry's theme
+- [x] 29. **Localisation scaffold** — wrap all user-facing strings in `game.i18n.localize()` and add a starter `en.json` lang file
+- [x] 30. **Settings page audit** — surface "Reset welcome message" and "Clear session" as buttons in the Foundry module settings UI
 
 ---
 
