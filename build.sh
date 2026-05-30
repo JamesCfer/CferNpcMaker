@@ -46,7 +46,7 @@ build_module() {
   fi
 
   rm -rf "$out"
-  mkdir -p "$out/scripts/core" "$out/styles" "$out/templates"
+  mkdir -p "$out/scripts/core" "$out/styles" "$out/templates" "$out/lang"
 
   # Shared core scripts (auth, history, feedback, image, update, sidebar, utils, app, adapter)
   cp -r "${SHARED}/scripts/core/." "$out/scripts/core/"
@@ -78,6 +78,9 @@ build_module() {
         cp "$src" "$out/templates/$rel"
       done
   fi
+
+  # Language files
+  cp "${SHARED}/lang/en.json" "$out/lang/en.json"
 
   # Manifest (bare — the release workflow overwrites with version/manifest/download)
   cp "${overlay}/module.json" "$out/module.json"
