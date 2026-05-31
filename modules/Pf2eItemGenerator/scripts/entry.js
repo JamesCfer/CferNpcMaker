@@ -18,6 +18,8 @@ const openFn = () => {
   checkForModuleUpdate(MODULE_ID, adapter.module.githubUrl).catch(() => {});
 };
 
+adapter.registerSheetHooks(() => ensureBuilder(adapter));
+
 registerSidebar(MODULE_ID, openFn, {
   buttonLabel: 'Item Generator',
   buttonIcon:  adapter.module.icon,

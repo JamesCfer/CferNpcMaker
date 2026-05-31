@@ -45,8 +45,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
 
   get systemId() { return 'pf2e'; }
 
-  // Item generator does not use image generation.
-  get supportsImageGeneration() { return false; }
+  get supportsImageGeneration() { return true; }
 
   get formConfig() { return { documentNoun: 'item' }; }
 
@@ -100,6 +99,45 @@ export class Pf2eItemAdapter extends SystemAdapter {
       { key: 'name',               label: 'Name',  value: document.name,                        type: 'text' },
       { key: 'system.level.value', label: 'Level', value: document.system?.level?.value ?? 0,   type: 'number', min: 0, max: 25, step: 1 },
     ];
+  }
+
+  /* ── Sheet injection ────────────────────────────────────── */
+
+  registerSheetHooks(getApp) {
+    const inject = (app, html) => {
+      if (!game.user?.isGM) return;
+      const item = app.item || app.document;
+      if (!item) return;
+
+      const root = html instanceof HTMLElement ? html : html?.[0];
+      if (!root) return;
+      if (root.querySelector('.npc-builder-sheet-image-btn')) return;
+
+      const anchor =
+        root.querySelector('.sheet-header') ||
+        root.querySelector('.item-header') ||
+        root.querySelector('.window-content');
+
+      if (anchor) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'npc-builder-sheet-image-btn';
+        btn.innerHTML = '<i class="fa-solid fa-image"></i> Generate Image <span class="btn-cost-badge">4 uses</span>';
+        btn.title = 'Generate an AI icon for this item (costs 4 NPC uses)';
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          getApp()._generateImage(null, item.toObject(), 'pf2e');
+        });
+        anchor.appendChild(btn);
+      }
+    };
+
+    Hooks.on('renderItemSheetPF2e', inject);
+    Hooks.on('renderItemSheet', (app, html) => {
+      if (game.system?.id !== 'pf2e') return;
+      inject(app, html);
+    });
   }
 
   async generate({ formData, key, devMode, creativity = 0.5 }) {
