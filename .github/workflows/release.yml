@@ -230,7 +230,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 2 of 5: DnD5eNpcMaker (~4h 48m after release 1) ─────────────────
+  # ── Release 2 of 5: DnD5eNpcMaker (~1h after release 1) ─────────────────────
   release-dnd5e-npc:
     needs: release-pf2e-npc
     runs-on: ubuntu-latest
@@ -240,8 +240,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 4h 48m (stagger over 24h, interval 2/5)
-        run: sleep 17280
+      - name: Wait 1h (stagger over 4h, interval 2/5)
+        run: sleep 3600
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -374,7 +374,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 3 of 5: Hero6eNpcMaker (~9h 36m after release 1) ────────────────
+  # ── Release 3 of 5: Hero6eNpcMaker (~2h after release 1) ────────────────────
   release-hero6e-npc:
     needs: release-dnd5e-npc
     runs-on: ubuntu-latest
@@ -384,8 +384,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 4h 48m (stagger over 24h, interval 3/5)
-        run: sleep 17280
+      - name: Wait 1h (stagger over 4h, interval 3/5)
+        run: sleep 3600
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -518,7 +518,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_HERO6E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 4 of 5: Pf2eItemMaker (~14h 24m after release 1) ────────────────
+  # ── Release 4 of 5: Pf2eItemMaker (~3h after release 1) ─────────────────────
   release-pf2e-item:
     needs: release-hero6e-npc
     runs-on: ubuntu-latest
@@ -528,8 +528,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 4h 48m (stagger over 24h, interval 4/5)
-        run: sleep 17280
+      - name: Wait 1h (stagger over 4h, interval 4/5)
+        run: sleep 3600
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -662,7 +662,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 5 of 5: D-Ditemmaker (~19h 12m after release 1) ─────────────────
+  # ── Release 5 of 5: D-Ditemmaker (~4h after release 1) ──────────────────────
   release-dnd5e-item:
     needs: release-pf2e-item
     runs-on: ubuntu-latest
@@ -672,8 +672,8 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 4h 48m (stagger over 24h, interval 5/5)
-        run: sleep 17280
+      - name: Wait 1h (stagger over 4h, interval 5/5)
+        run: sleep 3600
 
       - name: Download release assets
         uses: actions/download-artifact@v4
