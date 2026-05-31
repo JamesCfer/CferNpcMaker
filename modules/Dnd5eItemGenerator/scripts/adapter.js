@@ -54,7 +54,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
 
   get systemId() { return 'dnd5e'; }
 
-  get supportsImageGeneration() { return false; }
+  get supportsImageGeneration() { return true; }
 
   get formConfig() { return { documentNoun: 'item' }; }
 
@@ -112,6 +112,45 @@ export class Dnd5eItemAdapter extends SystemAdapter {
     return [
       { key: 'name', label: 'Name', value: document.name, type: 'text' },
     ];
+  }
+
+  /* ── Sheet injection ────────────────────────────────────── */
+
+  registerSheetHooks(getApp) {
+    const inject = (app, html) => {
+      if (!game.user?.isGM) return;
+      const item = app.item || app.document;
+      if (!item) return;
+
+      const root = html instanceof HTMLElement ? html : html?.[0];
+      if (!root) return;
+      if (root.querySelector('.npc-builder-sheet-image-btn')) return;
+
+      const anchor =
+        root.querySelector('.sheet-header') ||
+        root.querySelector('.item-header') ||
+        root.querySelector('.window-content');
+
+      if (anchor) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'npc-builder-sheet-image-btn';
+        btn.innerHTML = '<i class="fa-solid fa-image"></i> Generate Image <span class="btn-cost-badge">4 uses</span>';
+        btn.title = 'Generate an AI icon for this item (costs 4 NPC uses)';
+        btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          getApp()._generateImage(null, item.toObject(), 'dnd5e');
+        });
+        anchor.appendChild(btn);
+      }
+    };
+
+    Hooks.on('renderItemSheet5e', inject);
+    Hooks.on('renderItemSheet', (app, html) => {
+      if (game.system?.id !== 'dnd5e') return;
+      inject(app, html);
+    });
   }
 
   async generate({ formData, key, devMode, creativity = 0.5 }) {

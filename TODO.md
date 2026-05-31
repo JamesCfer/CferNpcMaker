@@ -25,9 +25,9 @@ Check off each item when merged.
 ## Generation Quality
 - [x] 16. **Post-generation quick-edit dialog** — after creation, show a lightweight overlay (name, level, key stats) so users can fix small mistakes before the full sheet opens
 - [x] 17. **Variation slider** — a "Creativity" slider sent as a parameter to the endpoint to control how closely the AI follows the description
-- [ ] 18. **Bulk generation** — generate multiple NPCs in one request and create them all as separate history entries
-- [ ] 19. **Level Up for D&D 5e** — add the same CR-change sheet button that PF2e has, for 5e creatures
-- [ ] 20. **Image generation for item modules** — optional portrait/icon generation for PF2e and 5e items
+- [x] 18. **Bulk generation** — generate multiple NPCs in one request and create them all as separate history entries
+- [x] 19. **Level Up for D&D 5e** — add the same CR-change sheet button that PF2e has, for 5e creatures
+- [x] 20. **Image generation for item modules** — optional portrait/icon generation for PF2e and 5e items
 
 ## Developer Experience
 - [x] 21. **Adapter validation on construction** — check all required getters return non-empty values at init time and throw descriptive errors immediately
