@@ -5,7 +5,7 @@
   "authors": [{ "name": "JamesCfer" }],
   "compatibility": { "minimum": "13", "verified": "14" },
   "systems": ["pf2e"],
-  "esmodules": ["scripts/entry.js"],
+  "esmodules": ["scripts/preload-templates.js", "scripts/entry.js"],
   "styles":    ["styles/builder.css"],
   "templateDir": "templates"
 }
