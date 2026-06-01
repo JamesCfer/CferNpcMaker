@@ -85,6 +85,9 @@ build_module() {
   # Manifest (bare — the release workflow overwrites with version/manifest/download)
   cp "${overlay}/module.json" "$out/module.json"
 
+  # Inline assembled templates as pre-registered Handlebars partials so loadTemplates is a no-op.
+  node "${ROOT}/shared/scripts/generate-preload.js" "$out" "$name"
+
   echo "✓ built $name"
 }
 

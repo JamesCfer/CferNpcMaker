@@ -37,7 +37,7 @@ Check off each item when merged.
 
 ## Performance
 - [x] 25. **Spell mapping cache** — cache the PF2e spell mapping in `sessionStorage` keyed by a hash of installed packs, skipping the 5–10 s build on repeat generations
-- [ ] 26. **Template preloading at build time** — inline the Handlebars template into the entry bundle so `loadTemplates` is a no-op at runtime
+- [x] 26. **Template preloading at build time** — inline the Handlebars template into the entry bundle so `loadTemplates` is a no-op at runtime
 
 ## Polish & Accessibility
 - [x] 27. **Accessible focus management** — move focus to the new history entry after generation so keyboard users don't lose their place

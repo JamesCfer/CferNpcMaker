@@ -13,6 +13,7 @@
   },
   "systems": ["pf2e"],
   "esmodules": [
+    "scripts/preload-templates.js",
     "scripts/entry.js"
   ],
   "styles": [
