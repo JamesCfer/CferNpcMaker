@@ -14,6 +14,7 @@ import { SettlementSheet }            from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { applyDailyTick, applyTax }   from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
+import { log }                        from './logger.js';
 
 const adapter = new SettlementAdapter();
 
@@ -50,8 +51,15 @@ Hooks.once('init', () => {
     if (Hb && !Hb.helpers?.pfPad) {
       Hb.registerHelper('pfPad', (n, w) => String(n ?? '').padStart(w || 2, '0'));
     }
-  } catch (err) { console.warn(`[${MODULE_ID}] helper registration`, err); }
+  } catch (err) { log('warn', 'helper registration', err); }
 
+  game.settings.register(MODULE_ID, 'logLevel', {
+    name: 'Log Level',
+    hint: 'Controls how much Pf2eNationsAndCitiesMaker writes to the browser console.',
+    scope: 'world', config: true, type: String,
+    choices: { error: 'Error', warn: 'Warn', info: 'Info', debug: 'Debug' },
+    default: 'info',
+  });
   game.settings.register(MODULE_ID, 'devMode', {
     name: 'Developer Mode',
     hint: 'When enabled, all webhook URLs are routed to the -dev endpoints.',
@@ -82,7 +90,7 @@ Hooks.on('renderJournalSheet', (app, html) => {
       else                     new SettlementSheet(journal).render(true);
     });
   } catch (err) {
-    console.error(`[${MODULE_ID}] sheet swap failed`, err);
+    log('error', 'sheet swap failed', err);
   }
 });
 
@@ -96,7 +104,7 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
       await applyDailyTick(j, days);
     }
   } catch (err) {
-    console.error(`[${MODULE_ID}] dayAdvanced handler failed`, err);
+    log('error', 'dayAdvanced handler failed', err);
   }
 });
 
@@ -110,7 +118,7 @@ Hooks.on('Pf2eCalendarTimeline.eventFired', async (event = {}) => {
       await applyTax(j, event.payload);
     }
   } catch (err) {
-    console.error(`[${MODULE_ID}] eventFired handler failed`, err);
+    log('error', 'eventFired handler failed', err);
   }
 });
 
@@ -183,9 +191,9 @@ Hooks.once('ready', () => {
     `modules/${MODULE_ID}/templates/partials/guards-tab.hbs`,
     `modules/${MODULE_ID}/templates/partials/leadership-tab.hbs`,
     `modules/${MODULE_ID}/templates/partials/production-tab.hbs`,
-  ]).catch(err => console.warn(`[${MODULE_ID}] template preload`, err));
+  ]).catch(err => log('warn', 'template preload', err));
 
-  console.log(`Pf2eNationsAndCitiesMaker ready (version: ${currentVersion}).`);
+  log('info', `ready (version: ${currentVersion})`);
   startHeartbeat(MODULE_ID);
 
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
