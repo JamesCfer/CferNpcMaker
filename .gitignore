@@ -1,3 +1,5 @@
+node_modules/
+
 # Build outputs (created by build.sh and the release workflow)
 /Pf2eNpcMaker/
 /DnD5eNpcMaker/
