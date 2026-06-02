@@ -4,6 +4,7 @@
  */
 
 import { MODULE_ID } from './constants.js';
+import { CURRENT_SCHEMA_VERSION } from './migrations.js';
 
 const KINDS  = new Set(['city', 'town', 'village', 'nation']);
 const SIZES  = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
@@ -32,6 +33,7 @@ export function sanitizeSettlement(raw, formData = {}) {
   const hp    = safeNum(stats.hp, maxHp, 0, maxHp);
 
   const out = {
+    _schemaVersion: CURRENT_SCHEMA_VERSION,
     kind,
     size,
     population: safeNum(s.population, formData.populationHint || 1000, 1, 9_999_999),

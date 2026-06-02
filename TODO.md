@@ -161,12 +161,12 @@ item that has all its dependencies satisfied.
 - [ ] 115. **Adventurer guild integration** — a special store type that lets the GM post "jobs" (custom payloads) and roll which adventurers (NPCs) take them.
 
 ## J. Performance, DX & migrations (116–122)
-- [ ] 116. **Schema versioning** — stamp settlements with `_schemaVersion`; add `migrations.js` that upgrades old shapes forward on every read.
-- [ ] 117. **Vitest harness wired into CI** — covering `scheduler.computeNext`, `sanitizeSettlement` defaults, `economy.applyDailyTick` jitter bounds.
+- [x] 116. **Schema versioning** — stamp settlements with `_schemaVersion`; add `migrations.js` that upgrades old shapes forward on every read.
+- [x] 117. **Vitest harness wired into CI** — covering `scheduler.computeNext`, `sanitizeSettlement` defaults, `economy.applyDailyTick` jitter bounds.
 - [ ] 118. **JSDoc typedefs** — `@typedef` blocks for `Settlement`, `Store`, `Staff`, `Rank`, `Army`, `Treaty`, `Event`.
 - [ ] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
 - [ ] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
-- [ ] 121. **Console logging tier** — `Pf2eNationsAndCitiesMaker.logLevel` setting (error/warn/info/debug) to silence noisy logs in production.
+- [x] 121. **Console logging tier** — `Pf2eNationsAndCitiesMaker.logLevel` setting (error/warn/info/debug) to silence noisy logs in production.
 - [ ] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
 
 ## K. Accessibility & localisation (123–128)

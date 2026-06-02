@@ -1,9 +1,12 @@
+import { migrateSettlement } from './migrations.js';
+
 export const MODULE_ID = 'Pf2eNationsAndCitiesMaker';
 export const FLAG_SCOPE = MODULE_ID;
 export const FLAG_KEY   = 'settlement';
 
 export function getSettlement(doc) {
-  return doc?.getFlag?.(FLAG_SCOPE, FLAG_KEY) || null;
+  const raw = doc?.getFlag?.(FLAG_SCOPE, FLAG_KEY) || null;
+  return raw ? migrateSettlement(raw) : null;
 }
 
 export async function setSettlement(doc, data) {
