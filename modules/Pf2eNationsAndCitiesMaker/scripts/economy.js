@@ -3,27 +3,38 @@
  * Pure-ish: all mutation goes through doc.setFlag.
  */
 
-import { FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
+import { FLAG_SCOPE, FLAG_KEY, MODULE_ID, getSettlement } from './constants.js';
 
-function jitter(base, pct = 0.15) {
-  const delta = base * pct;
+function getJitterFactor() {
+  try { return Math.min(1, Math.max(0, Number(game.settings?.get(MODULE_ID, 'incomeJitterPct') ?? 15))) / 100; }
+  catch (_) { return 0.15; }
+}
+
+function jitter(base, factor) {
+  const delta = base * factor;
   return Math.round((base - delta) + Math.random() * (delta * 2));
 }
 
 /**
- * Advance the per-store income by `days`. Adds a small RNG jitter so balances
- * feel alive across many ticks.
+ * Advance the per-store income by `days`. Also credits the treasury from
+ * production (production.length × population / 1000 gp per day).
  */
 export async function applyDailyTick(doc, days = 1) {
   if (!doc) return;
   const s = foundry.utils.deepClone(getSettlement(doc) || {});
   if (!s.stores) return;
   const now = Date.now();
+  const factor = getJitterFactor();
   for (const store of s.stores) {
     const dailyAvg = Number(store.income?.dailyAvg ?? 0);
-    const earned = jitter(dailyAvg) * days;
+    const earned = jitter(dailyAvg, factor) * days;
     store.income.balance = Math.max(-9_999_999, Math.round((store.income.balance || 0) + earned));
     store.income.lastTick = now;
+  }
+  const prodCredit = Math.round((s.production?.length ?? 0) * Number(s.population ?? 0) / 1000 * days);
+  if (prodCredit > 0) {
+    s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+    s.treasury.gp = (s.treasury.gp || 0) + prodCredit;
   }
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
 }

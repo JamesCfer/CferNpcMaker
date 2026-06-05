@@ -128,3 +128,51 @@ describe('applyDailyTick jitter bounds', () => {
     expect(doc.getStored().stores[0].income.lastTick).toBeGreaterThanOrEqual(before);
   });
 });
+
+describe('applyDailyTick production credit', () => {
+  function makeDocWithProduction(production, population, startingGp = 0) {
+    const settlement = {
+      _schemaVersion: CURRENT_SCHEMA_VERSION,
+      stores: [],
+      production,
+      population,
+      treasury: { cp: 0, sp: 0, gp: startingGp, pp: 0 },
+    };
+    let stored = settlement;
+    return {
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('credits treasury: production.length × population / 1000 gp per day', async () => {
+    const doc = makeDocWithProduction(['grain', 'livestock'], 1000);
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(2);
+  });
+
+  it('scales credit with days', async () => {
+    const doc = makeDocWithProduction(['grain', 'livestock', 'ore'], 2000);
+    await applyDailyTick(doc, 5);
+    expect(doc.getStored().treasury.gp).toBe(30);
+  });
+
+  it('adds to existing treasury balance', async () => {
+    const doc = makeDocWithProduction(['grain'], 1000, 100);
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(101);
+  });
+
+  it('skips credit when production is empty', async () => {
+    const doc = makeDocWithProduction([], 1000);
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(0);
+  });
+
+  it('skips credit when population is zero', async () => {
+    const doc = makeDocWithProduction(['grain', 'livestock'], 0);
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(0);
+  });
+});

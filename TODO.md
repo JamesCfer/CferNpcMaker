@@ -82,8 +82,8 @@ item that has all its dependencies satisfied.
 - [ ] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.
 
 ## C. Economy depth (51–62)
-- [ ] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
-- [ ] 52. **Production → treasury credit** — `applyDailyTick` also credits the treasury based on `production.length × population / 1000` gp per day.
+- [x] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
+- [x] 52. **Production → treasury credit** — `applyDailyTick` also credits the treasury based on `production.length × population / 1000` gp per day.
 - [ ] 53. **Guard wage upkeep** — each rank has a `dailyWage`; total drains treasury on every `dayAdvanced`.
 - [ ] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
 - [ ] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
@@ -163,9 +163,9 @@ item that has all its dependencies satisfied.
 ## J. Performance, DX & migrations (116–122)
 - [x] 116. **Schema versioning** — stamp settlements with `_schemaVersion`; add `migrations.js` that upgrades old shapes forward on every read.
 - [x] 117. **Vitest harness wired into CI** — covering `scheduler.computeNext`, `sanitizeSettlement` defaults, `economy.applyDailyTick` jitter bounds.
-- [ ] 118. **JSDoc typedefs** — `@typedef` blocks for `Settlement`, `Store`, `Staff`, `Rank`, `Army`, `Treaty`, `Event`.
-- [ ] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
-- [ ] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
+- [x] 118. **JSDoc typedefs** — `@typedef` blocks for `Settlement`, `Store`, `Staff`, `Rank`, `Army`, `Treaty`, `Event`.
+- [x] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
+- [x] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
 - [x] 121. **Console logging tier** — `Pf2eNationsAndCitiesMaker.logLevel` setting (error/warn/info/debug) to silence noisy logs in production.
 - [ ] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
 
