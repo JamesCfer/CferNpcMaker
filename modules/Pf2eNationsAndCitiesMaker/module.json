@@ -7,5 +7,8 @@
   "systems": ["pf2e"],
   "esmodules": ["scripts/preload-templates.js", "scripts/entry.js"],
   "styles":    ["styles/builder.css"],
-  "templateDir": "templates"
+  "templateDir": "templates",
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ]
 }
