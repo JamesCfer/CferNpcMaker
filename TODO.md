@@ -84,10 +84,10 @@ item that has all its dependencies satisfied.
 ## C. Economy depth (51–62)
 - [x] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
 - [x] 52. **Production → treasury credit** — `applyDailyTick` also credits the treasury based on `production.length × population / 1000` gp per day.
-- [ ] 53. **Guard wage upkeep** — each rank has a `dailyWage`; total drains treasury on every `dayAdvanced`.
-- [ ] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
-- [ ] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
-- [ ] 56. **Bankruptcy & closure** — stores with `balance < 0` for 30+ days get `closed: true`, hidden from the active stores tab (with a "Show closed" toggle).
+- [x] 53. **Guard wage upkeep** — each rank has a `dailyWage`; total drains treasury on every `dayAdvanced`.
+- [x] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
+- [x] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
+- [x] 56. **Bankruptcy & closure** — stores with `balance < 0` for 30+ days get `closed: true`, hidden from the active stores tab (with a "Show closed" toggle).
 - [ ] 57. **Trade-goods catalogue** — bundle a small JSON table of typical PF2e trade goods + prices; production tags map to goods automatically.
 - [ ] 58. **Trade routes between settlements** — link two journals with `tradeRoutes: [{ partnerId, goods[], gpPerWeek }]`; calendar tick moves gp + adds goods to both treasuries.
 - [ ] 59. **Market days** — each store can opt into a `marketWeekday`; on that day its `dailyAvg` doubles.

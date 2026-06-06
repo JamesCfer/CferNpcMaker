@@ -42,6 +42,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       generateCommander:   function()   { this._onGenerateCommander(); },
       openBuilder:         function()   { this._onOpenBuilder(); },
       saveNotes:           function()   { this._onSaveNotes(); },
+      toggleShowClosed:    function()   { this._onToggleShowClosed(); },
+      reopenStore:         function(ev) { this._onReopenStore(ev); },
     },
   };
 
@@ -54,6 +56,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.document = document;
     this.activeTab = 'overview';
     this.activeStoreTab = null;
+    this.showClosed = false;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -63,9 +66,16 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = getSettlement(this.document) || {};
     const settlement = sanitizeSettlement(raw); // fills defaults defensively
 
-    // Group stores by type for the inner tabs.
+    const showClosed = this.showClosed;
+    const closedStoreCount = settlement.stores.filter(s => s.closed).length;
+    const totalDailyWages = (settlement.military?.ranks || []).reduce(
+      (sum, r) => sum + Number(r.dailyWage || 0) * Number(r.count || 0), 0
+    );
+
+    // Group stores by type for the inner tabs; hide closed stores unless toggled.
     const storesByType = {};
     for (const store of settlement.stores) {
+      if (store.closed && !showClosed) continue;
       const key = store.type || 'other';
       (storesByType[key] = storesByType[key] || []).push(store);
     }
@@ -112,8 +122,11 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       moralePct: settlement.stats.morale,
       unrestPct: settlement.stats.unrest,
       calendarActive,
-      canGenerateNpc:  canGenerateNpc(),
-      canGenerateItem: canGenerateItem(),
+      canGenerateNpc:   canGenerateNpc(),
+      canGenerateItem:  canGenerateItem(),
+      showClosed,
+      closedStoreCount,
+      totalDailyWages,
     };
   }
 
@@ -352,6 +365,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
           s.military.commanderName    = actor.name;
         });
       },
+    });
+  }
+
+  /* ── closed store actions ──────────────────────────────── */
+
+  _onToggleShowClosed() {
+    this.showClosed = !this.showClosed;
+    this.render(false);
+  }
+
+  _onReopenStore(ev) {
+    const storeId = ev.currentTarget?.dataset?.storeId;
+    if (!storeId) return;
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      store.closed = false;
+      store.income.daysInDebt = 0;
     });
   }
 

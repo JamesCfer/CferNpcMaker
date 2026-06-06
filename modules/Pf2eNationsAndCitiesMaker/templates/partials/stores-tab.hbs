@@ -4,6 +4,13 @@
     <button type="button" class="pf2e-settlement-btn" data-action="addStore">
       <i class="fa-solid fa-plus"></i> Add Store
     </button>
+    {{#if closedStoreCount}}
+      <button type="button" class="pf2e-settlement-btn{{#if showClosed}} is-active{{/if}}"
+              data-action="toggleShowClosed">
+        <i class="fa-solid fa-store-slash"></i>
+        {{#if showClosed}}Hide{{else}}Show{{/if}} Closed ({{closedStoreCount}})
+      </button>
+    {{/if}}
   </div>
 
   {{#if storeTabs.length}}
@@ -20,10 +27,13 @@
     {{#each storeTabs}}
       {{#if isActive}}
         {{#each stores}}
-          <article class="pf2e-store-card" data-store-id="{{id}}">
+          <article class="pf2e-store-card{{#if closed}} is-closed{{/if}}" data-store-id="{{id}}">
 
             <header class="pf2e-store-card-header">
               <div class="pf2e-store-card-name">
+                {{#if closed}}
+                  <span class="pf2e-closed-badge"><i class="fa-solid fa-lock"></i> Bankrupt</span>
+                {{/if}}
                 <input type="text" data-settlement-path="stores.{{@index}}.name"
                        value="{{name}}" class="pf2e-store-name-input" />
                 <select data-settlement-path="stores.{{@index}}.type" class="pf2e-store-type-select">
@@ -32,10 +42,18 @@
                   {{/each}}
                 </select>
               </div>
-              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
-                      data-action="removeStore" data-store-id="{{id}}" title="Remove store">
-                <i class="fa-solid fa-trash"></i>
-              </button>
+              <div class="pf2e-store-card-actions">
+                {{#if closed}}
+                  <button type="button" class="pf2e-settlement-btn"
+                          data-action="reopenStore" data-store-id="{{id}}" title="Reopen this store">
+                    <i class="fa-solid fa-door-open"></i> Reopen
+                  </button>
+                {{/if}}
+                <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                        data-action="removeStore" data-store-id="{{id}}" title="Remove store">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </header>
 
             <div class="pf2e-store-grid">
@@ -74,6 +92,11 @@
                     <input type="number" data-settlement-path="stores.{{@index}}.income.balance"  value="{{income.balance}}" />
                     <span>gp/day</span>
                     <input type="number" data-settlement-path="stores.{{@index}}.income.dailyAvg" value="{{income.dailyAvg}}" />
+                    {{#if income.daysInDebt}}
+                      <span class="pf2e-debt-counter" title="Days continuously in debt">
+                        <i class="fa-solid fa-triangle-exclamation"></i> {{income.daysInDebt}}d
+                      </span>
+                    {{/if}}
                   </div>
                 </div>
               </section>

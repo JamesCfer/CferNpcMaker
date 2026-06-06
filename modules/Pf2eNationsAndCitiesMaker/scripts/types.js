@@ -26,6 +26,7 @@
  * @property {number} balance
  * @property {number} dailyAvg
  * @property {number} lastTick
+ * @property {number} daysInDebt   game-days balance has been continuously negative
  */
 
 /**
@@ -33,6 +34,7 @@
  * @property {string}        id
  * @property {string}        name
  * @property {string}        type
+ * @property {boolean}       closed       true when bankrupt 30+ game-days
  * @property {{ name: string, actorId: string|null }} owner
  * @property {Staff[]}       staff
  * @property {{ open: string, close: string, daysClosed: string[] }} hours
@@ -45,6 +47,7 @@
  * @property {string} rank
  * @property {number} count
  * @property {string} leaderName
+ * @property {number} dailyWage   gp drained from treasury per guard per day
  */
 
 /**
