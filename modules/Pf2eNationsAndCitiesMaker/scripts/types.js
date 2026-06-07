@@ -34,7 +34,9 @@
  * @property {string}        id
  * @property {string}        name
  * @property {string}        type
- * @property {boolean}       closed       true when bankrupt 30+ game-days
+ * @property {boolean}       closed         true when bankrupt 30+ game-days
+ * @property {number|null}   marketWeekday  0–6 weekday index; income doubles on this day (#59)
+ * @property {boolean}       isBlackMarket  hidden from players; attracts +1 unrest/day per store (#60)
  * @property {{ name: string, actorId: string|null }} owner
  * @property {Staff[]}       staff
  * @property {{ open: string, close: string, daysClosed: string[] }} hours
@@ -101,6 +103,7 @@
  * @property {LeadershipEntry[]} leadership
  * @property {Military}         military
  * @property {Store[]}          stores
+ * @property {number}           priceMultiplier  multiplied into all displayed prices (1.0 = normal) (#62)
  * @property {string[]}         childCityIds
  * @property {string}           notes
  * @property {{ endpoint: string, model: string, prompt: string }} ai

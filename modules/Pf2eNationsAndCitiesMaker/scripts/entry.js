@@ -39,6 +39,12 @@ try {
   if (Hb && !Hb.helpers?.pfPad) {
     Hb.registerHelper('pfPad', (n, w) => String(n ?? '').padStart(w || 2, '0'));
   }
+  if (Hb && !Hb.helpers?.mulNum) {
+    Hb.registerHelper('mulNum', (a, b) => Math.round(Number(a) * Number(b) * 100) / 100);
+  }
+  if (Hb && !Hb.helpers?.neqNum) {
+    Hb.registerHelper('neqNum', (a, b) => Number(a) !== Number(b));
+  }
 } catch (_) { /* deferred to init below */ }
 
 class ResetWelcomeMessageMenu {
@@ -118,6 +124,12 @@ Hooks.once('init', () => {
     if (Hb && !Hb.helpers?.pfPad) {
       Hb.registerHelper('pfPad', (n, w) => String(n ?? '').padStart(w || 2, '0'));
     }
+    if (Hb && !Hb.helpers?.mulNum) {
+      Hb.registerHelper('mulNum', (a, b) => Math.round(Number(a) * Number(b) * 100) / 100);
+    }
+    if (Hb && !Hb.helpers?.neqNum) {
+      Hb.registerHelper('neqNum', (a, b) => Number(a) !== Number(b));
+    }
   } catch (err) { log('warn', 'helper registration', err); }
 
   game.settings.register(MODULE_ID, 'logLevel', {
@@ -193,14 +205,29 @@ Hooks.on('renderJournalSheet', (app, html) => {
   }
 });
 
+function getCurrentWeekday() {
+  try {
+    const state = game.settings.get('Pf2eCalendarTimeline', 'state');
+    const { year, month, day } = state?.currentDate || {};
+    const { weekdays, daysPerMonth } = state?.calendarDef || {};
+    if (!year || !weekdays?.length || !Array.isArray(daysPerMonth)) return null;
+    const yearDays = daysPerMonth.reduce((s, d) => s + d, 0);
+    let total = (year - 1) * yearDays;
+    for (let m = 0; m < month - 1; m++) total += daysPerMonth[m];
+    total += day;
+    return total % weekdays.length;
+  } catch (_) { return null; }
+}
+
 // Calendar integration — listen for events fired by Pf2eCalendarTimeline.
 Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
   try {
+    const weekday = getCurrentWeekday();
     const journals = game.journal?.contents || [];
     for (const j of journals) {
       const s = getSettlement(j);
       if (!s || s.kind === 'nation') continue;
-      await applyDailyTick(j, days);
+      await applyDailyTick(j, days, weekday);
     }
   } catch (err) {
     log('error', 'dayAdvanced handler failed', err);

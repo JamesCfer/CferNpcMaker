@@ -10,6 +10,7 @@ import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement, STORE_TYPES, storeTypeL
 import { applyDailyTick, applyTax }                                                     from './economy.js';
 import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem }         from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
+import { goodsForProduction }                                                           from './trade-goods.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -66,6 +67,11 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = getSettlement(this.document) || {};
     const settlement = sanitizeSettlement(raw); // fills defaults defensively
 
+    // Hide black market stores from non-GM players (#60)
+    if (!game.user?.isGM) {
+      settlement.stores = settlement.stores.filter(st => !st.isBlackMarket);
+    }
+
     const showClosed = this.showClosed;
     const closedStoreCount = settlement.stores.filter(s => s.closed).length;
     const totalDailyWages = (settlement.military?.ranks || []).reduce(
@@ -91,6 +97,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       storeTabs[0].isActive = true;
       this.activeStoreTab = storeTabs[0].type;
     }
+
+    // Weekday options for market day select (#59)
+    let weekdayNames;
+    try {
+      const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
+      weekdayNames = calState?.calendarDef?.weekdays;
+    } catch (_) {}
+    if (!weekdayNames?.length) {
+      weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    }
+    const weekdayOptions = weekdayNames.map((n, i) => ({ value: i, label: n }));
+
+    // Trade goods matching current production tags (#57)
+    const tradeGoods = goodsForProduction(settlement.production).map(g => ({
+      name: g.name,
+      priceGp: g.priceGp,
+      effectivePrice: Math.round(g.priceGp * (settlement.priceMultiplier || 1) * 100) / 100,
+    }));
 
     const calendarActive = !!game.modules?.get('Pf2eCalendarTimeline')?.active;
 
@@ -127,6 +151,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       showClosed,
       closedStoreCount,
       totalDailyWages,
+      weekdayOptions,
+      tradeGoods,
+      priceMultiplier: settlement.priceMultiplier,
     };
   }
 
@@ -152,7 +179,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!path) return;
     let value = input.value;
     if (input.type === 'number') value = Number(value);
-    if (input.type === 'checkbox') value = input.checked;
+    else if (input.type === 'checkbox') value = input.checked;
+    else if ('nullableInt' in input.dataset) value = value === '' ? null : Number(value);
     this._patch(s => foundry.utils.setProperty(s, path, value));
   }
 

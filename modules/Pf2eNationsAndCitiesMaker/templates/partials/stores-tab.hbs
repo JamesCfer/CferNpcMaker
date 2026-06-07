@@ -34,6 +34,9 @@
                 {{#if closed}}
                   <span class="pf2e-closed-badge"><i class="fa-solid fa-lock"></i> Bankrupt</span>
                 {{/if}}
+                {{#if isBlackMarket}}
+                  <span class="pf2e-blackmarket-badge"><i class="fa-solid fa-skull"></i> Black Market</span>
+                {{/if}}
                 <input type="text" data-settlement-path="stores.{{@index}}.name"
                        value="{{name}}" class="pf2e-store-name-input" />
                 <select data-settlement-path="stores.{{@index}}.type" class="pf2e-store-type-select">
@@ -41,6 +44,11 @@
                     <option value="{{value}}" {{#if (eqStr value ../type)}}selected{{/if}}>{{label}}</option>
                   {{/each}}
                 </select>
+                <label class="pf2e-store-blackmarket-label" title="Hidden from players; attracts unrest">
+                  <input type="checkbox" data-settlement-path="stores.{{@index}}.isBlackMarket"
+                         {{#if isBlackMarket}}checked{{/if}} />
+                  <i class="fa-solid fa-skull"></i>
+                </label>
               </div>
               <div class="pf2e-store-card-actions">
                 {{#if closed}}
@@ -98,6 +106,18 @@
                       </span>
                     {{/if}}
                   </div>
+                </div>
+                <div class="pf2e-store-market-day">
+                  <label>Market Day</label>
+                  <select data-settlement-path="stores.{{@index}}.marketWeekday"
+                          data-nullable-int
+                          class="pf2e-store-market-select"
+                          title="Income doubles on this weekday">
+                    <option value="">— None —</option>
+                    {{#each ../../weekdayOptions}}
+                      <option value="{{value}}" {{#if (eqStr value ../marketWeekday)}}selected{{/if}}>{{label}}</option>
+                    {{/each}}
+                  </select>
                 </div>
               </section>
 
@@ -158,13 +178,23 @@
                 </header>
                 {{#if inventory.length}}
                   <table class="pf2e-inventory-table">
-                    <thead><tr><th>Item</th><th>Stock</th><th>Price (gp)</th></tr></thead>
+                    <thead>
+                      <tr>
+                        <th>Item</th><th>Stock</th><th>Price (gp)</th>
+                        {{#if (neqNum ../../../priceMultiplier 1)}}
+                          <th title="Base price × price multiplier">Effective (gp)</th>
+                        {{/if}}
+                      </tr>
+                    </thead>
                     <tbody>
                       {{#each inventory}}
                         <tr>
                           <td><input type="text"   data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.name"  value="{{name}}" /></td>
                           <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.stock" value="{{stock}}" /></td>
                           <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.price" value="{{price}}" /></td>
+                          {{#if (neqNum ../../../priceMultiplier 1)}}
+                            <td class="pf2e-effective-price">{{mulNum price ../../../priceMultiplier}}</td>
+                          {{/if}}
                         </tr>
                       {{/each}}
                     </tbody>

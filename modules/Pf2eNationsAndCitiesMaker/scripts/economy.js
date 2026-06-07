@@ -27,8 +27,10 @@ function gmWhisper() {
  * - halves store income when unrest > 80 and posts a riot chat card (#55)
  * - marks stores `closed` after 30+ game-days in debt (#56)
  * - credits the treasury from production (#52)
+ * - doubles income on a store's designated market weekday (#59)
+ * - bumps settlement unrest for each active black market store (#60)
  */
-export async function applyDailyTick(doc, days = 1) {
+export async function applyDailyTick(doc, days = 1, weekday = null) {
   if (!doc) return;
   const s = foundry.utils.deepClone(getSettlement(doc) || {});
   if (!s.stores) return;
@@ -38,12 +40,20 @@ export async function applyDailyTick(doc, days = 1) {
   const isRioting = unrest > 80;
 
   const newlyClosed = [];
+  let blackMarketCount = 0;
 
   for (const store of s.stores) {
     if (store.closed) continue;
+    if (store.isBlackMarket) blackMarketCount++;
 
     let effectiveAvg = Number(store.income?.dailyAvg ?? 0);
     if (isRioting) effectiveAvg = Math.floor(effectiveAvg / 2);
+
+    // Market day: double income on the store's designated weekday (#59)
+    if (days === 1 && store.marketWeekday !== null && weekday !== null
+        && weekday === Number(store.marketWeekday)) {
+      effectiveAvg *= 2;
+    }
 
     const earned = jitter(effectiveAvg, factor) * days;
     store.income.balance = Math.max(-9_999_999, Math.round((store.income.balance || 0) + earned));
@@ -58,6 +68,12 @@ export async function applyDailyTick(doc, days = 1) {
     } else {
       store.income.daysInDebt = 0;
     }
+  }
+
+  // Black market unrest: each active black market store draws +1 unrest per tick (#60)
+  if (blackMarketCount > 0) {
+    s.stats = s.stats || {};
+    s.stats.unrest = Math.min(100, (Number(s.stats.unrest) || 0) + blackMarketCount);
   }
 
   // Guard wages (#53)

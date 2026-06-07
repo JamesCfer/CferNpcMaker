@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 /** @type {Array<{ from: number, to: number, fn: (s: object) => object }>} */
 const _migrations = [
@@ -12,6 +12,17 @@ const _migrations = [
         income: { daysInDebt: 0, ...st.income },
       })) : [];
       return { ...s, _schemaVersion: 2, military: { ...s.military, ranks }, stores };
+    },
+  },
+  {
+    from: 2, to: 3,
+    fn(s) {
+      const stores = Array.isArray(s.stores) ? s.stores.map(st => ({
+        marketWeekday: null,
+        isBlackMarket: false,
+        ...st,
+      })) : [];
+      return { ...s, _schemaVersion: 3, stores, priceMultiplier: s.priceMultiplier ?? 1.0 };
     },
   },
 ];

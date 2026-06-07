@@ -88,12 +88,12 @@ item that has all its dependencies satisfied.
 - [x] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
 - [x] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
 - [x] 56. **Bankruptcy & closure** — stores with `balance < 0` for 30+ days get `closed: true`, hidden from the active stores tab (with a "Show closed" toggle).
-- [ ] 57. **Trade-goods catalogue** — bundle a small JSON table of typical PF2e trade goods + prices; production tags map to goods automatically.
+- [x] 57. **Trade-goods catalogue** — bundle a small JSON table of typical PF2e trade goods + prices; production tags map to goods automatically.
 - [ ] 58. **Trade routes between settlements** — link two journals with `tradeRoutes: [{ partnerId, goods[], gpPerWeek }]`; calendar tick moves gp + adds goods to both treasuries.
-- [ ] 59. **Market days** — each store can opt into a `marketWeekday`; on that day its `dailyAvg` doubles.
-- [ ] 60. **Black-market toggle** — `isBlackMarket: true` on a store: hidden from players unless they have permission, higher prices, attracts unrest.
+- [x] 59. **Market days** — each store can opt into a `marketWeekday`; on that day its `dailyAvg` doubles.
+- [x] 60. **Black-market toggle** — `isBlackMarket: true` on a store: hidden from players unless they have permission, higher prices, attracts unrest.
 - [ ] 61. **Treasury history graph** — last 30 days of gp totals as an inline sparkline on the Overview tab (no chart library, plain SVG).
-- [ ] 62. **Inflation modifier** — settlement-wide `priceMultiplier` (1.0 default) applied to all displayed prices; can be raised by events like sieges.
+- [x] 62. **Inflation modifier** — settlement-wide `priceMultiplier` (1.0 default) applied to all displayed prices; can be raised by events like sieges.
 
 ## D. Population & society (63–69)
 - [ ] 63. **Population growth model** — per-cycle `population += round(population × growthRate × (1 - unrest/100))`; default growthRate 0.001/day.

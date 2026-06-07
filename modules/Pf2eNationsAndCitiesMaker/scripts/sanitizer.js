@@ -111,7 +111,10 @@ export function sanitizeSettlement(raw, formData = {}) {
         lastTick:   safeNum(st?.income?.lastTick,   0,  0, 9_999_999_999_999),
         daysInDebt: safeNum(st?.income?.daysInDebt, 0,  0, 9_999_999),
       },
+      marketWeekday: (st?.marketWeekday != null) ? safeNum(st.marketWeekday, 0, 0, 6) : null,
+      isBlackMarket: !!st?.isBlackMarket,
     })) : [],
+    priceMultiplier: safeNum(s.priceMultiplier, 1.0, 0.1, 10.0),
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
     notes: safeString(s.notes, ''),
     ai: {
