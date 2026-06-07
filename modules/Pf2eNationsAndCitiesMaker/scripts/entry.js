@@ -12,7 +12,7 @@ import { SettlementAdapter }          from './adapter.js';
 import { MODULE_ID, getSettlement }   from './constants.js';
 import { SettlementSheet }            from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
-import { applyDailyTick, applyTax }   from './economy.js';
+import { applyDailyTick, applyTax, applyFestival } from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
 import { log }                        from './logger.js';
 
@@ -39,7 +39,80 @@ try {
   if (Hb && !Hb.helpers?.pfPad) {
     Hb.registerHelper('pfPad', (n, w) => String(n ?? '').padStart(w || 2, '0'));
   }
+  if (Hb && !Hb.helpers?.mulNum) {
+    Hb.registerHelper('mulNum', (a, b) => Math.round(Number(a) * Number(b) * 100) / 100);
+  }
+  if (Hb && !Hb.helpers?.neqNum) {
+    Hb.registerHelper('neqNum', (a, b) => Number(a) !== Number(b));
+  }
 } catch (_) { /* deferred to init below */ }
+
+class ResetWelcomeMessageMenu {
+  render() {
+    foundry.applications.api.DialogV2.confirm({
+      window:      { title: game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.Name') },
+      content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.ConfirmContent')}</p>`,
+      yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.ConfirmLabel'), icon: 'fa-solid fa-rotate-left' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).then(ok => {
+      if (ok) {
+        game.settings.set(MODULE_ID, 'welcomeMessageShown', false);
+        ui.notifications.info(game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.Success'));
+      }
+    }).catch(() => {});
+    return this;
+  }
+}
+
+class ClearSettlementsMenu {
+  render() {
+    foundry.applications.api.DialogV2.confirm({
+      window:      { title: game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.Name') },
+      content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.ConfirmContent')}</p>`,
+      yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.ConfirmLabel'), icon: 'fa-solid fa-trash' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).then(ok => {
+      if (ok) {
+        new Storage(MODULE_ID).setKey('');
+        ui.notifications.info(game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.Success'));
+      }
+    }).catch(() => {});
+    return this;
+  }
+}
+
+class ResetCalendarMenu {
+  render() {
+    if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
+      ui.notifications.warn(game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.NotActive'));
+      return this;
+    }
+    foundry.applications.api.DialogV2.confirm({
+      window:      { title: game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.Name') },
+      content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.ConfirmContent')}</p>`,
+      yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.ConfirmLabel'), icon: 'fa-solid fa-calendar-xmark' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).then(ok => {
+      if (!ok) return;
+      game.settings.set('Pf2eCalendarTimeline', 'state', {
+        currentDate: { year: 4725, month: 6, day: 1, hour: 8 },
+        calendarDef: {
+          monthsPerYear: 12,
+          daysPerMonth:  [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+          weekdays:      ['Moonday', 'Toilday', 'Wealday', 'Oathday', 'Fireday', 'Starday', 'Sunday'],
+          monthNames:    ['Abadius', 'Calistril', 'Pharast', 'Gozran', 'Desnus', 'Sarenith',
+                          'Erastus', 'Arodus', 'Rova', 'Lamashan', 'Neth', 'Kuthona'],
+        },
+        events: [],
+      });
+      ui.notifications.info(game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.Success'));
+    }).catch(() => {});
+    return this;
+  }
+}
 
 Hooks.once('init', () => {
   // Re-register helpers at init in case Handlebars wasn't ready at module-load.
@@ -50,6 +123,12 @@ Hooks.once('init', () => {
     }
     if (Hb && !Hb.helpers?.pfPad) {
       Hb.registerHelper('pfPad', (n, w) => String(n ?? '').padStart(w || 2, '0'));
+    }
+    if (Hb && !Hb.helpers?.mulNum) {
+      Hb.registerHelper('mulNum', (a, b) => Math.round(Number(a) * Number(b) * 100) / 100);
+    }
+    if (Hb && !Hb.helpers?.neqNum) {
+      Hb.registerHelper('neqNum', (a, b) => Number(a) !== Number(b));
     }
   } catch (err) { log('warn', 'helper registration', err); }
 
@@ -73,6 +152,38 @@ Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'welcomeMessageShown', {
     scope: 'world', config: false, type: Boolean, default: false,
   });
+  game.settings.register(MODULE_ID, 'incomeJitterPct', {
+    name: 'SettlementBuilder.Settings.IncomeJitter.Name',
+    hint: 'SettlementBuilder.Settings.IncomeJitter.Hint',
+    scope: 'world', config: true, type: Number,
+    range: { min: 0, max: 50, step: 1 },
+    default: 15,
+  });
+
+  game.settings.registerMenu(MODULE_ID, 'resetWelcome', {
+    name:       'SettlementBuilder.Settings.ResetWelcome.Name',
+    label:      'SettlementBuilder.Settings.ResetWelcome.Label',
+    hint:       'SettlementBuilder.Settings.ResetWelcome.Hint',
+    icon:       'fa-solid fa-rotate-left',
+    type:       ResetWelcomeMessageMenu,
+    restricted: true,
+  });
+  game.settings.registerMenu(MODULE_ID, 'clearSettlements', {
+    name:       'SettlementBuilder.Settings.ClearSettlements.Name',
+    label:      'SettlementBuilder.Settings.ClearSettlements.Label',
+    hint:       'SettlementBuilder.Settings.ClearSettlements.Hint',
+    icon:       'fa-solid fa-trash',
+    type:       ClearSettlementsMenu,
+    restricted: true,
+  });
+  game.settings.registerMenu(MODULE_ID, 'resetCalendar', {
+    name:       'SettlementBuilder.Settings.ResetCalendar.Name',
+    label:      'SettlementBuilder.Settings.ResetCalendar.Label',
+    hint:       'SettlementBuilder.Settings.ResetCalendar.Hint',
+    icon:       'fa-solid fa-calendar-xmark',
+    type:       ResetCalendarMenu,
+    restricted: true,
+  });
 });
 
 // Intercept JournalEntry.sheet rendering — when the journal carries a
@@ -94,14 +205,29 @@ Hooks.on('renderJournalSheet', (app, html) => {
   }
 });
 
+function getCurrentWeekday() {
+  try {
+    const state = game.settings.get('Pf2eCalendarTimeline', 'state');
+    const { year, month, day } = state?.currentDate || {};
+    const { weekdays, daysPerMonth } = state?.calendarDef || {};
+    if (!year || !weekdays?.length || !Array.isArray(daysPerMonth)) return null;
+    const yearDays = daysPerMonth.reduce((s, d) => s + d, 0);
+    let total = (year - 1) * yearDays;
+    for (let m = 0; m < month - 1; m++) total += daysPerMonth[m];
+    total += day;
+    return total % weekdays.length;
+  } catch (_) { return null; }
+}
+
 // Calendar integration — listen for events fired by Pf2eCalendarTimeline.
 Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
   try {
+    const weekday = getCurrentWeekday();
     const journals = game.journal?.contents || [];
     for (const j of journals) {
       const s = getSettlement(j);
       if (!s || s.kind === 'nation') continue;
-      await applyDailyTick(j, days);
+      await applyDailyTick(j, days, weekday);
     }
   } catch (err) {
     log('error', 'dayAdvanced handler failed', err);
@@ -110,12 +236,13 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
 
 Hooks.on('Pf2eCalendarTimeline.eventFired', async (event = {}) => {
   try {
-    if (event.kind !== 'tax') return;
+    if (event.kind !== 'tax' && event.kind !== 'festival') return;
     const ids = event.payload?.targetSettlementIds || [];
     for (const id of ids) {
       const j = game.journal?.get(id);
       if (!j) continue;
-      await applyTax(j, event.payload);
+      if (event.kind === 'tax')      await applyTax(j, event.payload);
+      if (event.kind === 'festival') await applyFestival(j);
     }
   } catch (err) {
     log('error', 'eventFired handler failed', err);

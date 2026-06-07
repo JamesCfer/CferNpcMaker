@@ -82,18 +82,18 @@ item that has all its dependencies satisfied.
 - [ ] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.
 
 ## C. Economy depth (51–62)
-- [ ] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
-- [ ] 52. **Production → treasury credit** — `applyDailyTick` also credits the treasury based on `production.length × population / 1000` gp per day.
-- [ ] 53. **Guard wage upkeep** — each rank has a `dailyWage`; total drains treasury on every `dayAdvanced`.
-- [ ] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
-- [ ] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
-- [ ] 56. **Bankruptcy & closure** — stores with `balance < 0` for 30+ days get `closed: true`, hidden from the active stores tab (with a "Show closed" toggle).
-- [ ] 57. **Trade-goods catalogue** — bundle a small JSON table of typical PF2e trade goods + prices; production tags map to goods automatically.
+- [x] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
+- [x] 52. **Production → treasury credit** — `applyDailyTick` also credits the treasury based on `production.length × population / 1000` gp per day.
+- [x] 53. **Guard wage upkeep** — each rank has a `dailyWage`; total drains treasury on every `dayAdvanced`.
+- [x] 54. **Unrest dynamics** — `unrest += 1` per tax fired, `-1` per festival event fired, clamped 0–100.
+- [x] 55. **Riots at high unrest** — when unrest > 80, store `dailyAvg` is halved and a chat card warns the GM.
+- [x] 56. **Bankruptcy & closure** — stores with `balance < 0` for 30+ days get `closed: true`, hidden from the active stores tab (with a "Show closed" toggle).
+- [x] 57. **Trade-goods catalogue** — bundle a small JSON table of typical PF2e trade goods + prices; production tags map to goods automatically.
 - [ ] 58. **Trade routes between settlements** — link two journals with `tradeRoutes: [{ partnerId, goods[], gpPerWeek }]`; calendar tick moves gp + adds goods to both treasuries.
-- [ ] 59. **Market days** — each store can opt into a `marketWeekday`; on that day its `dailyAvg` doubles.
-- [ ] 60. **Black-market toggle** — `isBlackMarket: true` on a store: hidden from players unless they have permission, higher prices, attracts unrest.
+- [x] 59. **Market days** — each store can opt into a `marketWeekday`; on that day its `dailyAvg` doubles.
+- [x] 60. **Black-market toggle** — `isBlackMarket: true` on a store: hidden from players unless they have permission, higher prices, attracts unrest.
 - [ ] 61. **Treasury history graph** — last 30 days of gp totals as an inline sparkline on the Overview tab (no chart library, plain SVG).
-- [ ] 62. **Inflation modifier** — settlement-wide `priceMultiplier` (1.0 default) applied to all displayed prices; can be raised by events like sieges.
+- [x] 62. **Inflation modifier** — settlement-wide `priceMultiplier` (1.0 default) applied to all displayed prices; can be raised by events like sieges.
 
 ## D. Population & society (63–69)
 - [ ] 63. **Population growth model** — per-cycle `population += round(population × growthRate × (1 - unrest/100))`; default growthRate 0.001/day.
@@ -163,9 +163,9 @@ item that has all its dependencies satisfied.
 ## J. Performance, DX & migrations (116–122)
 - [x] 116. **Schema versioning** — stamp settlements with `_schemaVersion`; add `migrations.js` that upgrades old shapes forward on every read.
 - [x] 117. **Vitest harness wired into CI** — covering `scheduler.computeNext`, `sanitizeSettlement` defaults, `economy.applyDailyTick` jitter bounds.
-- [ ] 118. **JSDoc typedefs** — `@typedef` blocks for `Settlement`, `Store`, `Staff`, `Rank`, `Army`, `Treaty`, `Event`.
-- [ ] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
-- [ ] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
+- [x] 118. **JSDoc typedefs** — `@typedef` blocks for `Settlement`, `Store`, `Staff`, `Rank`, `Army`, `Treaty`, `Event`.
+- [x] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
+- [x] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
 - [x] 121. **Console logging tier** — `Pf2eNationsAndCitiesMaker.logLevel` setting (error/warn/info/debug) to silence noisy logs in production.
 - [ ] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
 

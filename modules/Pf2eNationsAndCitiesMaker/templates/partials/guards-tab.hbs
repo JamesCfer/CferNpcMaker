@@ -5,6 +5,12 @@
       <i class="fa-solid fa-shield-halved"></i>
       <span>{{settlement.military.totalGuards}} guards total</span>
     </div>
+    {{#if totalDailyWages}}
+      <div class="pf2e-guards-wages">
+        <i class="fa-solid fa-coins"></i>
+        <span>{{totalDailyWages}} gp/day wages</span>
+      </div>
+    {{/if}}
     <div class="pf2e-commander">
       <label>Commander</label>
       <input type="text" data-settlement-path="military.commanderName" value="{{settlement.military.commanderName}}" />
@@ -24,12 +30,13 @@
 
   <h4><i class="fa-solid fa-bars-staggered"></i> Rank Pyramid</h4>
   <table class="pf2e-rank-table">
-    <thead><tr><th>Rank</th><th>Count</th><th>Lead</th><th></th></tr></thead>
+    <thead><tr><th>Rank</th><th>Count</th><th>Wage (gp/day)</th><th>Lead</th><th></th></tr></thead>
     <tbody>
       {{#each settlement.military.ranks}}
         <tr>
           <td><input type="text"   data-settlement-path="military.ranks.{{@index}}.rank"       value="{{rank}}" /></td>
           <td><input type="number" min="0" data-settlement-path="military.ranks.{{@index}}.count" value="{{count}}" /></td>
+          <td><input type="number" min="0" step="0.1" data-settlement-path="military.ranks.{{@index}}.dailyWage" value="{{dailyWage}}" /></td>
           <td><input type="text"   data-settlement-path="military.ranks.{{@index}}.leaderName" value="{{leaderName}}" /></td>
           <td>
             <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"

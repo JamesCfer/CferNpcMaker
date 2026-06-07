@@ -11,6 +11,32 @@
     <em class="pf2e-empty">No goods recorded yet.</em>
   {{/if}}
 
+  {{#if tradeGoods.length}}
+    <h4><i class="fa-solid fa-book-open"></i> Trade Goods Catalogue</h4>
+    <table class="pf2e-trade-goods-table">
+      <thead>
+        <tr>
+          <th>Good</th>
+          <th>Base (gp)</th>
+          {{#if (neqNum priceMultiplier 1)}}
+            <th title="Base price × price multiplier">Effective (gp)</th>
+          {{/if}}
+        </tr>
+      </thead>
+      <tbody>
+        {{#each tradeGoods}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{priceGp}}</td>
+            {{#if (neqNum ../priceMultiplier 1)}}
+              <td class="pf2e-effective-price">{{effectivePrice}}</td>
+            {{/if}}
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{/if}}
+
   <h4><i class="fa-solid fa-coins"></i> Treasury (live)</h4>
   <table class="pf2e-treasury-table">
     <tbody>

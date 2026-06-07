@@ -116,7 +116,7 @@
 
 /* ── stores ──────────────────────────────────────────────── */
 .pf2e-stores { display: flex; flex-direction: column; gap: 0.5em; }
-.pf2e-stores-toolbar { display: flex; justify-content: flex-end; }
+.pf2e-stores-toolbar { display: flex; justify-content: flex-end; gap: 0.4em; flex-wrap: wrap; }
 .pf2e-store-tabs { display: flex; flex-wrap: wrap; gap: 0.25em; border-bottom: 1px solid #d8b888; padding-bottom: 0.4em; }
 .pf2e-store-tab {
   padding: 0.3em 0.7em; border: 1px solid #b08a5a; border-radius: 4px;
@@ -130,6 +130,17 @@
   border: 1px solid #b08a5a; border-radius: 6px; background: #fffbef;
   padding: 0.6em; box-shadow: 0 1px 0 rgba(0,0,0,0.05);
 }
+.pf2e-store-card.is-closed {
+  background: #f3ede4; border-color: #8a6a36; opacity: 0.82;
+}
+.pf2e-closed-badge {
+  background: #6a2218; color: #fff; padding: 0.1em 0.55em; border-radius: 4px;
+  font-size: 0.78em; font-weight: 700; white-space: nowrap;
+}
+.pf2e-debt-counter {
+  color: #b62b22; font-size: 0.8em; font-weight: 700; white-space: nowrap;
+}
+.pf2e-store-card-actions { display: flex; gap: 0.3em; align-items: center; }
 .pf2e-store-card-header {
   display: flex; align-items: center; justify-content: space-between; gap: 0.5em;
   border-bottom: 1px dashed #d8b888; padding-bottom: 0.4em; margin-bottom: 0.4em;
@@ -191,12 +202,14 @@
   cursor: pointer; font-weight: 600;
 }
 .pf2e-settlement-btn:hover { filter: brightness(1.05); }
+.pf2e-settlement-btn.is-active { background: linear-gradient(180deg, #6a2218, #4a1008); }
 
 /* ── guards ──────────────────────────────────────────────── */
 .pf2e-guards { display: flex; flex-direction: column; gap: 0.6em; }
 .pf2e-guards-summary { display: flex; justify-content: space-between; align-items: center; gap: 0.5em; flex-wrap: wrap;
   background: rgba(155,105,35,0.07); padding: 0.5em; border: 1px solid #d8b888; border-radius: 4px; }
 .pf2e-guards-total { font-size: 1.1em; font-weight: 700; color: #5a2f0a; display: flex; align-items: center; gap: 0.4em; }
+.pf2e-guards-wages { font-size: 0.95em; color: #6a4520; display: flex; align-items: center; gap: 0.3em; }
 .pf2e-commander { display: flex; align-items: center; gap: 0.4em; }
 .pf2e-commander input { padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; min-width: 12em; }
 

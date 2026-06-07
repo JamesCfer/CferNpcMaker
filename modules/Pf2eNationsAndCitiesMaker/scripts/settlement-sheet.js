@@ -10,6 +10,7 @@ import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement, STORE_TYPES, storeTypeL
 import { applyDailyTick, applyTax }                                                     from './economy.js';
 import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem }         from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
+import { goodsForProduction }                                                           from './trade-goods.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -42,6 +43,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       generateCommander:   function()   { this._onGenerateCommander(); },
       openBuilder:         function()   { this._onOpenBuilder(); },
       saveNotes:           function()   { this._onSaveNotes(); },
+      toggleShowClosed:    function()   { this._onToggleShowClosed(); },
+      reopenStore:         function(ev) { this._onReopenStore(ev); },
     },
   };
 
@@ -54,6 +57,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.document = document;
     this.activeTab = 'overview';
     this.activeStoreTab = null;
+    this.showClosed = false;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -63,9 +67,21 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = getSettlement(this.document) || {};
     const settlement = sanitizeSettlement(raw); // fills defaults defensively
 
-    // Group stores by type for the inner tabs.
+    // Hide black market stores from non-GM players (#60)
+    if (!game.user?.isGM) {
+      settlement.stores = settlement.stores.filter(st => !st.isBlackMarket);
+    }
+
+    const showClosed = this.showClosed;
+    const closedStoreCount = settlement.stores.filter(s => s.closed).length;
+    const totalDailyWages = (settlement.military?.ranks || []).reduce(
+      (sum, r) => sum + Number(r.dailyWage || 0) * Number(r.count || 0), 0
+    );
+
+    // Group stores by type for the inner tabs; hide closed stores unless toggled.
     const storesByType = {};
     for (const store of settlement.stores) {
+      if (store.closed && !showClosed) continue;
       const key = store.type || 'other';
       (storesByType[key] = storesByType[key] || []).push(store);
     }
@@ -81,6 +97,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       storeTabs[0].isActive = true;
       this.activeStoreTab = storeTabs[0].type;
     }
+
+    // Weekday options for market day select (#59)
+    let weekdayNames;
+    try {
+      const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
+      weekdayNames = calState?.calendarDef?.weekdays;
+    } catch (_) {}
+    if (!weekdayNames?.length) {
+      weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    }
+    const weekdayOptions = weekdayNames.map((n, i) => ({ value: i, label: n }));
+
+    // Trade goods matching current production tags (#57)
+    const tradeGoods = goodsForProduction(settlement.production).map(g => ({
+      name: g.name,
+      priceGp: g.priceGp,
+      effectivePrice: Math.round(g.priceGp * (settlement.priceMultiplier || 1) * 100) / 100,
+    }));
 
     const calendarActive = !!game.modules?.get('Pf2eCalendarTimeline')?.active;
 
@@ -112,8 +146,14 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       moralePct: settlement.stats.morale,
       unrestPct: settlement.stats.unrest,
       calendarActive,
-      canGenerateNpc:  canGenerateNpc(),
-      canGenerateItem: canGenerateItem(),
+      canGenerateNpc:   canGenerateNpc(),
+      canGenerateItem:  canGenerateItem(),
+      showClosed,
+      closedStoreCount,
+      totalDailyWages,
+      weekdayOptions,
+      tradeGoods,
+      priceMultiplier: settlement.priceMultiplier,
     };
   }
 
@@ -139,7 +179,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!path) return;
     let value = input.value;
     if (input.type === 'number') value = Number(value);
-    if (input.type === 'checkbox') value = input.checked;
+    else if (input.type === 'checkbox') value = input.checked;
+    else if ('nullableInt' in input.dataset) value = value === '' ? null : Number(value);
     this._patch(s => foundry.utils.setProperty(s, path, value));
   }
 
@@ -352,6 +393,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
           s.military.commanderName    = actor.name;
         });
       },
+    });
+  }
+
+  /* ── closed store actions ──────────────────────────────── */
+
+  _onToggleShowClosed() {
+    this.showClosed = !this.showClosed;
+    this.render(false);
+  }
+
+  _onReopenStore(ev) {
+    const storeId = ev.currentTarget?.dataset?.storeId;
+    if (!storeId) return;
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      store.closed = false;
+      store.income.daysInDebt = 0;
     });
   }
 
