@@ -93,6 +93,34 @@ export async function applyDailyTick(doc, days = 1, weekday = null) {
     s.treasury.gp = (s.treasury.gp || 0) + prodCredit;
   }
 
+  // Trade routes (#58) — credit this settlement's declared trade income, mirror to partner
+  if (Array.isArray(s.tradeRoutes)) {
+    for (const route of s.tradeRoutes) {
+      if (!route.partnerId) continue;
+      const gpPerDay = Math.round(Number(route.gpPerWeek) / 7 * days);
+      if (gpPerDay <= 0) continue;
+      s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+      s.treasury.gp = (s.treasury.gp || 0) + gpPerDay;
+      const partnerDoc = game.journal?.get(route.partnerId);
+      if (partnerDoc) {
+        const ps = foundry.utils.deepClone(getSettlement(partnerDoc) || {});
+        ps.treasury = ps.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+        ps.treasury.gp = (ps.treasury.gp || 0) + gpPerDay;
+        partnerDoc.setFlag(FLAG_SCOPE, FLAG_KEY, ps).catch(() => {});
+      }
+    }
+  }
+
+  // Population growth (#63)
+  const growthRate = Number(s.growthRate ?? 0.001);
+  const growthGain = Math.round((Number(s.population) || 0) * growthRate * (1 - Math.min(100, unrest) / 100) * days);
+  if (growthGain > 0) s.population = Math.max(1, (Number(s.population) || 0) + growthGain);
+
+  // Treasury history snapshot (#61) — append after all mutations, keep last 30
+  s.treasuryHistory = Array.isArray(s.treasuryHistory) ? s.treasuryHistory : [];
+  s.treasuryHistory.push({ gp: Math.round(s.treasury?.gp ?? 0) });
+  if (s.treasuryHistory.length > 30) s.treasuryHistory = s.treasuryHistory.slice(-30);
+
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
 
   if (isRioting) {

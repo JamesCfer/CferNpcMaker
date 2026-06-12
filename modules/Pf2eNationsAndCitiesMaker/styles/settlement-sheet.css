@@ -246,6 +246,22 @@
 }
 .pf2e-empty-state i { font-size: 2.5em; color: #c2a070; }
 
+/* ── treasury sparkline (#61) ────────────────────────────── */
+.pf2e-treasury-sparkline {
+  padding: 0.4em 0.5em; background: rgba(155,105,35,0.05);
+  border: 1px solid #d8b888; border-radius: 4px;
+  display: flex; flex-direction: column; gap: 0.2em;
+}
+.pf2e-treasury-sparkline label {
+  font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700;
+}
+.pf2e-sparkline { display: block; }
+
+/* ── trade routes (#58) ──────────────────────────────────── */
+.pf2e-trade-routes-table { width: 100%; border-collapse: collapse; margin-bottom: 0.3em; }
+.pf2e-trade-routes-table th,
+.pf2e-trade-routes-table td { padding: 0.25em; border-bottom: 1px solid #e0cf9c; text-align: left; }
+
 /* ── production ──────────────────────────────────────────── */
 .pf2e-treasury-table,
 .pf2e-store-balance-table { width: 100%; border-collapse: collapse; margin-bottom: 0.5em; }

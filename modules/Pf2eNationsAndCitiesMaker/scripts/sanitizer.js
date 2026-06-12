@@ -115,6 +115,17 @@ export function sanitizeSettlement(raw, formData = {}) {
       isBlackMarket: !!st?.isBlackMarket,
     })) : [],
     priceMultiplier: safeNum(s.priceMultiplier, 1.0, 0.1, 10.0),
+    growthRate: safeNum(s.growthRate, 0.001, 0, 1),
+    treasuryHistory: Array.isArray(s.treasuryHistory)
+      ? s.treasuryHistory.slice(-30).map(h => ({ gp: safeNum(h?.gp, 0, -9_999_999, 9_999_999) }))
+      : [],
+    tradeRoutes: Array.isArray(s.tradeRoutes)
+      ? s.tradeRoutes.map(r => ({
+          partnerId: safeString(r?.partnerId, ''),
+          goods: Array.isArray(r?.goods) ? r.goods.join(', ') : safeString(r?.goods, ''),
+          gpPerWeek: safeNum(r?.gpPerWeek, 0, 0, 9_999_999),
+        }))
+      : [],
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
     notes: safeString(s.notes, ''),
     ai: {

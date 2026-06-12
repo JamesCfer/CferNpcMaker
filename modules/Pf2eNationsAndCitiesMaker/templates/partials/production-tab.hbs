@@ -37,6 +37,50 @@
     </table>
   {{/if}}
 
+  <h4><i class="fa-solid fa-route"></i> Trade Routes</h4>
+  {{#if settlement.tradeRoutes.length}}
+    <table class="pf2e-trade-routes-table">
+      <thead>
+        <tr><th>Partner</th><th>Goods</th><th>GP / Week</th><th></th></tr>
+      </thead>
+      <tbody>
+        {{#each settlement.tradeRoutes}}
+          <tr>
+            <td>
+              <select data-settlement-path="tradeRoutes.{{@index}}.partnerId"
+                      style="width:100%;padding:0.2em;border:1px solid #c2a070;background:#fffbef;border-radius:3px;">
+                <option value="">— none —</option>
+                {{#each ../settlementJournals}}
+                  <option value="{{id}}"{{#if (eqStr id ../../partnerId)}} selected{{/if}}>{{name}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td>
+              <input type="text" data-settlement-path="tradeRoutes.{{@index}}.goods"
+                     value="{{goods}}" placeholder="grain, iron…"
+                     style="width:100%;padding:0.2em;border:1px solid #c2a070;background:#fffbef;border-radius:3px;" />
+            </td>
+            <td>
+              <input type="number" min="0" data-settlement-path="tradeRoutes.{{@index}}.gpPerWeek"
+                     value="{{gpPerWeek}}"
+                     style="width:5em;padding:0.2em;border:1px solid #c2a070;background:#fffbef;border-radius:3px;" />
+            </td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeTradeRoute" data-index="{{@index}}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No trade routes established.</em>
+  {{/if}}
+  <button type="button" class="pf2e-settlement-btn" data-action="addTradeRoute"
+          style="margin-top:0.4em;"><i class="fa-solid fa-plus"></i> Add Route</button>
+
   <h4><i class="fa-solid fa-coins"></i> Treasury (live)</h4>
   <table class="pf2e-treasury-table">
     <tbody>

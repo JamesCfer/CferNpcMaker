@@ -66,6 +66,13 @@
              value="{{settlement.priceMultiplier}}"
              title="Multiplied into all displayed prices (1.0 = normal; raise during sieges or inflation events)" />
     </div>
+    <div class="pf2e-stat-cell">
+      <label>Growth Rate / day</label>
+      <input type="number" min="0" max="1" step="0.0001"
+             data-settlement-path="growthRate"
+             value="{{settlement.growthRate}}"
+             title="Population multiplier per day: growth × (1 − unrest%). Default 0.001." />
+    </div>
   </div>
 
   <div class="pf2e-statblock-treasury">
@@ -77,6 +84,13 @@
       <label>PP <input type="number" min="0" data-settlement-path="treasury.pp" value="{{settlement.treasury.pp}}" /></label>
     </div>
   </div>
+
+  {{#if sparklineSvg}}
+  <div class="pf2e-treasury-sparkline">
+    <label>Treasury GP — last {{settlement.treasuryHistory.length}} days</label>
+    {{{sparklineSvg}}}
+  </div>
+  {{/if}}
 
   <div class="pf2e-statblock-production">
     <h4><i class="fa-solid fa-wheat-awn"></i> Produces</h4>

@@ -34,7 +34,8 @@
 
       {{#if isOverviewActive}}
         {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/statblock.hbs"
-            settlement=settlement hpPct=hpPct moralePct=moralePct unrestPct=unrestPct}}
+            settlement=settlement hpPct=hpPct moralePct=moralePct unrestPct=unrestPct
+            sparklineSvg=sparklineSvg}}
       {{/if}}
 
       {{#if isStoresActive}}
@@ -55,7 +56,8 @@
 
       {{#if isProductionActive}}
         {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/production-tab.hbs"
-            settlement=settlement}}
+            settlement=settlement tradeGoods=tradeGoods priceMultiplier=priceMultiplier
+            settlementJournals=settlementJournals}}
       {{/if}}
 
       {{#if isNotesActive}}

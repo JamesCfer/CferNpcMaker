@@ -14,6 +14,24 @@ import { goodsForProduction }                                                   
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
+function buildSparklineSvg(history) {
+  if (!history || history.length < 2) return '';
+  const W = 240, H = 36, PAD = 2;
+  const vals = history.map(h => Number(h.gp) || 0);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const n = vals.length;
+  const xs = vals.map((_, i) => PAD + (i / (n - 1)) * (W - PAD * 2));
+  const ys = vals.map(v => (H - PAD) - ((v - min) / range) * (H - PAD * 2));
+  const pts = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  const area = `${xs[0].toFixed(1)},${H - PAD} ${pts} ${xs[n - 1].toFixed(1)},${H - PAD}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="pf2e-sparkline">` +
+    `<polygon points="${area}" fill="rgba(155,105,35,0.15)" />` +
+    `<polyline points="${pts}" fill="none" stroke="#9b6923" stroke-width="1.5" stroke-linejoin="round" />` +
+    `</svg>`;
+}
+
 export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: 'settlement-sheet-{id}',
@@ -45,6 +63,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       saveNotes:           function()   { this._onSaveNotes(); },
       toggleShowClosed:    function()   { this._onToggleShowClosed(); },
       reopenStore:         function(ev) { this._onReopenStore(ev); },
+      addTradeRoute:       function()   { this._onAddTradeRoute(); },
+      removeTradeRoute:    function(ev) { this._onRemoveTradeRoute(ev); },
     },
   };
 
@@ -118,6 +138,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const calendarActive = !!game.modules?.get('Pf2eCalendarTimeline')?.active;
 
+    const sparklineSvg = buildSparklineSvg(raw.treasuryHistory);
+    const settlementJournals = (game.journal?.contents || [])
+      .filter(j => j.id !== this.document.id && getSettlement(j))
+      .map(j => ({ id: j.id, name: j.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     const tabs = [
       { key: 'overview',   label: 'Overview',     icon: 'fa-solid fa-flag' },
       { key: 'stores',     label: 'Stores',       icon: 'fa-solid fa-store' },
@@ -154,6 +180,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       weekdayOptions,
       tradeGoods,
       priceMultiplier: settlement.priceMultiplier,
+      sparklineSvg,
+      settlementJournals,
     };
   }
 
@@ -412,6 +440,21 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       store.closed = false;
       store.income.daysInDebt = 0;
     });
+  }
+
+  /* ── trade routes ──────────────────────────────────────── */
+
+  _onAddTradeRoute() {
+    this._patch(s => {
+      s.tradeRoutes = s.tradeRoutes || [];
+      s.tradeRoutes.push({ partnerId: '', goods: '', gpPerWeek: 0 });
+    });
+  }
+
+  _onRemoveTradeRoute(ev) {
+    const idx = Number(ev.currentTarget?.dataset?.index);
+    if (!Number.isFinite(idx)) return;
+    this._patch(s => { s.tradeRoutes = (s.tradeRoutes || []).filter((_, i) => i !== idx); });
   }
 
   /* ── misc ──────────────────────────────────────────────── */
