@@ -73,6 +73,22 @@
              value="{{settlement.growthRate}}"
              title="Population multiplier per day: growth × (1 − unrest%). Default 0.001." />
     </div>
+    <div class="pf2e-stat-cell">
+      <label>Crime Level (0–10)</label>
+      <input type="number" min="0" max="10" step="1"
+             data-settlement-path="crimeLevel"
+             value="{{settlement.crimeLevel}}"
+             title="Banditry/crime intensity. Each point leaks 0.5% of store balances daily and raises incident-report odds." />
+    </div>
+    {{#if settlement.famineDaysLeft}}
+    <div class="pf2e-stat-cell pf2e-stat-cell--famine">
+      <label><i class="fa-solid fa-wheat-awn-circle-exclamation"></i> Famine Days Left</label>
+      <input type="number" min="0" max="9999" step="1"
+             data-settlement-path="famineDaysLeft"
+             value="{{settlement.famineDaysLeft}}"
+             title="Days until the famine ends. Set to 0 to resolve immediately." />
+    </div>
+    {{/if}}
   </div>
 
   <div class="pf2e-statblock-treasury">

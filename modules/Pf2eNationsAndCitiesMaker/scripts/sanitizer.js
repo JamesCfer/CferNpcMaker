@@ -116,6 +116,8 @@ export function sanitizeSettlement(raw, formData = {}) {
     })) : [],
     priceMultiplier: safeNum(s.priceMultiplier, 1.0, 0.1, 10.0),
     growthRate: safeNum(s.growthRate, 0.001, 0, 1),
+    famineDaysLeft: safeNum(s.famineDaysLeft, 0, 0, 9999),
+    crimeLevel: safeNum(s.crimeLevel, 0, 0, 10),
     treasuryHistory: Array.isArray(s.treasuryHistory)
       ? s.treasuryHistory.slice(-30).map(h => ({ gp: safeNum(h?.gp, 0, -9_999_999, 9_999_999) }))
       : [],

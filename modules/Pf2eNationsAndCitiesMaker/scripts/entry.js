@@ -12,7 +12,7 @@ import { SettlementAdapter }          from './adapter.js';
 import { MODULE_ID, getSettlement }   from './constants.js';
 import { SettlementSheet }            from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
-import { applyDailyTick, applyTax, applyFestival } from './economy.js';
+import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
 import { log }                        from './logger.js';
 
@@ -236,13 +236,16 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
 
 Hooks.on('Pf2eCalendarTimeline.eventFired', async (event = {}) => {
   try {
-    if (event.kind !== 'tax' && event.kind !== 'festival') return;
+    const handled = new Set(['tax', 'festival', 'plague', 'famine']);
+    if (!handled.has(event.kind)) return;
     const ids = event.payload?.targetSettlementIds || [];
     for (const id of ids) {
       const j = game.journal?.get(id);
       if (!j) continue;
       if (event.kind === 'tax')      await applyTax(j, event.payload);
       if (event.kind === 'festival') await applyFestival(j);
+      if (event.kind === 'plague')   await applyPlague(j, event.payload);
+      if (event.kind === 'famine')   await applyFamine(j, event.payload);
     }
   } catch (err) {
     log('error', 'eventFired handler failed', err);

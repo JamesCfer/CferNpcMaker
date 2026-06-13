@@ -111,9 +111,61 @@ export async function applyDailyTick(doc, days = 1, weekday = null) {
     }
   }
 
-  // Population growth (#63)
+  // Crime leakage (#67) — each crime level point steals 0.5% of positive store balances per day
+  const crimeLevel = Math.min(10, Math.max(0, Number(s.crimeLevel ?? 0)));
+  if (crimeLevel > 0) {
+    const leakFraction = crimeLevel * 0.005 * days;
+    let totalLeaked = 0;
+    for (const store of s.stores) {
+      if (store.closed) continue;
+      const bal = Number(store.income?.balance ?? 0);
+      if (bal <= 0) continue;
+      const leak = Math.floor(bal * leakFraction);
+      if (leak > 0) {
+        store.income.balance = bal - leak;
+        totalLeaked += leak;
+      }
+    }
+    if (Math.random() < (crimeLevel / 50) * days) {
+      const incidents = [
+        'A shipment of goods was stolen from a local merchant.',
+        'Pickpockets have been reported near the market district.',
+        'A protection racket is extorting several shop owners.',
+        'Contraband was discovered in a warehouse.',
+        'A prominent merchant was mugged on the way home.',
+      ];
+      const msg = incidents[Math.floor(Math.random() * incidents.length)];
+      ChatMessage.create({
+        content: `<h3><i class="fa-solid fa-user-ninja"></i> Crime Incident in ${doc.name}</h3>
+          <p>${msg}</p>
+          <p><em>Crime level: ${crimeLevel}/10${totalLeaked > 0 ? ` — ${totalLeaked} gp leaked from store balances.` : ''}</em></p>`,
+        whisper: gmWhisper(),
+      }).catch(() => {});
+    }
+  }
+
+  // Famine (#65) — drains treasury, raises unrest, halts growth while active
+  let famineActive = false;
+  if (Number(s.famineDaysLeft ?? 0) > 0) {
+    famineActive = true;
+    const drainPerDay = Math.max(1, Math.round((Number(s.population) || 1000) * 0.01));
+    s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+    s.treasury.gp = Math.max(-9_999_999, Math.round((s.treasury.gp || 0) - drainPerDay * days));
+    s.stats = s.stats || {};
+    s.stats.unrest = Math.min(100, (Number(s.stats.unrest) || 0) + days);
+    s.famineDaysLeft = Math.max(0, Number(s.famineDaysLeft) - days);
+    if (s.famineDaysLeft === 0) {
+      ChatMessage.create({
+        content: `<h3><i class="fa-solid fa-seedling"></i> Famine Ends in ${doc.name}</h3>
+          <p>The famine has passed. Population growth and normal treasury income resume.</p>`,
+        whisper: gmWhisper(),
+      }).catch(() => {});
+    }
+  }
+
+  // Population growth (#63) — halted during famine
   const growthRate = Number(s.growthRate ?? 0.001);
-  const growthGain = Math.round((Number(s.population) || 0) * growthRate * (1 - Math.min(100, unrest) / 100) * days);
+  const growthGain = famineActive ? 0 : Math.round((Number(s.population) || 0) * growthRate * (1 - Math.min(100, unrest) / 100) * days);
   if (growthGain > 0) s.population = Math.max(1, (Number(s.population) || 0) + growthGain);
 
   // Treasury history snapshot (#61) — append after all mutations, keep last 30
@@ -195,4 +247,56 @@ export async function applyFestival(doc) {
   s.stats = s.stats || {};
   s.stats.unrest = Math.max(0, (Number(s.stats.unrest) || 0) - 1);
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+}
+
+/**
+ * Apply a plague event — reduces population by `payload.ratePct` percent (#64).
+ *
+ * @param {JournalEntry} doc
+ * @param {{ ratePct:number }} payload
+ */
+export async function applyPlague(doc, payload = {}) {
+  if (!doc) return;
+  const ratePct = Math.max(0, Math.min(100, Number(payload.ratePct) || 10));
+  const s = foundry.utils.deepClone(getSettlement(doc) || {});
+  const before = Number(s.population) || 0;
+  const lost = Math.round(before * ratePct / 100);
+  s.population = Math.max(0, before - lost);
+  s.stats = s.stats || {};
+  s.stats.unrest = Math.min(100, (Number(s.stats.unrest) || 0) + Math.round(ratePct / 5));
+  await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+  ChatMessage.create({
+    content: `<h3><i class="fa-solid fa-biohazard"></i> Plague Strikes ${doc.name}!</h3>
+      <p>A plague has swept through the settlement, claiming <strong>${lost.toLocaleString()}</strong> lives
+      (${ratePct}% of the population).</p>
+      <p>Population: ${s.population.toLocaleString()} (was ${before.toLocaleString()})</p>`,
+    whisper: gmWhisper(),
+  }).catch(() => {});
+}
+
+/**
+ * Apply a famine event — drains treasury, raises unrest, halts growth for `payload.duration` days (#65).
+ *
+ * @param {JournalEntry} doc
+ * @param {{ duration:number, unrestHit:number }} payload
+ */
+export async function applyFamine(doc, payload = {}) {
+  if (!doc) return;
+  const duration  = Math.max(1, Math.min(9999, Number(payload.duration)  || 30));
+  const unrestHit = Math.max(0, Math.min(100,  Number(payload.unrestHit) || 15));
+  const s = foundry.utils.deepClone(getSettlement(doc) || {});
+  s.famineDaysLeft = duration;
+  s.stats = s.stats || {};
+  s.stats.unrest = Math.min(100, (Number(s.stats.unrest) || 0) + unrestHit);
+  const immediateGpDrain = Math.round((Number(s.population) || 1000) * 0.05);
+  s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+  s.treasury.gp = Math.max(-9_999_999, (s.treasury.gp || 0) - immediateGpDrain);
+  await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+  ChatMessage.create({
+    content: `<h3><i class="fa-solid fa-wheat-awn-circle-exclamation"></i> Famine Begins in ${doc.name}!</h3>
+      <p>Crops have failed and stores run low. The famine will last <strong>${duration} days</strong>,
+      draining the treasury and raising unrest each day until resolved.</p>
+      <p>Unrest raised by ${unrestHit}. Treasury docked ${immediateGpDrain} gp immediately.</p>`,
+    whisper: gmWhisper(),
+  }).catch(() => {});
 }
