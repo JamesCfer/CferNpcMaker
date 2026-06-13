@@ -52,6 +52,7 @@ export class SettlementAdapter extends SystemAdapter {
     const includeMilitary   = fd.get('includeMilitary')   === 'on';
     const includeLeadership = fd.get('includeLeadership') === 'on';
     const templateId        = (fd.get('template')?.toString() || 'custom').trim();
+    const creativity        = Math.max(0, Math.min(1, parseFloat(fd.get('creativity')) || 0.5));
 
     if (!description) throw new Error('Please provide a description for the settlement.');
 
@@ -61,7 +62,7 @@ export class SettlementAdapter extends SystemAdapter {
       size: SIZE_OPTIONS.includes(sizeRaw) ? sizeRaw : 'town',
       biome, governmentHint, populationHint, description,
       includeStores, includeMilitary, includeLeadership,
-      templateId,
+      templateId, creativity,
     };
   }
 
@@ -72,6 +73,7 @@ export class SettlementAdapter extends SystemAdapter {
       populationHint: formData.populationHint, description: formData.description,
       includeStores: formData.includeStores, includeMilitary: formData.includeMilitary,
       includeLeadership: formData.includeLeadership, templateId: formData.templateId,
+      creativity: formData.creativity,
     };
   }
 
@@ -92,6 +94,9 @@ export class SettlementAdapter extends SystemAdapter {
     set('[name="populationHint"]', entry.populationHint);
     set('[name="description"]',    entry.description);
     set('[name="template"]',       entry.templateId);
+    set('[name="creativity"]',     entry.creativity ?? 0.5);
+    const creativityDisplay = form.querySelector('.creativity-value-display');
+    if (creativityDisplay) creativityDisplay.textContent = parseFloat(entry.creativity ?? 0.5).toFixed(2);
     const setCheck = (sel, val) => { const el = form.querySelector(sel); if (el) el.checked = !!val; };
     setCheck('[name="includeStores"]',     entry.includeStores);
     setCheck('[name="includeMilitary"]',   entry.includeMilitary);
@@ -100,19 +105,20 @@ export class SettlementAdapter extends SystemAdapter {
 
   /* ── generation ────────────────────────────────────────── */
 
-  async generate({ formData, key, devMode }) {
+  async generate({ formData, key, devMode, creativity }) {
     const endpoint = devUrl(ENDPOINT, devMode);
     const payload = {
-      name:             formData.name,
-      kind:             formData.kind,
-      size:             formData.size,
-      biome:            formData.biome,
-      governmentHint:   formData.governmentHint,
-      populationHint:   formData.populationHint,
-      description:      formData.description,
-      includeStores:    formData.includeStores,
-      includeMilitary:  formData.includeMilitary,
+      name:              formData.name,
+      kind:              formData.kind,
+      size:              formData.size,
+      biome:             formData.biome,
+      governmentHint:    formData.governmentHint,
+      populationHint:    formData.populationHint,
+      description:       formData.description,
+      includeStores:     formData.includeStores,
+      includeMilitary:   formData.includeMilitary,
       includeLeadership: formData.includeLeadership,
+      creativity:        creativity ?? formData.creativity ?? 0.5,
     };
 
     let settlementData;

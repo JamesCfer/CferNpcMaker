@@ -61,7 +61,7 @@ item that has all its dependencies satisfied.
 - [ ] 31. **`/webhook/city-builder` endpoint live** — design the n8n workflow, the system prompt, and the JSON-schema-constrained output that maps 1:1 to the `sanitizer.sanitizeSettlement` shape. Cap stores at 12/city, 6/town, 2/village.
 - [ ] 32. **`/webhook/city-builder-dev` mirror** — same endpoint with relaxed rate limits, routed via the existing `devMode` setting.
 - [ ] 33. **Prompt-tuning pass #1** — run 50 generations across biomes & sizes, log failures (names too modern, inventory anachronisms, missing fields). Add few-shot examples until 8/10 generations are usable as-is.
-- [ ] 34. **Variation / creativity slider** — float 0–1 sent to the endpoint; low values follow the description tightly, high values riff freely. Default 0.5.
+- [x] 34. **Variation / creativity slider** — float 0–1 sent to the endpoint; low values follow the description tightly, high values riff freely. Default 0.5.
 - [ ] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
 - [ ] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
 - [ ] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
@@ -97,10 +97,10 @@ item that has all its dependencies satisfied.
 
 ## D. Population & society (63–69)
 - [x] 63. **Population growth model** — per-cycle `population += round(population × growthRate × (1 - unrest/100))`; default growthRate 0.001/day.
-- [ ] 64. **Plague event** — calendar event of `kind: 'plague'` reduces population by a configurable %.
-- [ ] 65. **Famine event** — drains treasury, raises unrest, halts growth until resolved.
+- [x] 64. **Plague event** — calendar event of `kind: 'plague'` reduces population by a configurable %.
+- [x] 65. **Famine event** — drains treasury, raises unrest, halts growth until resolved.
 - [ ] 66. **Religion tracking** — `religions: [{ name, followers, templeStoreId, influence }]`; surfaced on the Leadership tab.
-- [ ] 67. **Crime / banditry level** — 0–10 setting that raises tax leakage and triggers chat-card incident reports on `dayAdvanced` rolls.
+- [x] 67. **Crime / banditry level** — 0–10 setting that raises tax leakage and triggers chat-card incident reports on `dayAdvanced` rolls.
 - [ ] 68. **Adventurer-hook generator** — sheet header button calls a small AI endpoint (or local table) to produce 3 plot hooks tied to the settlement's current state.
 - [ ] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".
 
