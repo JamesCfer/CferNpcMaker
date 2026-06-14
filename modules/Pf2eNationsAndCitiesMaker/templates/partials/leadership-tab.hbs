@@ -42,4 +42,44 @@
   <button type="button" class="pf2e-settlement-btn" data-action="addLeader">
     <i class="fa-solid fa-user-plus"></i> Add Council Member
   </button>
+
+  <h4><i class="fa-solid fa-place-of-worship"></i> Religions</h4>
+  {{#if settlement.religions.length}}
+    <ul class="pf2e-religion-list">
+      {{#each settlement.religions}}
+        <li class="pf2e-religion-card">
+          <input type="text" class="pf2e-religion-name"
+                 data-settlement-path="religions.{{@index}}.name" value="{{name}}" />
+          <label class="pf2e-religion-label">Followers
+            <input type="number" class="pf2e-religion-followers"
+                   data-settlement-path="religions.{{@index}}.followers" value="{{followers}}" min="0" />
+          </label>
+          <label class="pf2e-religion-label">Influence
+            <input type="number" class="pf2e-religion-influence"
+                   data-settlement-path="religions.{{@index}}.influence" value="{{influence}}" min="0" max="100" />
+          </label>
+          <label class="pf2e-religion-label">Temple
+            <select data-settlement-path="religions.{{@index}}.templeStoreId" data-nullable-str>
+              <option value="">— None —</option>
+              {{#each ../settlement.stores}}
+                {{#if (eqStr type "temple")}}
+                  <option value="{{id}}" {{#if (eqStr id ../templeStoreId)}}selected{{/if}}>{{name}}</option>
+                {{/if}}
+              {{/each}}
+            </select>
+          </label>
+          <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                  data-action="removeReligion" data-religion-id="{{id}}" title="Remove religion">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <em class="pf2e-empty">No religions tracked yet.</em>
+  {{/if}}
+
+  <button type="button" class="pf2e-settlement-btn" data-action="addReligion">
+    <i class="fa-solid fa-plus"></i> Add Religion
+  </button>
 </div>

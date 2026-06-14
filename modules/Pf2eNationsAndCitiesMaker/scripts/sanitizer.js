@@ -113,6 +113,7 @@ export function sanitizeSettlement(raw, formData = {}) {
       },
       marketWeekday: (st?.marketWeekday != null) ? safeNum(st.marketWeekday, 0, 0, 6) : null,
       isBlackMarket: !!st?.isBlackMarket,
+      priceTier: ['low', 'standard', 'high', 'luxury'].includes(st?.priceTier) ? st.priceTier : 'standard',
     })) : [],
     priceMultiplier: safeNum(s.priceMultiplier, 1.0, 0.1, 10.0),
     growthRate: safeNum(s.growthRate, 0.001, 0, 1),
@@ -128,6 +129,13 @@ export function sanitizeSettlement(raw, formData = {}) {
           gpPerWeek: safeNum(r?.gpPerWeek, 0, 0, 9_999_999),
         }))
       : [],
+    religions: Array.isArray(s.religions) ? s.religions.map(r => ({
+      id:            safeString(r?.id, `rel-${shortId()}`),
+      name:          safeString(r?.name, 'Unknown Religion'),
+      followers:     safeNum(r?.followers, 0, 0, 9_999_999),
+      templeStoreId: r?.templeStoreId || null,
+      influence:     safeNum(r?.influence, 0, 0, 100),
+    })) : [],
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
     notes: safeString(s.notes, ''),
     ai: {

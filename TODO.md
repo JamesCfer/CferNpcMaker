@@ -71,15 +71,15 @@ item that has all its dependencies satisfied.
 - [ ] 39. **Inline NPC chip** — when `staff.actorId` (or `owner.actorId`) is set, render the actor's portrait + level + a Level-Up button inline instead of a bare icon.
 - [ ] 40. **Drag-drop actor → staff row** — drop a PF2e NPC onto a staff name field to link `actorId`.
 - [ ] 41. **Drag-drop item → inventory** — drop a PF2e item onto the inventory table to add a row with price/stock pulled from `item.system.price`.
-- [ ] 42. **Per-store wealth tier** — `priceTier: low|standard|high|luxury` select on each card; multiplies displayed prices and biases item-generator prefill level.
+- [x] 42. **Per-store wealth tier** — `priceTier: low|standard|high|luxury` select on each card; multiplies displayed prices and biases item-generator prefill level.
 - [ ] 43. **Weekly schedule grid** — replace the single `open/close` pair with a 7-day grid using the calendar's `weekdays` so a shop can be closed on rest-day.
-- [ ] 44. **Shift roster as enum** — `shift` becomes `morning|day|evening|night|graveyard`, rendered as colour-coded chips.
+- [x] 44. **Shift roster as enum** — `shift` becomes `morning|day|evening|night|graveyard`, rendered as colour-coded chips.
 - [ ] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
 - [ ] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
 - [ ] 47. **Partial re-render** — switch the sheet to ApplicationV2 PARTS-based rerender so editing one field no longer loses focus.
 - [ ] 48. **Debounced auto-save** — replace `change`-on-blur with debounced auto-save while typing (no extra Save button).
 - [ ] 49. **PDF / Markdown handout export** — header button that renders the settlement as a printable handout (inputs collapsed, statblock-style typography).
-- [ ] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.
+- [x] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.
 
 ## C. Economy depth (51–62)
 - [x] 51. **Income jitter knob** — world setting for the variance percentage used in `economy.applyDailyTick` (currently hard-coded 15%).
@@ -99,7 +99,7 @@ item that has all its dependencies satisfied.
 - [x] 63. **Population growth model** — per-cycle `population += round(population × growthRate × (1 - unrest/100))`; default growthRate 0.001/day.
 - [x] 64. **Plague event** — calendar event of `kind: 'plague'` reduces population by a configurable %.
 - [x] 65. **Famine event** — drains treasury, raises unrest, halts growth until resolved.
-- [ ] 66. **Religion tracking** — `religions: [{ name, followers, templeStoreId, influence }]`; surfaced on the Leadership tab.
+- [x] 66. **Religion tracking** — `religions: [{ name, followers, templeStoreId, influence }]`; surfaced on the Leadership tab.
 - [x] 67. **Crime / banditry level** — 0–10 setting that raises tax leakage and triggers chat-card incident reports on `dayAdvanced` rolls.
 - [ ] 68. **Adventurer-hook generator** — sheet header button calls a small AI endpoint (or local table) to produce 3 plot hooks tied to the settlement's current state.
 - [ ] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".

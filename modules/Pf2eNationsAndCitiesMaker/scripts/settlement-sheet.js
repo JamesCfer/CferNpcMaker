@@ -14,6 +14,8 @@ import { goodsForProduction }                                                   
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
+const PRICE_TIER_MULS = { low: 0.75, standard: 1.0, high: 1.5, luxury: 2.0 };
+
 function buildSparklineSvg(history) {
   if (!history || history.length < 2) return '';
   const W = 240, H = 36, PAD = 2;
@@ -62,9 +64,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       openBuilder:         function()   { this._onOpenBuilder(); },
       saveNotes:           function()   { this._onSaveNotes(); },
       toggleShowClosed:    function()   { this._onToggleShowClosed(); },
+      toggleCompactStores: function()   { this._onToggleCompactStores(); },
       reopenStore:         function(ev) { this._onReopenStore(ev); },
       addTradeRoute:       function()   { this._onAddTradeRoute(); },
       removeTradeRoute:    function(ev) { this._onRemoveTradeRoute(ev); },
+      addReligion:         function()   { this._onAddReligion(); },
+      removeReligion:      function(ev) { this._onRemoveReligion(ev); },
     },
   };
 
@@ -78,6 +83,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.activeTab = 'overview';
     this.activeStoreTab = null;
     this.showClosed = false;
+    this.compactStores = false;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -99,11 +105,13 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     );
 
     // Group stores by type for the inner tabs; hide closed stores unless toggled.
+    // Decorate each store with its combined effective price multiplier.
     const storesByType = {};
     for (const store of settlement.stores) {
       if (store.closed && !showClosed) continue;
       const key = store.type || 'other';
-      (storesByType[key] = storesByType[key] || []).push(store);
+      const effectiveMul = Math.round((PRICE_TIER_MULS[store.priceTier] ?? 1.0) * (settlement.priceMultiplier || 1) * 100) / 100;
+      (storesByType[key] = storesByType[key] || []).push({ ...store, effectiveMul });
     }
     const storeTabs = Object.keys(storesByType)
       .sort((a, b) => a.localeCompare(b))
@@ -176,8 +184,22 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       canGenerateItem:  canGenerateItem(),
       showClosed,
       closedStoreCount,
+      compactStores: this.compactStores,
       totalDailyWages,
       weekdayOptions,
+      priceTierOptions: [
+        { value: 'low',      label: 'Low (×0.75)' },
+        { value: 'standard', label: 'Standard' },
+        { value: 'high',     label: 'High (×1.5)' },
+        { value: 'luxury',   label: 'Luxury (×2.0)' },
+      ],
+      shiftOptions: [
+        { value: 'morning',   label: 'Morning' },
+        { value: 'day',       label: 'Day' },
+        { value: 'evening',   label: 'Evening' },
+        { value: 'night',     label: 'Night' },
+        { value: 'graveyard', label: 'Graveyard' },
+      ],
       tradeGoods,
       priceMultiplier: settlement.priceMultiplier,
       sparklineSvg,
@@ -209,6 +231,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (input.type === 'number') value = Number(value);
     else if (input.type === 'checkbox') value = input.checked;
     else if ('nullableInt' in input.dataset) value = value === '' ? null : Number(value);
+    else if ('nullableStr' in input.dataset) value = value === '' ? null : value;
     this._patch(s => foundry.utils.setProperty(s, path, value));
   }
 
@@ -431,6 +454,11 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render(false);
   }
 
+  _onToggleCompactStores() {
+    this.compactStores = !this.compactStores;
+    this.render(false);
+  }
+
   _onReopenStore(ev) {
     const storeId = ev.currentTarget?.dataset?.storeId;
     if (!storeId) return;
@@ -455,6 +483,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const idx = Number(ev.currentTarget?.dataset?.index);
     if (!Number.isFinite(idx)) return;
     this._patch(s => { s.tradeRoutes = (s.tradeRoutes || []).filter((_, i) => i !== idx); });
+  }
+
+  /* ── religions ─────────────────────────────────────────────── */
+
+  _onAddReligion() {
+    this._patch(s => {
+      s.religions = s.religions || [];
+      s.religions.push({
+        id: `rel-${Math.random().toString(36).slice(2, 10)}`,
+        name: 'New Religion', followers: 0, templeStoreId: null, influence: 0,
+      });
+    });
+  }
+
+  _onRemoveReligion(ev) {
+    const id = ev.currentTarget?.dataset?.religionId;
+    if (!id) return;
+    this._patch(s => { s.religions = (s.religions || []).filter(r => r.id !== id); });
   }
 
   /* ── misc ──────────────────────────────────────────────── */
