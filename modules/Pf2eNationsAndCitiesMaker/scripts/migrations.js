@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 /** @type {Array<{ from: number, to: number, fn: (s: object) => object }>} */
 const _migrations = [
@@ -23,6 +23,16 @@ const _migrations = [
         ...st,
       })) : [];
       return { ...s, _schemaVersion: 3, stores, priceMultiplier: s.priceMultiplier ?? 1.0 };
+    },
+  },
+  {
+    from: 3, to: 4,
+    fn(s) {
+      const stores = Array.isArray(s.stores) ? s.stores.map(st => ({
+        priceTier: 'standard',
+        ...st,
+      })) : [];
+      return { ...s, _schemaVersion: 4, stores, religions: s.religions ?? [] };
     },
   },
 ];

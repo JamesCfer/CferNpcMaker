@@ -64,9 +64,12 @@ export function generateStoreItem({ settlementDoc, storeId, itemType = 'equipmen
     hint,
   ].filter(Boolean).join(' ');
 
+  const tierBias = { low: -2, standard: 0, high: 3, luxury: 6 };
+  const bias = tierBias[store?.priceTier] ?? 0;
+
   Hooks.callAll('Pf2eItemGenerator.openWithPrefill', {
     name: '',
-    level: Math.max(0, Math.min(20, Math.floor((settlement?.population || 500) / 1000))),
+    level: Math.max(0, Math.min(20, Math.floor((settlement?.population || 500) / 1000) + bias)),
     itemType,
     description,
     onCreate: async (item) => {
