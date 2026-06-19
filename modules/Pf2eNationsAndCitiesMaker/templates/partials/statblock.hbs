@@ -121,4 +121,37 @@
     {{/if}}
   </div>
 
+  <div class="pf2e-statblock-demographics">
+    <div class="pf2e-demographics-header">
+      <h4><i class="fa-solid fa-people-group"></i> Demographics</h4>
+      <button type="button" class="pf2e-icon-btn" data-action="addDemographic" title="Add ancestry row">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+    {{#if settlement.demographics.length}}
+      <ul class="pf2e-demographics-list">
+        {{#each settlement.demographics}}
+          <li class="pf2e-demographic-row">
+            <input type="text" class="pf2e-demographic-ancestry"
+                   data-settlement-path="demographics.{{@index}}.ancestry"
+                   value="{{ancestry}}" placeholder="Ancestry…" />
+            <input type="number" class="pf2e-demographic-pct"
+                   data-settlement-path="demographics.{{@index}}.pct"
+                   value="{{pct}}" min="0" max="100" />
+            <span class="pf2e-demographic-pct-label">%</span>
+            <div class="pf2e-demographic-bar-wrap">
+              <div class="pf2e-demographic-bar" style="width:{{pct}}%;"></div>
+            </div>
+            <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                    data-action="removeDemographic" data-index="{{@index}}" title="Remove">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </li>
+        {{/each}}
+      </ul>
+    {{else}}
+      <em class="pf2e-empty">No demographics recorded — click + to add ancestries.</em>
+    {{/if}}
+  </div>
+
 </div>

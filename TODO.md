@@ -68,8 +68,8 @@ item that has all its dependencies satisfied.
 - [ ] 38. **Cost-aware generation** — show the user the estimated Patreon-use cost before generating (1 use per ~3 stores).
 
 ## B. Settlement sheet UX & polish (39–50)
-- [ ] 39. **Inline NPC chip** — when `staff.actorId` (or `owner.actorId`) is set, render the actor's portrait + level + a Level-Up button inline instead of a bare icon.
-- [ ] 40. **Drag-drop actor → staff row** — drop a PF2e NPC onto a staff name field to link `actorId`.
+- [x] 39. **Inline NPC chip** — when `staff.actorId` (or `owner.actorId`) is set, render the actor's portrait + level + a Level-Up button inline instead of a bare icon.
+- [x] 40. **Drag-drop actor → staff row** — drop a PF2e NPC onto a staff name field to link `actorId`.
 - [ ] 41. **Drag-drop item → inventory** — drop a PF2e item onto the inventory table to add a row with price/stock pulled from `item.system.price`.
 - [x] 42. **Per-store wealth tier** — `priceTier: low|standard|high|luxury` select on each card; multiplies displayed prices and biases item-generator prefill level.
 - [ ] 43. **Weekly schedule grid** — replace the single `open/close` pair with a 7-day grid using the calendar's `weekdays` so a shop can be closed on rest-day.
@@ -102,7 +102,7 @@ item that has all its dependencies satisfied.
 - [x] 66. **Religion tracking** — `religions: [{ name, followers, templeStoreId, influence }]`; surfaced on the Leadership tab.
 - [x] 67. **Crime / banditry level** — 0–10 setting that raises tax leakage and triggers chat-card incident reports on `dayAdvanced` rolls.
 - [ ] 68. **Adventurer-hook generator** — sheet header button calls a small AI endpoint (or local table) to produce 3 plot hooks tied to the settlement's current state.
-- [ ] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".
+- [x] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".
 
 ## E. Military & warfare (70–82)
 - [ ] 70. **Army document** — separate JournalEntry kind (`flags.…settlement.kind === 'army'`) with its own sheet, holding unit counts + a stationed-at link.

@@ -106,12 +106,26 @@
                   <div class="pf2e-store-owner">
                     <label>Owner</label>
                     <div class="pf2e-store-owner-row">
-                      <input type="text" data-settlement-path="stores.{{@index}}.owner.name" value="{{owner.name}}" />
-                      {{#if owner.actorId}}
-                        <button type="button" class="pf2e-icon-btn"
-                                data-action="openLinkedActor" data-actor-id="{{owner.actorId}}" title="Open linked actor">
-                          <i class="fa-solid fa-user"></i>
-                        </button>
+                      <input type="text" data-settlement-path="stores.{{@index}}.owner.name"
+                             data-is-owner="true" value="{{owner.name}}"
+                             title="Drop a PF2e actor here to link them as owner" />
+                      {{#if ownerActor}}
+                        <div class="pf2e-npc-chip">
+                          {{#if ownerActor.portrait}}
+                            <img src="{{ownerActor.portrait}}" class="pf2e-npc-chip-portrait" alt="{{ownerActor.name}}" />
+                          {{/if}}
+                          {{#if ownerActor.level}}
+                            <span class="pf2e-npc-chip-level">Lv {{ownerActor.level}}</span>
+                          {{/if}}
+                          <button type="button" class="pf2e-icon-btn"
+                                  data-action="openLinkedActor" data-actor-id="{{owner.actorId}}" title="Open actor sheet">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                          </button>
+                          <button type="button" class="pf2e-icon-btn"
+                                  data-action="levelUpActor" data-actor-id="{{owner.actorId}}" title="Level Up actor">
+                            <i class="fa-solid fa-arrow-up"></i>
+                          </button>
+                        </div>
                       {{/if}}
                       <button type="button" class="pf2e-icon-btn"
                               data-action="generateShopkeeper"
@@ -171,7 +185,9 @@
                         <li class="pf2e-staff-row">
                           <input type="text" class="pf2e-staff-name"
                                  data-settlement-path="stores.{{@../index}}.staff.{{@index}}.name"
-                                 value="{{name}}" />
+                                 data-staff-id="{{id}}"
+                                 value="{{name}}"
+                                 title="Drop a PF2e actor here to link them" />
                           <input type="text" class="pf2e-staff-role"
                                  data-settlement-path="stores.{{@../index}}.staff.{{@index}}.role"
                                  value="{{role}}" />
@@ -181,11 +197,23 @@
                               <option value="{{value}}" {{#if (eqStr value ../../shift)}}selected{{/if}}>{{label}}</option>
                             {{/each}}
                           </select>
-                          {{#if actorId}}
-                            <button type="button" class="pf2e-icon-btn"
-                                    data-action="openLinkedActor" data-actor-id="{{actorId}}" title="Open linked actor">
-                              <i class="fa-solid fa-user"></i>
-                            </button>
+                          {{#if resolvedActor}}
+                            <div class="pf2e-npc-chip pf2e-npc-chip--inline">
+                              {{#if resolvedActor.portrait}}
+                                <img src="{{resolvedActor.portrait}}" class="pf2e-npc-chip-portrait" alt="{{resolvedActor.name}}" />
+                              {{/if}}
+                              {{#if resolvedActor.level}}
+                                <span class="pf2e-npc-chip-level">{{resolvedActor.level}}</span>
+                              {{/if}}
+                              <button type="button" class="pf2e-icon-btn"
+                                      data-action="openLinkedActor" data-actor-id="{{actorId}}" title="Open actor sheet">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                              </button>
+                              <button type="button" class="pf2e-icon-btn"
+                                      data-action="levelUpActor" data-actor-id="{{actorId}}" title="Level Up actor">
+                                <i class="fa-solid fa-arrow-up"></i>
+                              </button>
+                            </div>
                           {{/if}}
                           <button type="button" class="pf2e-icon-btn"
                                   data-action="generateShopkeeper"
