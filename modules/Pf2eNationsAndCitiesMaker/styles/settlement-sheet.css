@@ -324,6 +324,51 @@
 .pf2e-store-balance-table th,
 .pf2e-store-balance-table td { padding: 0.3em; border-bottom: 1px solid #e0cf9c; text-align: left; }
 
+/* ── inline NPC chip (#39) ───────────────────────────────── */
+.pf2e-npc-chip {
+  display: inline-flex; align-items: center; gap: 0.25em;
+  background: #f0e3c0; border: 1px solid #b08a5a; border-radius: 4px;
+  padding: 0.1em 0.3em;
+}
+.pf2e-npc-chip--inline { padding: 0.05em 0.2em; }
+.pf2e-npc-chip-portrait {
+  width: 22px; height: 22px; border-radius: 2px; object-fit: cover;
+  border: 1px solid #9b6923;
+}
+.pf2e-npc-chip-level {
+  font-size: 0.75em; font-weight: 700; color: #5a2f0a;
+  background: #e8d8b0; padding: 0.05em 0.3em; border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* ── demographics (#69) ──────────────────────────────────── */
+.pf2e-statblock-demographics {
+  padding: 0.5em; background: rgba(155,105,35,0.05);
+  border: 1px solid #d8b888; border-radius: 4px;
+}
+.pf2e-demographics-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4em;
+}
+.pf2e-demographics-header h4 { margin: 0; color: #5a2f0a; }
+.pf2e-demographics-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25em; }
+.pf2e-demographic-row {
+  display: flex; align-items: center; gap: 0.3em; flex-wrap: nowrap;
+}
+.pf2e-demographic-ancestry {
+  flex: 2; min-width: 0; padding: 0.2em 0.35em;
+  border: 1px solid #c2a070; background: #fffbef; border-radius: 3px;
+}
+.pf2e-demographic-pct {
+  width: 3.5em; padding: 0.2em; text-align: right;
+  border: 1px solid #c2a070; background: #fffbef; border-radius: 3px;
+}
+.pf2e-demographic-pct-label { font-size: 0.8em; color: #6a4520; font-weight: 700; }
+.pf2e-demographic-bar-wrap {
+  flex: 1; height: 8px; background: #e6dbc4; border: 1px solid #c2a070;
+  border-radius: 4px; overflow: hidden; min-width: 40px;
+}
+.pf2e-demographic-bar { height: 100%; background: linear-gradient(90deg, #9b6923, #c8a050); max-width: 100%; }
+
 /* ── nation sheet ────────────────────────────────────────── */
 .pf2e-nation-summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em;

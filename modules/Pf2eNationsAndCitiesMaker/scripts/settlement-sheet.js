@@ -16,6 +16,17 @@ const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
 const PRICE_TIER_MULS = { low: 0.75, standard: 1.0, high: 1.5, luxury: 2.0 };
 
+function resolveActor(actorId) {
+  if (!actorId) return null;
+  const actor = game.actors?.get(actorId);
+  if (!actor) return null;
+  return {
+    portrait: actor.img || '',
+    level:    actor.system?.details?.level?.value ?? actor.system?.details?.cr ?? null,
+    name:     actor.name,
+  };
+}
+
 function buildSparklineSvg(history) {
   if (!history || history.length < 2) return '';
   const W = 240, H = 36, PAD = 2;
@@ -70,6 +81,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       removeTradeRoute:    function(ev) { this._onRemoveTradeRoute(ev); },
       addReligion:         function()   { this._onAddReligion(); },
       removeReligion:      function(ev) { this._onRemoveReligion(ev); },
+      addDemographic:      function()   { this._onAddDemographic(); },
+      removeDemographic:   function(ev) { this._onRemoveDemographic(ev); },
+      levelUpActor:        function(ev) { this._onLevelUpActor(ev); },
     },
   };
 
@@ -111,7 +125,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       if (store.closed && !showClosed) continue;
       const key = store.type || 'other';
       const effectiveMul = Math.round((PRICE_TIER_MULS[store.priceTier] ?? 1.0) * (settlement.priceMultiplier || 1) * 100) / 100;
-      (storesByType[key] = storesByType[key] || []).push({ ...store, effectiveMul });
+      (storesByType[key] = storesByType[key] || []).push({
+        ...store,
+        effectiveMul,
+        ownerActor: resolveActor(store.owner?.actorId),
+        staff: (store.staff || []).map(p => ({ ...p, resolvedActor: resolveActor(p.actorId) })),
+      });
     }
     const storeTabs = Object.keys(storesByType)
       .sort((a, b) => a.localeCompare(b))
@@ -208,11 +227,15 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onRender() {
-    // Bind text/number inputs (delegated) — write to flags on blur/change.
     this.element.querySelectorAll('[data-settlement-path]').forEach(input => {
       input.addEventListener('change', (ev) => this._writePath(ev.currentTarget));
     });
-    // Document.execCommand-free notes editor: just a textarea.
+
+    // Drag-drop actor → staff row or owner field (#40)
+    this.element.querySelectorAll('.pf2e-staff-name, [data-is-owner]').forEach(input => {
+      input.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'link'; });
+      input.addEventListener('drop', (ev) => this._onDropActorOnStaff(ev));
+    });
   }
 
   /* ── helpers ───────────────────────────────────────────── */
@@ -501,6 +524,60 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = ev.currentTarget?.dataset?.religionId;
     if (!id) return;
     this._patch(s => { s.religions = (s.religions || []).filter(r => r.id !== id); });
+  }
+
+  /* ── demographics (#69) ────────────────────────────────── */
+
+  _onAddDemographic() {
+    this._patch(s => {
+      s.demographics = s.demographics || [];
+      s.demographics.push({ ancestry: 'Human', pct: 0 });
+    });
+  }
+
+  _onRemoveDemographic(ev) {
+    const idx = Number(ev.currentTarget?.dataset?.index);
+    if (!Number.isFinite(idx)) return;
+    this._patch(s => { s.demographics = (s.demographics || []).filter((_, i) => i !== idx); });
+  }
+
+  /* ── inline NPC chip (#39) ─────────────────────────────── */
+
+  _onLevelUpActor(ev) {
+    const actorId = ev.currentTarget?.dataset?.actorId;
+    if (!actorId) return;
+    game.actors?.get(actorId)?.sheet?.render(true);
+  }
+
+  /* ── drag-drop actor → staff (#40) ────────────────────── */
+
+  async _onDropActorOnStaff(ev) {
+    ev.preventDefault();
+    let data;
+    try { data = JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return; }
+    if (data.type !== 'Actor') return;
+    const actor = await fromUuid(data.uuid).catch(() => null);
+    if (!actor) return;
+
+    const card  = ev.currentTarget.closest('[data-store-id]');
+    const storeId = card?.dataset?.storeId;
+    if (!storeId) return;
+
+    const staffId = ev.currentTarget.dataset?.staffId;
+    const isOwner = !!ev.currentTarget.dataset?.isOwner;
+
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      if (isOwner) {
+        store.owner = store.owner || {};
+        store.owner.name    = actor.name;
+        store.owner.actorId = actor.id;
+      } else if (staffId) {
+        const person = store.staff?.find(p => p.id === staffId);
+        if (person) { person.name = actor.name; person.actorId = actor.id; }
+      }
+    });
   }
 
   /* ── misc ──────────────────────────────────────────────── */

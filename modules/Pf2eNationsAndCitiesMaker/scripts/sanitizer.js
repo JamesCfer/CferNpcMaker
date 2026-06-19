@@ -136,6 +136,10 @@ export function sanitizeSettlement(raw, formData = {}) {
       templeStoreId: r?.templeStoreId || null,
       influence:     safeNum(r?.influence, 0, 0, 100),
     })) : [],
+    demographics: Array.isArray(s.demographics) ? s.demographics.map(d => ({
+      ancestry: safeString(d?.ancestry, 'Human'),
+      pct:      safeNum(d?.pct, 0, 0, 100),
+    })) : [],
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
     notes: safeString(s.notes, ''),
     ai: {
