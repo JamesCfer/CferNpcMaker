@@ -153,7 +153,7 @@ export class Dnd5eItemAdapter extends SystemAdapter {
     });
   }
 
-  async generate({ formData, key, devMode, creativity = 0.5 }) {
+  async generate({ formData, key, devMode }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
       name:        formData.name,
@@ -161,7 +161,6 @@ export class Dnd5eItemAdapter extends SystemAdapter {
       itemType:    formData.itemType,
       subtype:     formData.subtype,
       description: formData.description,
-      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);

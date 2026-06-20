@@ -121,7 +121,7 @@ export class Hero6eNpcAdapter extends SystemAdapter {
     ];
   }
 
-  async generate({ formData, key, devMode, creativity = 0.5, builderApp }) {
+  async generate({ formData, key, devMode, builderApp }) {
     const endpoint = devUrl(NPC_ENDPOINT, devMode);
     const payload  = {
       name:        formData.name,
@@ -130,7 +130,6 @@ export class Hero6eNpcAdapter extends SystemAdapter {
       description: formData.description,
       universe:    formData.universe,
       createGear:  formData.createGear,
-      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);
