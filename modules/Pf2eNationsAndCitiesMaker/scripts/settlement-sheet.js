@@ -118,6 +118,17 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       (sum, r) => sum + Number(r.dailyWage || 0) * Number(r.count || 0), 0
     );
 
+    // Weekday names — resolved early so the store loop can label schedule entries (#43).
+    let weekdayNames;
+    try {
+      const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
+      weekdayNames = calState?.calendarDef?.weekdays;
+    } catch (_) {}
+    if (!weekdayNames?.length) {
+      weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    }
+    const weekdayOptions = weekdayNames.map((n, i) => ({ value: i, label: n }));
+
     // Group stores by type for the inner tabs; hide closed stores unless toggled.
     // Decorate each store with its combined effective price multiplier.
     const storesByType = {};
@@ -130,6 +141,13 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         effectiveMul,
         ownerActor: resolveActor(store.owner?.actorId),
         staff: (store.staff || []).map(p => ({ ...p, resolvedActor: resolveActor(p.actorId) })),
+        hours: {
+          ...store.hours,
+          schedule: (store.hours?.schedule || []).map(entry => ({
+            ...entry,
+            dayLabel: weekdayNames[entry.day] ?? `Day ${entry.day}`,
+          })),
+        },
       });
     }
     const storeTabs = Object.keys(storesByType)
@@ -144,17 +162,6 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       storeTabs[0].isActive = true;
       this.activeStoreTab = storeTabs[0].type;
     }
-
-    // Weekday options for market day select (#59)
-    let weekdayNames;
-    try {
-      const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
-      weekdayNames = calState?.calendarDef?.weekdays;
-    } catch (_) {}
-    if (!weekdayNames?.length) {
-      weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    }
-    const weekdayOptions = weekdayNames.map((n, i) => ({ value: i, label: n }));
 
     // Trade goods matching current production tags (#57)
     const tradeGoods = goodsForProduction(settlement.production).map(g => ({
@@ -235,6 +242,13 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelectorAll('.pf2e-staff-name, [data-is-owner]').forEach(input => {
       input.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'link'; });
       input.addEventListener('drop', (ev) => this._onDropActorOnStaff(ev));
+    });
+
+    // Drag-drop PF2e item → store inventory (#41)
+    this.element.querySelectorAll('.pf2e-store-inventory').forEach(section => {
+      section.addEventListener('dragover',  (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; section.classList.add('drag-over'); });
+      section.addEventListener('dragleave', ()   => section.classList.remove('drag-over'));
+      section.addEventListener('drop',      (ev) => { section.classList.remove('drag-over'); this._onDropItemOnInventory(ev); });
     });
   }
 
@@ -580,6 +594,36 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /* ── drag-drop PF2e item → inventory (#41) ────────────── */
+
+  async _onDropItemOnInventory(ev) {
+    ev.preventDefault();
+    let data;
+    try { data = JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return; }
+    if (data.type !== 'Item') return;
+    const item = await fromUuid(data.uuid).catch(() => null);
+    if (!item) return;
+    const card    = ev.currentTarget.closest('[data-store-id]');
+    const storeId = card?.dataset?.storeId;
+    if (!storeId) return;
+    const pv      = item.system?.price?.value ?? {};
+    const priceGp = Math.round(
+      ((Number(pv.pp) || 0) * 10 + (Number(pv.gp) || 0) + (Number(pv.sp) || 0) / 10 + (Number(pv.cp) || 0) / 100) * 100
+    ) / 100;
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      store.inventory = store.inventory || [];
+      store.inventory.push({
+        id:     `inv-${Math.random().toString(36).slice(2, 10)}`,
+        name:   item.name,
+        itemId: item.id,
+        price:  priceGp,
+        stock:  1,
+      });
+    });
+  }
+
   /* ── misc ──────────────────────────────────────────────── */
 
   _onOpenBuilder() {
@@ -608,4 +652,69 @@ export function maybeOpenSettlementSheet(journal) {
   const sheet = new SettlementSheet(journal);
   sheet.render(true);
   return true;
+}
+
+/**
+ * GM-only QA helper (#122): creates a temporary fixture settlement, opens the
+ * sheet for inspection, and deletes the journal when the sheet is closed.
+ */
+export async function openWithFixture() {
+  const fixture = {
+    kind: 'city', size: 'city', population: 12000, biome: 'temperate',
+    stats: { hp: 180, maxHp: 180, damageThreshold: 20, hardness: 8, fortitude: 18, reflex: 14, will: 16, morale: 72, unrest: 12 },
+    treasury: { cp: 250, sp: 800, gp: 4200, pp: 30 },
+    production: ['grain', 'timber', 'iron', 'cloth'],
+    government: { type: 'Council', leaderName: 'High Councillor Mira Ashvale' },
+    military: {
+      ranks: [
+        { rank: 'City Watch',  count: 120, leaderName: 'Captain Brand',    dailyWage: 2 },
+        { rank: 'Elite Guard', count: 20,  leaderName: 'Commander Syla',   dailyWage: 5 },
+      ],
+      totalGuards: 140, commanderName: 'Marshal Edric Stone',
+    },
+    stores: [
+      {
+        id: 'fix-shop-1', name: 'The Burnished Blade', type: 'blacksmith',
+        owner: { name: 'Rolf Hammerborn', actorId: null },
+        staff: [{ id: 'fix-staff-1', name: 'Apprentice Tane', role: 'smith', shift: 'day', actorId: null }],
+        hours: { open: '07:00', close: '18:00', daysClosed: [] },
+        inventory: [
+          { id: 'fix-inv-1', name: 'Longsword',   price: 10, stock: 5, itemId: null },
+          { id: 'fix-inv-2', name: 'Chain Shirt', price: 25, stock: 2, itemId: null },
+        ],
+        income: { balance: 320, dailyAvg: 18, lastTick: 0, daysInDebt: 0 },
+        priceTier: 'standard', isBlackMarket: false,
+      },
+      {
+        id: 'fix-shop-2', name: 'The Gilded Flask', type: 'alchemist',
+        owner: { name: 'Priya Vellum', actorId: null },
+        staff: [],
+        hours: { open: '09:00', close: '20:00', daysClosed: [] },
+        inventory: [
+          { id: 'fix-inv-3', name: "Elixir of Life (Minor)", price: 3,  stock: 8,  itemId: null },
+          { id: 'fix-inv-4', name: "Alchemist's Fire",       price: 3,  stock: 12, itemId: null },
+        ],
+        income: { balance: 150, dailyAvg: 22, lastTick: 0, daysInDebt: 0 },
+        priceTier: 'high', isBlackMarket: false,
+      },
+    ],
+    leadership: [
+      { title: 'High Councillor', name: 'Mira Ashvale',   role: 'Civilian governance',  actorId: null },
+      { title: 'Treasurer',       name: 'Owyn Brightcoin', role: 'Treasury & taxation', actorId: null },
+    ],
+    religions:    [{ id: 'fix-rel-1', name: 'Temple of Sarenrae', followers: 3200, influence: 45, templeStoreId: null }],
+    demographics: [{ ancestry: 'Human', pct: 68 }, { ancestry: 'Halfling', pct: 14 }, { ancestry: 'Dwarf', pct: 10 }, { ancestry: 'Other', pct: 8 }],
+    notes: 'Fixture settlement for QA. Data is illustrative — delete this journal when done.',
+  };
+
+  const doc = await JournalEntry.create({
+    name: '[QA Fixture] Greymoor City',
+    flags: { [FLAG_SCOPE]: { [FLAG_KEY]: fixture } },
+  });
+  if (!doc) return;
+
+  const sheet      = new SettlementSheet(doc);
+  const origClose  = sheet.close.bind(sheet);
+  sheet.close      = async (...args) => { await origClose(...args); await doc.delete().catch(() => {}); };
+  sheet.render(true);
 }

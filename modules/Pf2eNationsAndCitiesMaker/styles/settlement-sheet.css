@@ -369,6 +369,30 @@
 }
 .pf2e-demographic-bar { height: 100%; background: linear-gradient(90deg, #9b6923, #c8a050); max-width: 100%; }
 
+/* ── weekly schedule grid (#43) ─────────────────────────── */
+.pf2e-store-schedule { display: flex; flex-direction: column; gap: 0.15em; }
+.pf2e-store-schedule > label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
+.pf2e-schedule-grid { width: 100%; border-collapse: collapse; }
+.pf2e-schedule-grid th {
+  font-size: 0.72em; text-transform: uppercase; color: #6a4520;
+  padding: 0.2em 0.3em; border-bottom: 1px solid #d8b888; text-align: left;
+}
+.pf2e-schedule-grid td { padding: 0.15em 0.25em; border-bottom: 1px solid #ede0c4; }
+.pf2e-schedule-grid input[type="text"] {
+  width: 4.5em; padding: 0.15em 0.25em;
+  border: 1px solid #c2a070; background: #fffbef; border-radius: 3px;
+}
+.pf2e-schedule-day-label { font-size: 0.82em; font-weight: 600; color: #5a3d18; white-space: nowrap; }
+.pf2e-schedule-row--closed { color: #876338; }
+.pf2e-schedule-row--closed input[type="text"] { opacity: 0.45; pointer-events: none; }
+.pf2e-schedule-closed-cell { text-align: center; }
+
+/* ── inventory drag-drop zone (#41) ─────────────────────── */
+.pf2e-store-inventory[data-inventory-drop] { border-radius: 4px; transition: background 0.15s; }
+.pf2e-store-inventory[data-inventory-drop].drag-over {
+  background: rgba(155, 105, 35, 0.12); outline: 2px dashed #9b6923;
+}
+
 /* ── nation sheet ────────────────────────────────────────── */
 .pf2e-nation-summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em;
