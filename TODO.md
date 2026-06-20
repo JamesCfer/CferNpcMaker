@@ -70,9 +70,9 @@ item that has all its dependencies satisfied.
 ## B. Settlement sheet UX & polish (39–50)
 - [x] 39. **Inline NPC chip** — when `staff.actorId` (or `owner.actorId`) is set, render the actor's portrait + level + a Level-Up button inline instead of a bare icon.
 - [x] 40. **Drag-drop actor → staff row** — drop a PF2e NPC onto a staff name field to link `actorId`.
-- [ ] 41. **Drag-drop item → inventory** — drop a PF2e item onto the inventory table to add a row with price/stock pulled from `item.system.price`.
+- [x] 41. **Drag-drop item → inventory** — drop a PF2e item onto the inventory table to add a row with price/stock pulled from `item.system.price`.
 - [x] 42. **Per-store wealth tier** — `priceTier: low|standard|high|luxury` select on each card; multiplies displayed prices and biases item-generator prefill level.
-- [ ] 43. **Weekly schedule grid** — replace the single `open/close` pair with a 7-day grid using the calendar's `weekdays` so a shop can be closed on rest-day.
+- [x] 43. **Weekly schedule grid** — replace the single `open/close` pair with a 7-day grid using the calendar's `weekdays` so a shop can be closed on rest-day.
 - [x] 44. **Shift roster as enum** — `shift` becomes `morning|day|evening|night|graveyard`, rendered as colour-coded chips.
 - [ ] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
 - [ ] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
@@ -167,7 +167,7 @@ item that has all its dependencies satisfied.
 - [x] 119. **`jsconfig.json` with `checkJs: true`** — surfaces type errors in VS Code without TypeScript.
 - [x] 120. **Settings-page audit** — add "Reset welcome message", "Clear stored settlements", "Reset calendar to default" buttons.
 - [x] 121. **Console logging tier** — `Pf2eNationsAndCitiesMaker.logLevel` setting (error/warn/info/debug) to silence noisy logs in production.
-- [ ] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
+- [x] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
 
 ## K. Accessibility & localisation (123–128)
 - [ ] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.

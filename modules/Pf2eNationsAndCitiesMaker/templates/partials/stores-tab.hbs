@@ -135,13 +135,34 @@
                       </button>
                     </div>
                   </div>
-                  <div class="pf2e-store-hours">
-                    <label>Hours</label>
-                    <div class="pf2e-store-hours-row">
-                      <input type="text" data-settlement-path="stores.{{@index}}.hours.open"  value="{{hours.open}}" />
-                      <span>→</span>
-                      <input type="text" data-settlement-path="stores.{{@index}}.hours.close" value="{{hours.close}}" />
-                    </div>
+                  <div class="pf2e-store-schedule">
+                    <label>Weekly Schedule</label>
+                    <table class="pf2e-schedule-grid">
+                      <thead>
+                        <tr>
+                          <th>Day</th><th>Open</th><th>Close</th>
+                          <th title="Closed all day"><i class="fa-solid fa-ban"></i></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{#each hours.schedule}}
+                          <tr class="pf2e-schedule-row{{#if closed}} pf2e-schedule-row--closed{{/if}}">
+                            <td class="pf2e-schedule-day-label">{{dayLabel}}</td>
+                            <td><input type="text"
+                                  data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.open"
+                                  value="{{open}}" /></td>
+                            <td><input type="text"
+                                  data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.close"
+                                  value="{{close}}" /></td>
+                            <td class="pf2e-schedule-closed-cell">
+                              <input type="checkbox"
+                                     data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.closed"
+                                     {{#if closed}}checked{{/if}} />
+                            </td>
+                          </tr>
+                        {{/each}}
+                      </tbody>
+                    </table>
                   </div>
                   <div class="pf2e-store-income">
                     <label>Income</label>
@@ -234,7 +255,7 @@
                   {{/if}}
                 </section>
 
-                <section class="pf2e-store-inventory">
+                <section class="pf2e-store-inventory" data-inventory-drop="true" title="Drop a PF2e item here to add it to inventory">
                   <header>
                     <h4>Inventory</h4>
                     <button type="button" class="pf2e-icon-btn"
@@ -267,7 +288,7 @@
                       </tbody>
                     </table>
                   {{else}}
-                    <em class="pf2e-empty">Empty shelves — generate an item to populate.</em>
+                    <em class="pf2e-empty">Empty shelves — generate an item above or drop one from the Items sidebar.</em>
                   {{/if}}
                 </section>
 

@@ -97,6 +97,20 @@ export function sanitizeSettlement(raw, formData = {}) {
         open:       safeString(st?.hours?.open,  '08:00'),
         close:      safeString(st?.hours?.close, '20:00'),
         daysClosed: Array.isArray(st?.hours?.daysClosed) ? st.hours.daysClosed.map(d => safeString(d)).filter(Boolean) : [],
+        schedule: (() => {
+          const dfOpen  = safeString(st?.hours?.open,  '08:00');
+          const dfClose = safeString(st?.hours?.close, '20:00');
+          const raw     = Array.isArray(st?.hours?.schedule) ? st.hours.schedule : [];
+          return Array.from({ length: 7 }, (_, i) => {
+            const entry = raw.find(e => Number(e?.day) === i);
+            return {
+              day:    i,
+              open:   safeString(entry?.open,  dfOpen),
+              close:  safeString(entry?.close, dfClose),
+              closed: !!entry?.closed,
+            };
+          });
+        })(),
       },
       inventory: Array.isArray(st?.inventory) ? st.inventory.map(i => ({
         id:     safeString(i?.id, `inv-${shortId()}`),

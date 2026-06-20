@@ -10,7 +10,7 @@ import { startHeartbeat }             from './core/heartbeat.js';
 import { Storage }                    from './core/storage.js';
 import { SettlementAdapter }          from './adapter.js';
 import { MODULE_ID, getSettlement }   from './constants.js';
-import { SettlementSheet }            from './settlement-sheet.js';
+import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
@@ -79,6 +79,13 @@ class ClearSettlementsMenu {
         ui.notifications.info(game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.Success'));
       }
     }).catch(() => {});
+    return this;
+  }
+}
+
+class FixtureSheetMenu {
+  async render() {
+    await openWithFixture();
     return this;
   }
 }
@@ -182,6 +189,14 @@ Hooks.once('init', () => {
     hint:       'SettlementBuilder.Settings.ResetCalendar.Hint',
     icon:       'fa-solid fa-calendar-xmark',
     type:       ResetCalendarMenu,
+    restricted: true,
+  });
+  game.settings.registerMenu(MODULE_ID, 'fixtureSheet', {
+    name:       'SettlementBuilder.Settings.FixtureSheet.Name',
+    label:      'SettlementBuilder.Settings.FixtureSheet.Label',
+    hint:       'SettlementBuilder.Settings.FixtureSheet.Hint',
+    icon:       'fa-solid fa-flask-vial',
+    type:       FixtureSheetMenu,
     restricted: true,
   });
 });
