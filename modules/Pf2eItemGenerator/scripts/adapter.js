@@ -140,14 +140,13 @@ export class Pf2eItemAdapter extends SystemAdapter {
     });
   }
 
-  async generate({ formData, key, devMode, creativity = 0.5 }) {
+  async generate({ formData, key, devMode }) {
     const endpoint = devUrl(ITEM_ENDPOINT, devMode);
     const payload  = {
       name:        formData.name,
       level:       formData.level,
       itemType:    formData.itemType,
       description: formData.description,
-      creativity,
     };
 
     const { response, responseText } = await postToN8n(endpoint, payload, key);

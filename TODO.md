@@ -3,6 +3,35 @@
 Work through this list one item per cycle using the instructions in `CYCLE.md`.
 Check off each item when merged.
 
+---
+
+## Quick-start templates (ongoing — one unique template per update)
+
+Every builder ships a **"Quick template…"** dropdown above its description box
+(`<select class="desc-template-select">` in each module's `form.html`). We want
+broad, high-quality coverage across **all** builder types — both **item**
+generators and **NPC / creature** types.
+
+**Cadence:** from now on, **every update adds exactly one new, unique template**
+to one of the builders. Pick the lowest-numbered unchecked entry below, add the
+`<option>` to the relevant `form.html`, tick the box with the PR number, and
+append the *next* template idea to the bottom so the list never runs dry.
+
+- [x] T1. **PF2e Item — "Moonlight elixir"** — a consumable that grants low-light vision + a small Perception bonus. (this update)
+- [ ] T2. **PF2e NPC — "Hedge witch"** — a rural folk-magic caster with curses, charms and herbal remedies.
+- [ ] T3. **D&D 5e Creature — "Goblin shaman"** — a small spellcasting skirmisher with hexes and a totem.
+- [ ] T4. **D&D 5e Item — "Cloak of the cartographer"** — reveals nearby terrain and grants a navigation bonus.
+- [ ] T5. **Hero 6e Character — "Street-level vigilante"** — a grounded, gadget-light crime-fighter.
+- [ ] T6. **PF2e Settlement — "Frontier mining camp"** — a rough, fast-growing boomtown around a fresh ore strike.
+- [ ] T7. **PF2e Item — "Drum of the war-march"** — a percussion instrument that buffs allies on a beat.
+- [ ] T8. **PF2e NPC — "Harbourmaster"** — a shrewd dock official who controls who sails and who pays.
+
+> Each entry is sized to one cycle / one PR. Keep templates flavourful but
+> system-appropriate (no anachronisms, no modern names) and distinct from the
+> ones already in that builder's dropdown.
+
+---
+
 ## User Experience
 - [x] 1. **Retry button on failed history entries** — failed entries show a Retry button that re-submits the same form data without re-typing
 - [x] 2. **Generation progress steps** — replace the spinner with labelled steps ("Sending request… Building spell mapping… Creating actor…")
@@ -24,8 +53,8 @@ Check off each item when merged.
 
 ## Generation Quality
 - [x] 16. **Post-generation quick-edit dialog** — after creation, show a lightweight overlay (name, level, key stats) so users can fix small mistakes before the full sheet opens
-- [x] 17. **Variation slider** — a "Creativity" slider sent as a parameter to the endpoint to control how closely the AI follows the description
-- [x] 18. **Bulk generation** — generate multiple NPCs in one request and create them all as separate history entries
+- [~] 17. **Variation slider** — ~~a "Creativity" slider sent as a parameter to the endpoint~~ **REMOVED** (not a feature we want — pulled from every builder).
+- [~] 18. **Bulk generation** — ~~generate multiple NPCs in one request~~ **REMOVED** (not a feature we want — pulled from the NPC builders).
 - [x] 19. **Level Up for D&D 5e** — add the same CR-change sheet button that PF2e has, for 5e creatures
 - [x] 20. **Image generation for item modules** — optional portrait/icon generation for PF2e and 5e items
 
@@ -61,7 +90,7 @@ item that has all its dependencies satisfied.
 - [ ] 31. **`/webhook/city-builder` endpoint live** — design the n8n workflow, the system prompt, and the JSON-schema-constrained output that maps 1:1 to the `sanitizer.sanitizeSettlement` shape. Cap stores at 12/city, 6/town, 2/village.
 - [ ] 32. **`/webhook/city-builder-dev` mirror** — same endpoint with relaxed rate limits, routed via the existing `devMode` setting.
 - [ ] 33. **Prompt-tuning pass #1** — run 50 generations across biomes & sizes, log failures (names too modern, inventory anachronisms, missing fields). Add few-shot examples until 8/10 generations are usable as-is.
-- [x] 34. **Variation / creativity slider** — float 0–1 sent to the endpoint; low values follow the description tightly, high values riff freely. Default 0.5.
+- [~] 34. **Variation / creativity slider** — ~~float 0–1 sent to the endpoint~~ **REMOVED** (not a feature we want — pulled from the settlement builder).
 - [ ] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
 - [ ] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
 - [ ] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
