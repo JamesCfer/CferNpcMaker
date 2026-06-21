@@ -84,6 +84,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       addDemographic:      function()   { this._onAddDemographic(); },
       removeDemographic:   function(ev) { this._onRemoveDemographic(ev); },
       levelUpActor:        function(ev) { this._onLevelUpActor(ev); },
+      addDistrict:         function()   { this._onAddDistrict(); },
+      removeDistrict:      function(ev) { this._onRemoveDistrict(ev); },
     },
   };
 
@@ -98,6 +100,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.activeStoreTab = null;
     this.showClosed = false;
     this.compactStores = false;
+    this.districtFilter = null;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -107,13 +110,19 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const raw = getSettlement(this.document) || {};
     const settlement = sanitizeSettlement(raw); // fills defaults defensively
 
+    const isGM = !!game.user?.isGM;
+    const showTreasury = !settlement.gmOnly?.treasury || isGM;
+    const showMilitary = !settlement.gmOnly?.military || isGM;
+    const showIncome   = !settlement.gmOnly?.income   || isGM;
+
     // Hide black market stores from non-GM players (#60)
-    if (!game.user?.isGM) {
+    if (!isGM) {
       settlement.stores = settlement.stores.filter(st => !st.isBlackMarket);
     }
 
     const showClosed = this.showClosed;
     const closedStoreCount = settlement.stores.filter(s => s.closed).length;
+    const districtFilter = this.districtFilter;
     const totalDailyWages = (settlement.military?.ranks || []).reduce(
       (sum, r) => sum + Number(r.dailyWage || 0) * Number(r.count || 0), 0
     );
@@ -129,15 +138,18 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const weekdayOptions = weekdayNames.map((n, i) => ({ value: i, label: n }));
 
-    // Group stores by type for the inner tabs; hide closed stores unless toggled.
-    // Decorate each store with its combined effective price multiplier.
+    // Group stores by type for the inner tabs; hide closed/filtered stores as appropriate.
+    // Decorate each store with its combined effective price multiplier and global index.
     const storesByType = {};
-    for (const store of settlement.stores) {
+    for (let gi = 0; gi < settlement.stores.length; gi++) {
+      const store = settlement.stores[gi];
       if (store.closed && !showClosed) continue;
+      if (districtFilter && store.districtId !== districtFilter) continue;
       const key = store.type || 'other';
       const effectiveMul = Math.round((PRICE_TIER_MULS[store.priceTier] ?? 1.0) * (settlement.priceMultiplier || 1) * 100) / 100;
       (storesByType[key] = storesByType[key] || []).push({
         ...store,
+        _globalIndex: gi,
         effectiveMul,
         ownerActor: resolveActor(store.owner?.actorId),
         staff: (store.staff || []).map(p => ({ ...p, resolvedActor: resolveActor(p.actorId) })),
@@ -230,6 +242,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       priceMultiplier: settlement.priceMultiplier,
       sparklineSvg,
       settlementJournals,
+      isGM,
+      showTreasury,
+      showMilitary,
+      showIncome,
+      districts: settlement.districts || [],
+      districtFilter,
     };
   }
 
@@ -237,6 +255,15 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.element.querySelectorAll('[data-settlement-path]').forEach(input => {
       input.addEventListener('change', (ev) => this._writePath(ev.currentTarget));
     });
+
+    // District filter select (in-memory, not persisted)
+    const distFilterEl = this.element.querySelector('[data-district-filter]');
+    if (distFilterEl) {
+      distFilterEl.addEventListener('change', (ev) => {
+        this.districtFilter = ev.currentTarget.value || null;
+        this.render(false);
+      });
+    }
 
     // Drag-drop actor → staff row or owner field (#40)
     this.element.querySelectorAll('.pf2e-staff-name, [data-is-owner]').forEach(input => {
@@ -538,6 +565,32 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = ev.currentTarget?.dataset?.religionId;
     if (!id) return;
     this._patch(s => { s.religions = (s.religions || []).filter(r => r.id !== id); });
+  }
+
+  /* ── districts (#45) ──────────────────────────────────── */
+
+  _onAddDistrict() {
+    this._patch(s => {
+      s.districts = s.districts || [];
+      s.districts.push({
+        id:            `dist-${Math.random().toString(36).slice(2, 10)}`,
+        name:          'New District',
+        descriptor:    '',
+        leaderActorId: null,
+      });
+    });
+  }
+
+  _onRemoveDistrict(ev) {
+    const id = ev.currentTarget?.dataset?.districtId;
+    if (!id) return;
+    this._patch(s => {
+      s.districts = (s.districts || []).filter(d => d.id !== id);
+      (s.stores || []).forEach(st => { if (st.districtId === id) st.districtId = null; });
+    });
+    if (this.districtFilter === id) {
+      this.districtFilter = null;
+    }
   }
 
   /* ── demographics (#69) ────────────────────────────────── */

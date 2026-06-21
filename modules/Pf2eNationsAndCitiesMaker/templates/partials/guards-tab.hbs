@@ -1,3 +1,4 @@
+{{#if showMilitary}}
 <div class="pf2e-guards">
 
   <div class="pf2e-guards-summary">
@@ -53,3 +54,9 @@
   </button>
 
 </div>
+{{else}}
+<div class="pf2e-empty-state">
+  <i class="fa-solid fa-eye-slash"></i>
+  <p>Military information is restricted to the GM.</p>
+</div>
+{{/if}}
