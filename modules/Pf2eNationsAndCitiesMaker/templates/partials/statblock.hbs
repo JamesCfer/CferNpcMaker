@@ -91,6 +91,7 @@
     {{/if}}
   </div>
 
+  {{#if showTreasury}}
   <div class="pf2e-statblock-treasury">
     <h4><i class="fa-solid fa-sack-dollar"></i> Treasury</h4>
     <div class="pf2e-treasury-row">
@@ -100,11 +101,29 @@
       <label>PP <input type="number" min="0" data-settlement-path="treasury.pp" value="{{settlement.treasury.pp}}" /></label>
     </div>
   </div>
-
   {{#if sparklineSvg}}
   <div class="pf2e-treasury-sparkline">
     <label>Treasury GP — last {{settlement.treasuryHistory.length}} days</label>
     {{{sparklineSvg}}}
+  </div>
+  {{/if}}
+  {{/if}}
+
+  {{#if isGM}}
+  <div class="pf2e-gmonly-controls">
+    <span class="pf2e-gmonly-label"><i class="fa-solid fa-eye-slash"></i> GM-only panels</span>
+    <label title="Hide treasury from players">
+      <input type="checkbox" data-settlement-path="gmOnly.treasury" {{#if settlement.gmOnly.treasury}}checked{{/if}} />
+      Treasury
+    </label>
+    <label title="Hide Military tab from players">
+      <input type="checkbox" data-settlement-path="gmOnly.military" {{#if settlement.gmOnly.military}}checked{{/if}} />
+      Military
+    </label>
+    <label title="Hide store income from players">
+      <input type="checkbox" data-settlement-path="gmOnly.income" {{#if settlement.gmOnly.income}}checked{{/if}} />
+      Income
+    </label>
   </div>
   {{/if}}
 

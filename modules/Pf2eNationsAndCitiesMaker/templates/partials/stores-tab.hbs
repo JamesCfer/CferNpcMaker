@@ -16,6 +16,39 @@
       <i class="fa-solid fa-list"></i>
       {{#if compactStores}}Expand{{else}}Compact{{/if}}
     </button>
+    {{#if districts.length}}
+      <select data-district-filter class="pf2e-district-filter-select" title="Filter stores by district">
+        <option value="">— All districts —</option>
+        {{#each districts}}
+          <option value="{{id}}" {{#if (eqStr id ../districtFilter)}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    {{/if}}
+  </div>
+
+  <div class="pf2e-districts-section">
+    <div class="pf2e-districts-header">
+      <span><i class="fa-solid fa-map-location-dot"></i> Districts</span>
+      <button type="button" class="pf2e-icon-btn" data-action="addDistrict" title="Add district">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+    {{#if districts.length}}
+      <ul class="pf2e-districts-list">
+        {{#each districts}}
+          <li class="pf2e-district-row">
+            <input type="text" data-settlement-path="districts.{{@index}}.name"
+                   value="{{name}}" class="pf2e-district-name" placeholder="District name…" />
+            <input type="text" data-settlement-path="districts.{{@index}}.descriptor"
+                   value="{{descriptor}}" class="pf2e-district-descriptor" placeholder="descriptor…" />
+            <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                    data-action="removeDistrict" data-district-id="{{id}}" title="Remove district">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </li>
+        {{/each}}
+      </ul>
+    {{/if}}
   </div>
 
   {{#if storeTabs.length}}
@@ -43,12 +76,14 @@
                 {{#if isBlackMarket}}
                   <span class="pf2e-blackmarket-badge"><i class="fa-solid fa-skull"></i></span>
                 {{/if}}
-                <input type="text" data-settlement-path="stores.{{@index}}.name"
+                <input type="text" data-settlement-path="stores.{{_globalIndex}}.name"
                        value="{{name}}" class="pf2e-store-name-input" />
                 <span class="pf2e-store-type-pill">{{type}}</span>
                 <span class="pf2e-store-tier-pill pf2e-store-tier--{{priceTier}}">{{priceTier}}</span>
                 <span class="pf2e-store-compact-owner">{{owner.name}}</span>
-                <span class="pf2e-store-compact-balance">{{income.balance}} gp</span>
+                {{#if ../../showIncome}}
+                  <span class="pf2e-store-compact-balance">{{income.balance}} gp</span>
+                {{/if}}
                 <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
                         data-action="removeStore" data-store-id="{{id}}" title="Remove store">
                   <i class="fa-solid fa-trash"></i>
@@ -68,20 +103,28 @@
                   {{#if isBlackMarket}}
                     <span class="pf2e-blackmarket-badge"><i class="fa-solid fa-skull"></i> Black Market</span>
                   {{/if}}
-                  <input type="text" data-settlement-path="stores.{{@index}}.name"
+                  <input type="text" data-settlement-path="stores.{{_globalIndex}}.name"
                          value="{{name}}" class="pf2e-store-name-input" />
-                  <select data-settlement-path="stores.{{@index}}.type" class="pf2e-store-type-select">
+                  <select data-settlement-path="stores.{{_globalIndex}}.type" class="pf2e-store-type-select">
                     {{#each ../../storeTypeOptions}}
                       <option value="{{value}}" {{#if (eqStr value ../type)}}selected{{/if}}>{{label}}</option>
                     {{/each}}
                   </select>
-                  <select data-settlement-path="stores.{{@index}}.priceTier" class="pf2e-store-tier-select">
+                  <select data-settlement-path="stores.{{_globalIndex}}.priceTier" class="pf2e-store-tier-select">
                     {{#each ../../priceTierOptions}}
                       <option value="{{value}}" {{#if (eqStr value ../priceTier)}}selected{{/if}}>{{label}}</option>
                     {{/each}}
                   </select>
+                  <select data-settlement-path="stores.{{_globalIndex}}.districtId"
+                          data-nullable-str class="pf2e-store-district-select"
+                          title="Assign to district">
+                    <option value="">— No district —</option>
+                    {{#each ../../districts}}
+                      <option value="{{id}}" {{#if (eqStr id ../districtId)}}selected{{/if}}>{{name}}</option>
+                    {{/each}}
+                  </select>
                   <label class="pf2e-store-blackmarket-label" title="Hidden from players; attracts unrest">
-                    <input type="checkbox" data-settlement-path="stores.{{@index}}.isBlackMarket"
+                    <input type="checkbox" data-settlement-path="stores.{{_globalIndex}}.isBlackMarket"
                            {{#if isBlackMarket}}checked{{/if}} />
                     <i class="fa-solid fa-skull"></i>
                   </label>
@@ -106,7 +149,7 @@
                   <div class="pf2e-store-owner">
                     <label>Owner</label>
                     <div class="pf2e-store-owner-row">
-                      <input type="text" data-settlement-path="stores.{{@index}}.owner.name"
+                      <input type="text" data-settlement-path="stores.{{_globalIndex}}.owner.name"
                              data-is-owner="true" value="{{owner.name}}"
                              title="Drop a PF2e actor here to link them as owner" />
                       {{#if ownerActor}}
@@ -149,14 +192,14 @@
                           <tr class="pf2e-schedule-row{{#if closed}} pf2e-schedule-row--closed{{/if}}">
                             <td class="pf2e-schedule-day-label">{{dayLabel}}</td>
                             <td><input type="text"
-                                  data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.open"
+                                  data-settlement-path="stores.{{../_globalIndex}}.hours.schedule.{{day}}.open"
                                   value="{{open}}" /></td>
                             <td><input type="text"
-                                  data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.close"
+                                  data-settlement-path="stores.{{../_globalIndex}}.hours.schedule.{{day}}.close"
                                   value="{{close}}" /></td>
                             <td class="pf2e-schedule-closed-cell">
                               <input type="checkbox"
-                                     data-settlement-path="stores.{{@../index}}.hours.schedule.{{day}}.closed"
+                                     data-settlement-path="stores.{{../_globalIndex}}.hours.schedule.{{day}}.closed"
                                      {{#if closed}}checked{{/if}} />
                             </td>
                           </tr>
@@ -164,23 +207,25 @@
                       </tbody>
                     </table>
                   </div>
-                  <div class="pf2e-store-income">
-                    <label>Income</label>
-                    <div class="pf2e-store-income-row">
-                      <span>Balance</span>
-                      <input type="number" data-settlement-path="stores.{{@index}}.income.balance"  value="{{income.balance}}" />
-                      <span>gp/day</span>
-                      <input type="number" data-settlement-path="stores.{{@index}}.income.dailyAvg" value="{{income.dailyAvg}}" />
-                      {{#if income.daysInDebt}}
-                        <span class="pf2e-debt-counter" title="Days continuously in debt">
-                          <i class="fa-solid fa-triangle-exclamation"></i> {{income.daysInDebt}}d
-                        </span>
-                      {{/if}}
+                  {{#if ../../showIncome}}
+                    <div class="pf2e-store-income">
+                      <label>Income</label>
+                      <div class="pf2e-store-income-row">
+                        <span>Balance</span>
+                        <input type="number" data-settlement-path="stores.{{_globalIndex}}.income.balance"  value="{{income.balance}}" />
+                        <span>gp/day</span>
+                        <input type="number" data-settlement-path="stores.{{_globalIndex}}.income.dailyAvg" value="{{income.dailyAvg}}" />
+                        {{#if income.daysInDebt}}
+                          <span class="pf2e-debt-counter" title="Days continuously in debt">
+                            <i class="fa-solid fa-triangle-exclamation"></i> {{income.daysInDebt}}d
+                          </span>
+                        {{/if}}
+                      </div>
                     </div>
-                  </div>
+                  {{/if}}
                   <div class="pf2e-store-market-day">
                     <label>Market Day</label>
-                    <select data-settlement-path="stores.{{@index}}.marketWeekday"
+                    <select data-settlement-path="stores.{{_globalIndex}}.marketWeekday"
                             data-nullable-int
                             class="pf2e-store-market-select"
                             title="Income doubles on this weekday">
@@ -205,15 +250,15 @@
                       {{#each staff}}
                         <li class="pf2e-staff-row">
                           <input type="text" class="pf2e-staff-name"
-                                 data-settlement-path="stores.{{@../index}}.staff.{{@index}}.name"
+                                 data-settlement-path="stores.{{../_globalIndex}}.staff.{{@index}}.name"
                                  data-staff-id="{{id}}"
                                  value="{{name}}"
                                  title="Drop a PF2e actor here to link them" />
                           <input type="text" class="pf2e-staff-role"
-                                 data-settlement-path="stores.{{@../index}}.staff.{{@index}}.role"
+                                 data-settlement-path="stores.{{../_globalIndex}}.staff.{{@index}}.role"
                                  value="{{role}}" />
                           <select class="pf2e-staff-shift pf2e-staff-shift--{{shift}}"
-                                  data-settlement-path="stores.{{@../index}}.staff.{{@index}}.shift">
+                                  data-settlement-path="stores.{{../_globalIndex}}.staff.{{@index}}.shift">
                             {{#each ../../../shiftOptions}}
                               <option value="{{value}}" {{#if (eqStr value ../../shift)}}selected{{/if}}>{{label}}</option>
                             {{/each}}
@@ -277,9 +322,9 @@
                       <tbody>
                         {{#each inventory}}
                           <tr>
-                            <td><input type="text"   data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.name"  value="{{name}}" /></td>
-                            <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.stock" value="{{stock}}" /></td>
-                            <td><input type="number" data-settlement-path="stores.{{@../index}}.inventory.{{@index}}.price" value="{{price}}" /></td>
+                            <td><input type="text"   data-settlement-path="stores.{{../_globalIndex}}.inventory.{{@index}}.name"  value="{{name}}" /></td>
+                            <td><input type="number" data-settlement-path="stores.{{../_globalIndex}}.inventory.{{@index}}.stock" value="{{stock}}" /></td>
+                            <td><input type="number" data-settlement-path="stores.{{../_globalIndex}}.inventory.{{@index}}.price" value="{{price}}" /></td>
                             {{#if (neqNum ../effectiveMul 1)}}
                               <td class="pf2e-effective-price">{{mulNum price ../effectiveMul}}</td>
                             {{/if}}

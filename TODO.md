@@ -18,9 +18,9 @@ to one of the builders. Pick the lowest-numbered unchecked entry below, add the
 append the *next* template idea to the bottom so the list never runs dry.
 
 - [x] T1. **PF2e Item — "Moonlight elixir"** — a consumable that grants low-light vision + a small Perception bonus. (this update)
-- [ ] T2. **PF2e NPC — "Hedge witch"** — a rural folk-magic caster with curses, charms and herbal remedies.
-- [ ] T3. **D&D 5e Creature — "Goblin shaman"** — a small spellcasting skirmisher with hexes and a totem.
-- [ ] T4. **D&D 5e Item — "Cloak of the cartographer"** — reveals nearby terrain and grants a navigation bonus.
+- [x] T2. **PF2e NPC — "Hedge witch"** — a rural folk-magic caster with curses, charms and herbal remedies.
+- [x] T3. **D&D 5e Creature — "Goblin shaman"** — a small spellcasting skirmisher with hexes and a totem.
+- [x] T4. **D&D 5e Item — "Cloak of the cartographer"** — reveals nearby terrain and grants a navigation bonus.
 - [ ] T5. **Hero 6e Character — "Street-level vigilante"** — a grounded, gadget-light crime-fighter.
 - [ ] T6. **PF2e Settlement — "Frontier mining camp"** — a rough, fast-growing boomtown around a fresh ore strike.
 - [ ] T7. **PF2e Item — "Drum of the war-march"** — a percussion instrument that buffs allies on a beat.
@@ -103,8 +103,8 @@ item that has all its dependencies satisfied.
 - [x] 42. **Per-store wealth tier** — `priceTier: low|standard|high|luxury` select on each card; multiplies displayed prices and biases item-generator prefill level.
 - [x] 43. **Weekly schedule grid** — replace the single `open/close` pair with a 7-day grid using the calendar's `weekdays` so a shop can be closed on rest-day.
 - [x] 44. **Shift roster as enum** — `shift` becomes `morning|day|evening|night|graveyard`, rendered as colour-coded chips.
-- [ ] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
-- [ ] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
+- [x] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
+- [x] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
 - [ ] 47. **Partial re-render** — switch the sheet to ApplicationV2 PARTS-based rerender so editing one field no longer loses focus.
 - [ ] 48. **Debounced auto-save** — replace `change`-on-blur with debounced auto-save while typing (no extra Save button).
 - [ ] 49. **PDF / Markdown handout export** — header button that renders the settlement as a printable handout (inputs collapsed, statblock-style typography).

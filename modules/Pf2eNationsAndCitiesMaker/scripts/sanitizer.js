@@ -77,11 +77,23 @@ export function sanitizeSettlement(raw, formData = {}) {
       commanderActorId:  s.military?.commanderActorId || null,
       commanderName:     safeString(s.military?.commanderName, ''),
     },
+    districts: Array.isArray(s.districts) ? s.districts.map(d => ({
+      id:            safeString(d?.id, `dist-${shortId()}`),
+      name:          safeString(d?.name, 'New District'),
+      descriptor:    safeString(d?.descriptor, ''),
+      leaderActorId: d?.leaderActorId || null,
+    })) : [],
+    gmOnly: {
+      treasury: !!s.gmOnly?.treasury,
+      military: !!s.gmOnly?.military,
+      income:   !!s.gmOnly?.income,
+    },
     stores: Array.isArray(s.stores) ? s.stores.map(st => ({
-      id:     safeString(st?.id, `shop-${shortId()}`),
-      name:   safeString(st?.name, 'Unnamed Shop'),
-      type:   safeString(st?.type, 'general'),
-      closed: !!st?.closed,
+      id:         safeString(st?.id, `shop-${shortId()}`),
+      name:       safeString(st?.name, 'Unnamed Shop'),
+      type:       safeString(st?.type, 'general'),
+      closed:     !!st?.closed,
+      districtId: (typeof st?.districtId === 'string' && st.districtId) ? st.districtId : null,
       owner: {
         name:    safeString(st?.owner?.name, 'Unknown'),
         actorId: st?.owner?.actorId || null,
