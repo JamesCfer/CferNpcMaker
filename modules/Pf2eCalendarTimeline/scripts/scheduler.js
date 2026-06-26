@@ -14,6 +14,28 @@ export const DEFAULT_CALENDAR = {
                   'Erastus', 'Arodus', 'Rova', 'Lamashan', 'Neth', 'Kuthona'],
 };
 
+export const GREGORIAN_CALENDAR = {
+  monthsPerYear: 12,
+  daysPerMonth:  [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+  weekdays:      ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  monthNames:    ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'],
+};
+
+export const GENERIC_FANTASY_CALENDAR = {
+  monthsPerYear: 10,
+  daysPerMonth:  [36, 36, 36, 36, 36, 36, 36, 36, 36, 36],
+  weekdays:      ['Firstday', 'Secondday', 'Thirdday', 'Fourthday', 'Fifthday'],
+  monthNames:    ['Frostmonth', 'Coldmonth', 'Thawmonth', 'Rainmonth', 'Seedmonth',
+                  'Greenmonth', 'Sunmonth', 'Harvestmonth', 'Leafmonth', 'Darkmonth'],
+};
+
+export const CALENDAR_PRESETS = [
+  { key: 'golarion',        label: 'Golarion (Inner Sea)',    def: DEFAULT_CALENDAR },
+  { key: 'gregorian',       label: 'Gregorian (Earth)',       def: GREGORIAN_CALENDAR },
+  { key: 'generic-fantasy', label: 'Generic Fantasy (10 months, 5-day week)', def: GENERIC_FANTASY_CALENDAR },
+];
+
 export function totalDaysInYear(cal = DEFAULT_CALENDAR) {
   return cal.daysPerMonth.reduce((a, b) => a + b, 0);
 }

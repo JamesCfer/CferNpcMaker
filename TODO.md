@@ -21,10 +21,10 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T2. **PF2e NPC — "Hedge witch"** — a rural folk-magic caster with curses, charms and herbal remedies.
 - [x] T3. **D&D 5e Creature — "Goblin shaman"** — a small spellcasting skirmisher with hexes and a totem.
 - [x] T4. **D&D 5e Item — "Cloak of the cartographer"** — reveals nearby terrain and grants a navigation bonus.
-- [ ] T5. **Hero 6e Character — "Street-level vigilante"** — a grounded, gadget-light crime-fighter.
-- [ ] T6. **PF2e Settlement — "Frontier mining camp"** — a rough, fast-growing boomtown around a fresh ore strike.
-- [ ] T7. **PF2e Item — "Drum of the war-march"** — a percussion instrument that buffs allies on a beat.
-- [ ] T8. **PF2e NPC — "Harbourmaster"** — a shrewd dock official who controls who sails and who pays.
+- [x] T5. **Hero 6e Character — "Street-level vigilante"** — a grounded, gadget-light crime-fighter.
+- [x] T6. **PF2e Settlement — "Frontier mining camp"** — a rough, fast-growing boomtown around a fresh ore strike.
+- [x] T7. **PF2e Item — "Drum of the war-march"** — a percussion instrument that buffs allies on a beat.
+- [x] T8. **PF2e NPC — "Harbourmaster"** — a shrewd dock official who controls who sails and who pays.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -162,9 +162,9 @@ item that has all its dependencies satisfied.
 
 ## G. Calendar features (93–101)
 - [ ] 93. **Custom calendar editor UI** — modal that edits `calendarDef` (months, daysPerMonth, weekdays, monthNames).
-- [ ] 94. **Golarion preset** — pre-built Inner Sea calendar (12 months, 7 weekdays, official month names).
-- [ ] 95. **Gregorian preset** — Earth months / weekdays.
-- [ ] 96. **Generic-fantasy preset** — neutral 10-month cycle, 5-day weeks.
+- [x] 94. **Golarion preset** — pre-built Inner Sea calendar (12 months, 7 weekdays, official month names).
+- [x] 95. **Gregorian preset** — Earth months / weekdays.
+- [x] 96. **Generic-fantasy preset** — neutral 10-month cycle, 5-day weeks.
 - [ ] 97. **Per-day weather roll** — `weather: 'clear|overcast|rain|storm|snow'` derived from biome + month; fires `Pf2eCalendarTimeline.weatherChanged`.
 - [ ] 98. **Season detection** — emit `seasonChanged` when `month` crosses spring/summer/autumn/winter boundaries; surfaced on the calendar header.
 - [ ] 99. **Festival event template** — preset that boosts target settlements' morale and pulls gp from treasuries (cost of festival).

@@ -5,7 +5,7 @@
  */
 
 import { MODULE_ID, getState, patchState } from './state.js';
-import { DEFAULT_CALENDAR, addDays, cmpDate, computeNext,
+import { DEFAULT_CALENDAR, CALENDAR_PRESETS, addDays, cmpDate, computeNext,
          dayOrdinal, weekdayIndex, describeRule, formatDate } from './scheduler.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -34,6 +34,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       addEvent:    function() { this._onAddEvent(); },
       removeEvent: function(ev) { this._onRemoveEvent(ev); },
       saveDate:    function(ev) { this._onSaveDate(ev); },
+      loadPreset:  function(ev) { this._onLoadPreset(ev); },
     },
   };
 
@@ -86,6 +87,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       state, cal,
+      calendarPresets: CALENDAR_PRESETS,
       monthName: cal.monthNames?.[month - 1] || `M${month}`,
       year, month,
       currentLabel: formatDate(current, cal),
@@ -196,6 +198,17 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!id) return;
     await patchState(s => { s.events = (s.events || []).filter(e => e.id !== id); });
     this.render(false);
+  }
+
+  async _onLoadPreset(ev) {
+    const key = this.element.querySelector('[name="calPreset"]')?.value;
+    if (!key) return;
+    const preset = CALENDAR_PRESETS.find(p => p.key === key);
+    if (!preset) return;
+    await patchState(s => { s.calendarDef = foundry.utils.deepClone(preset.def); });
+    this.viewMonth = Math.min(this.viewMonth, preset.def.monthsPerYear);
+    this.render(false);
+    ui.notifications?.info?.(`Calendar preset loaded: ${preset.label}`);
   }
 }
 
