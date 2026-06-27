@@ -4,6 +4,10 @@
     <button type="button" class="pf2e-settlement-btn" data-action="addStore">
       <i class="fa-solid fa-plus"></i> Add Store
     </button>
+    <button type="button" class="pf2e-settlement-btn" data-action="rerollAllStores"
+            title="Replace all stores with a new AI-generated set">
+      <i class="fa-solid fa-dice"></i> Re-roll All Stores
+    </button>
     {{#if closedStoreCount}}
       <button type="button" class="pf2e-settlement-btn{{#if showClosed}} is-active{{/if}}"
               data-action="toggleShowClosed">
@@ -136,6 +140,10 @@
                       <i class="fa-solid fa-door-open"></i> Reopen
                     </button>
                   {{/if}}
+                  <button type="button" class="pf2e-icon-btn"
+                          data-action="rerollStore" data-store-id="{{id}}" title="Re-roll this store">
+                    <i class="fa-solid fa-dice"></i>
+                  </button>
                   <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
                           data-action="removeStore" data-store-id="{{id}}" title="Remove store">
                     <i class="fa-solid fa-trash"></i>
