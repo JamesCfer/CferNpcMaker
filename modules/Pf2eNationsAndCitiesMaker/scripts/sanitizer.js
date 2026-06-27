@@ -175,6 +175,10 @@ export function sanitizeSettlement(raw, formData = {}) {
     },
   };
 
+  const KIND_STORE_CAPS = { city: 12, nation: 12, town: 6, village: 2 };
+  const storeCap = KIND_STORE_CAPS[kind] ?? 6;
+  out.stores = out.stores.slice(0, storeCap);
+
   return out;
 }
 

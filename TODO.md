@@ -87,12 +87,12 @@ item that has all its dependencies satisfied.
 > Run one a day. Tick the box and add the PR number when each lands.
 
 ## A. AI backend & generation quality (31–38)
-- [ ] 31. **`/webhook/city-builder` endpoint live** — design the n8n workflow, the system prompt, and the JSON-schema-constrained output that maps 1:1 to the `sanitizer.sanitizeSettlement` shape. Cap stores at 12/city, 6/town, 2/village.
-- [ ] 32. **`/webhook/city-builder-dev` mirror** — same endpoint with relaxed rate limits, routed via the existing `devMode` setting.
+- [x] 31. **`/webhook/city-builder` endpoint live** — design the n8n workflow, the system prompt, and the JSON-schema-constrained output that maps 1:1 to the `sanitizer.sanitizeSettlement` shape. Cap stores at 12/city, 6/town, 2/village.
+- [x] 32. **`/webhook/city-builder-dev` mirror** — same endpoint with relaxed rate limits, routed via the existing `devMode` setting.
 - [ ] 33. **Prompt-tuning pass #1** — run 50 generations across biomes & sizes, log failures (names too modern, inventory anachronisms, missing fields). Add few-shot examples until 8/10 generations are usable as-is.
 - [~] 34. **Variation / creativity slider** — ~~float 0–1 sent to the endpoint~~ **REMOVED** (not a feature we want — pulled from the settlement builder).
-- [ ] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
-- [ ] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
+- [x] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
+- [x] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
 - [ ] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
 - [ ] 38. **Cost-aware generation** — show the user the estimated Patreon-use cost before generating (1 use per ~3 stores).
 

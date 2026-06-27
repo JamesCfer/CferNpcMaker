@@ -1,0 +1,171 @@
+{
+  "name": "Settlement Builder — city-builder",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "city-builder",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-auth-check",
+      "name": "Validate API Key",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://foundryrelay.dedicated2.com/webhook/oauth/patreon/validate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ key: $('Webhook').item.json.headers['x-builder-key'] ?? '' }) }}"
+      }
+    },
+    {
+      "id": "node-auth-gate",
+      "name": "Auth Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Validate API Key').item.json.ok }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-reject-auth",
+      "name": "Reject Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 401,
+        "responseBody": "={ \"ok\": false, \"message\": \"Unauthorized. Please sign in with Patreon.\" }"
+      }
+    },
+    {
+      "id": "node-build-prompt",
+      "name": "Build System Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 140],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "value": "You are an expert Pathfinder 2e worldbuilder. Generate a settlement JSON object that strictly follows the schema below.\n\nRules:\n- All names must be fantasy-appropriate and period-accurate (no modern words).\n- Store counts: city ≤ 12, town ≤ 6, village ≤ 2.\n- Population, treasury, stats must be numerically consistent with the kind and size.\n- Staff names, owner names, and leader names must feel distinct and culturally fitting.\n- If requestType is 'storesOnly', return only { \"stores\": [...] } and nothing else.\n- If requestType is 'singleStore', return only { \"store\": { ... } } for one store of the requested storeType.\n- Otherwise return the full settlement object.\n\nFull settlement schema:\n{\n  \"kind\": \"city|town|village|nation\",\n  \"size\": \"thorp|hamlet|village|town|city|metropolis\",\n  \"population\": number,\n  \"biome\": string,\n  \"stats\": { \"hp\": number, \"maxHp\": number, \"damageThreshold\": number, \"hardness\": number,\n             \"fortitude\": number, \"reflex\": number, \"will\": number, \"morale\": number, \"unrest\": number },\n  \"treasury\": { \"cp\": number, \"sp\": number, \"gp\": number, \"pp\": number },\n  \"production\": [string],\n  \"government\": { \"type\": string, \"leaderName\": string },\n  \"leadership\": [{ \"title\": string, \"name\": string, \"role\": string }],\n  \"military\": { \"ranks\": [{ \"rank\": string, \"count\": number, \"leaderName\": string, \"dailyWage\": number }],\n                \"totalGuards\": number, \"commanderName\": string },\n  \"stores\": [\n    { \"name\": string, \"type\": \"blacksmith|armorer|weapons|alchemist|tavern|inn|general|grocer|tailor|jeweler|temple|magic|stable|apothecary|bookbinder|other\",\n      \"owner\": { \"name\": string },\n      \"staff\": [{ \"name\": string, \"role\": string, \"shift\": \"morning|day|evening|night|graveyard\" }],\n      \"hours\": { \"open\": \"HH:MM\", \"close\": \"HH:MM\" },\n      \"inventory\": [{ \"name\": string, \"price\": number, \"stock\": number }],\n      \"income\": { \"balance\": number, \"dailyAvg\": number } }\n  ],\n  \"notes\": string\n}\n\nRespond with valid JSON only. No markdown fences, no commentary.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-ai-generate",
+      "name": "AI Generate Settlement",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [1120, 140],
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "modelId": { "__rl": true, "value": "gpt-4o", "mode": "list" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $('Build System Prompt').item.json.systemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ 'Generate a ' + ($('Webhook').item.json.body.kind ?? 'town') + ' called \"' + ($('Webhook').item.json.body.name ?? 'New Settlement') + '\".' + (($('Webhook').item.json.body.description ?? '').length > 0 ? ' Description: ' + $('Webhook').item.json.body.description : '') + (($('Webhook').item.json.body.biome ?? '').length > 0 ? ' Biome: ' + $('Webhook').item.json.body.biome + '.' : '') + ' Size: ' + ($('Webhook').item.json.body.size ?? 'town') + '. Population hint: ' + ($('Webhook').item.json.body.populationHint ?? 1000) + '. Government style: ' + ($('Webhook').item.json.body.governmentHint ?? 'unspecified') + '. Include stores: ' + ($('Webhook').item.json.body.includeStores ?? true) + '. Include military: ' + ($('Webhook').item.json.body.includeMilitary ?? true) + '. Include leadership: ' + ($('Webhook').item.json.body.includeLeadership ?? true) + ($('Webhook').item.json.body.requestType ? '. Request type: ' + $('Webhook').item.json.body.requestType : '') + ($('Webhook').item.json.body.storeType ? '. Store type: ' + $('Webhook').item.json.body.storeType : '') }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 4096
+        }
+      }
+    },
+    {
+      "id": "node-parse-response",
+      "name": "Parse JSON Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 140],
+      "parameters": {
+        "jsCode": "const raw = items[0].json.message?.content ?? items[0].json.choices?.[0]?.message?.content ?? '';\nlet parsed;\ntry {\n  const cleaned = raw.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  return [{ json: { ok: false, message: 'AI returned invalid JSON: ' + e.message, raw } }];\n}\nreturn [{ json: { ok: true, settlement: parsed.kind ? parsed : null, stores: parsed.stores ?? null, store: parsed.store ?? null, _parsed: parsed } }];"
+      }
+    },
+    {
+      "id": "node-respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Parse JSON Response').item.json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validate API Key", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate API Key": {
+      "main": [
+        [{ "node": "Auth Gate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Auth Gate": {
+      "main": [
+        [{ "node": "Build System Prompt", "type": "main", "index": 0 }],
+        [{ "node": "Reject Unauthorized", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build System Prompt": {
+      "main": [
+        [{ "node": "AI Generate Settlement", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Generate Settlement": {
+      "main": [
+        [{ "node": "Parse JSON Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse JSON Response": {
+      "main": [
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "_devNote": "To create the /webhook/city-builder-dev mirror (#32): duplicate this workflow and change the Webhook node 'path' from 'city-builder' to 'city-builder-dev'. The dev variant bypasses the Patreon rate-limit tier check in Validate API Key — omit the Auth Gate and wire Webhook directly to Build System Prompt."
+}

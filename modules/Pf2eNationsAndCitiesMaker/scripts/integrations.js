@@ -5,6 +5,10 @@
  */
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
+import { N8N_BASE, devUrl, isDevMode } from './core/n8n.js';
+import { postToN8n } from './core/adapter.js';
+import { Storage } from './core/storage.js';
+import { sanitizeSettlement } from './sanitizer.js';
 
 function npcModuleActive() {
   return !!game.modules?.get('Pf2eNpcMaker')?.active;
@@ -116,5 +120,114 @@ async function appendItemToStore(doc, storeId, entry) {
     id: `inv-${Math.random().toString(36).slice(2, 10)}`,
     ...entry,
   });
+  await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+}
+
+/* ── store reroll (#35, #36) ─────────────────────────────── */
+
+const CITY_BUILDER_ENDPOINT = `${N8N_BASE}/webhook/city-builder`;
+
+function getKey() {
+  return new Storage(MODULE_ID).getKey() || '';
+}
+
+function stubStoreForType(type) {
+  const names = {
+    blacksmith: 'The Iron Anvil',    armorer: 'Shield & Scale Armory',
+    weapons:    'The Sharpened Edge', alchemist: 'The Alembic',
+    tavern:     'The Crooked Flagon', inn: "The Wayfarer's Rest",
+    general:    "Dower's Goods",      grocer: 'The Market Stall',
+    tailor:     'Needle & Thread',    jeweler: 'The Gilded Gem',
+    temple:     'The Sacred Flame',   magic: 'The Arcane Corner',
+    stable:     'Ironhoof Stables',   apothecary: 'The Healing Touch',
+    bookbinder: 'Scrolls & Tomes',   other: 'Miscellany',
+  };
+  return {
+    name: names[type] || 'New Shop', type,
+    owner: { name: 'Unknown Owner', actorId: null },
+    staff: [],
+    hours: { open: '08:00', close: '20:00', daysClosed: [] },
+    inventory: [],
+    income: { balance: 50, dailyAvg: 6, lastTick: 0 },
+  };
+}
+
+const KIND_STUB_TYPES = {
+  city:    ['blacksmith', 'tavern', 'general', 'alchemist', 'temple'],
+  town:    ['general', 'tavern', 'blacksmith'],
+  village: ['general', 'tavern'],
+  nation:  ['general', 'tavern', 'magic'],
+};
+
+export async function rerollStores(doc) {
+  if (!doc) return;
+  const settlement = getSettlement(doc);
+  if (!settlement) return;
+
+  const endpoint = devUrl(CITY_BUILDER_ENDPOINT, isDevMode(MODULE_ID));
+  const payload = {
+    kind: settlement.kind, size: settlement.size,
+    biome: settlement.biome || '', population: settlement.population || 0,
+    description: settlement.ai?.prompt || '',
+    requestType: 'storesOnly',
+    includeStores: true, includeMilitary: false, includeLeadership: false,
+  };
+
+  let rawStores;
+  try {
+    const { response, responseText } = await postToN8n(endpoint, payload, getKey());
+    let data;
+    try { data = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON: ${e.message}`); }
+    if (!response.ok) throw new Error(data?.message || `Status ${response.status}`);
+    rawStores = data.stores || data.settlement?.stores;
+    if (!Array.isArray(rawStores) || !rawStores.length) throw new Error('No stores in response');
+  } catch (netErr) {
+    if (!(game.settings?.get?.(MODULE_ID, 'allowOfflineStub') ?? true)) throw netErr;
+    console.warn(`[${MODULE_ID}] rerollStores offline stub:`, netErr?.message);
+    rawStores = (KIND_STUB_TYPES[settlement.kind] || KIND_STUB_TYPES.town).map(stubStoreForType);
+  }
+
+  const s = foundry.utils.deepClone(settlement);
+  s.stores = sanitizeSettlement({ ...settlement, stores: rawStores }).stores;
+  await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+}
+
+export async function rerollSingleStore(doc, storeId) {
+  if (!doc) return;
+  const settlement = getSettlement(doc);
+  if (!settlement) return;
+
+  const store = settlement.stores?.find(x => x.id === storeId);
+  if (!store) return;
+
+  const endpoint = devUrl(CITY_BUILDER_ENDPOINT, isDevMode(MODULE_ID));
+  const payload = {
+    kind: settlement.kind, size: settlement.size,
+    biome: settlement.biome || '', population: settlement.population || 0,
+    description: settlement.ai?.prompt || '',
+    requestType: 'singleStore', storeType: store.type,
+    includeStores: true, includeMilitary: false, includeLeadership: false,
+  };
+
+  let rawStore;
+  try {
+    const { response, responseText } = await postToN8n(endpoint, payload, getKey());
+    let data;
+    try { data = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON: ${e.message}`); }
+    if (!response.ok) throw new Error(data?.message || `Status ${response.status}`);
+    rawStore = data.store || data.stores?.[0];
+    if (!rawStore) throw new Error('No store in response');
+  } catch (netErr) {
+    if (!(game.settings?.get?.(MODULE_ID, 'allowOfflineStub') ?? true)) throw netErr;
+    console.warn(`[${MODULE_ID}] rerollSingleStore offline stub:`, netErr?.message);
+    rawStore = stubStoreForType(store.type);
+  }
+
+  const sanitized = sanitizeSettlement({ ...settlement, stores: [rawStore] }).stores[0];
+  if (!sanitized) return;
+
+  const s = foundry.utils.deepClone(settlement);
+  const idx = s.stores.findIndex(x => x.id === storeId);
+  if (idx >= 0) s.stores[idx] = { ...sanitized, id: storeId };
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
 }

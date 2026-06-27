@@ -8,7 +8,8 @@
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement, STORE_TYPES, storeTypeLabel } from './constants.js';
 import { applyDailyTick, applyTax }                                                     from './economy.js';
-import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem }         from './integrations.js';
+import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem,
+         rerollStores, rerollSingleStore }                                               from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
 import { goodsForProduction }                                                           from './trade-goods.js';
 
@@ -76,6 +77,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       saveNotes:           function()   { this._onSaveNotes(); },
       toggleShowClosed:    function()   { this._onToggleShowClosed(); },
       toggleCompactStores: function()   { this._onToggleCompactStores(); },
+      rerollAllStores:     function()   { this._onRerollAllStores(); },
+      rerollStore:         function(ev) { this._onRerollStore(ev); },
       reopenStore:         function(ev) { this._onReopenStore(ev); },
       addTradeRoute:       function()   { this._onAddTradeRoute(); },
       removeTradeRoute:    function(ev) { this._onRemoveTradeRoute(ev); },
@@ -520,6 +523,38 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onToggleCompactStores() {
     this.compactStores = !this.compactStores;
+    this.render(false);
+  }
+
+  async _onRerollAllStores() {
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window:      { title: 'Re-roll All Stores' },
+      content:     '<p>Replace all stores with a newly generated set? Existing store data will be lost.</p>',
+      yes:         { label: 'Re-roll', icon: 'fa-solid fa-dice' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return;
+    ui.notifications?.info?.('Re-rolling stores…');
+    try {
+      await rerollStores(this.document);
+      ui.notifications?.info?.('Stores re-rolled.');
+    } catch (err) {
+      ui.notifications?.error?.(`Store re-roll failed: ${err.message}`);
+    }
+    this.render(false);
+  }
+
+  async _onRerollStore(ev) {
+    const storeId = ev.currentTarget?.dataset?.storeId;
+    if (!storeId) return;
+    ui.notifications?.info?.('Re-rolling store…');
+    try {
+      await rerollSingleStore(this.document, storeId);
+      ui.notifications?.info?.('Store re-rolled.');
+    } catch (err) {
+      ui.notifications?.error?.(`Store re-roll failed: ${err.message}`);
+    }
     this.render(false);
   }
 
