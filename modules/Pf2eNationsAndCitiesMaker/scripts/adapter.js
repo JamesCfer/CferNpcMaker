@@ -98,6 +98,28 @@ export class SettlementAdapter extends SystemAdapter {
     setCheck('[name="includeLeadership"]', entry.includeLeadership);
   }
 
+  /* ── cost hint (#38) ──────────────────────────────────── */
+
+  onFormMount(form) {
+    const hintEl = form.querySelector('#settlement-cost-hint');
+    if (!hintEl) return;
+
+    const STORE_COUNTS = { city: 12, town: 6, village: 2, nation: 3, metropolis: 12, hamlet: 2, thorp: 1 };
+
+    function updateHint() {
+      const kind = form.querySelector('[name="kind"]')?.value || 'town';
+      const includeStores = form.querySelector('[name="includeStores"]')?.checked ?? true;
+      if (!includeStores) { hintEl.textContent = ''; return; }
+      const storeCount = STORE_COUNTS[kind] ?? 6;
+      const credits = Math.ceil(storeCount / 3);
+      hintEl.textContent = `~${credits} Patreon credit${credits === 1 ? '' : 's'} · ${storeCount} stores`;
+    }
+
+    form.querySelector('[name="kind"]')?.addEventListener('change', updateHint);
+    form.querySelector('[name="includeStores"]')?.addEventListener('change', updateHint);
+    updateHint();
+  }
+
   /* ── generation ────────────────────────────────────────── */
 
   async generate({ formData, key, devMode }) {

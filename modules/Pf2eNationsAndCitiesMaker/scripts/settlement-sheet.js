@@ -89,6 +89,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       levelUpActor:        function(ev) { this._onLevelUpActor(ev); },
       addDistrict:         function()   { this._onAddDistrict(); },
       removeDistrict:      function(ev) { this._onRemoveDistrict(ev); },
+      exportHandout:       function()   { this._onExportHandout(); },
     },
   };
 
@@ -256,7 +257,13 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender() {
     this.element.querySelectorAll('[data-settlement-path]').forEach(input => {
-      input.addEventListener('change', (ev) => this._writePath(ev.currentTarget));
+      const tag  = input.tagName.toLowerCase();
+      const type = input.getAttribute('type')?.toLowerCase();
+      if (tag === 'select' || type === 'checkbox') {
+        input.addEventListener('change', (ev) => this._writePath(ev.currentTarget));
+      } else {
+        input.addEventListener('input', (ev) => this._scheduleAutoSave(ev.currentTarget));
+      }
     });
 
     // District filter select (in-memory, not persisted)
@@ -300,6 +307,23 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     else if ('nullableInt' in input.dataset) value = value === '' ? null : Number(value);
     else if ('nullableStr' in input.dataset) value = value === '' ? null : value;
     this._patch(s => foundry.utils.setProperty(s, path, value));
+  }
+
+  _scheduleAutoSave(input) {
+    clearTimeout(this._autosaveTimer);
+    this._autosaveTimer = setTimeout(() => this._writePathSilent(input), 400);
+  }
+
+  async _writePathSilent(input) {
+    const path = input.dataset.settlementPath;
+    if (!path) return;
+    let value = input.value;
+    if (input.type === 'number') value = Number(value);
+    else if ('nullableInt' in input.dataset) value = value === '' ? null : Number(value);
+    else if ('nullableStr' in input.dataset) value = value === '' ? null : value;
+    const cur = foundry.utils.deepClone(getSettlement(this.document) || {});
+    foundry.utils.setProperty(cur, path, value);
+    await this.document.setFlag(FLAG_SCOPE, FLAG_KEY, cur);
   }
 
   /* ── tab actions ───────────────────────────────────────── */
@@ -710,6 +734,92 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         stock:  1,
       });
     });
+  }
+
+  /* ── handout export (#49) ─────────────────────────────── */
+
+  _onExportHandout() {
+    const raw  = getSettlement(this.document) || {};
+    const s    = sanitizeSettlement(raw);
+    const name = this.document.name || 'Settlement';
+
+    const lines = [];
+    lines.push(`# ${name}`);
+    lines.push('');
+    lines.push(`**Kind:** ${s.kind}  ·  **Size:** ${s.size}  ·  **Population:** ${s.population.toLocaleString()}`);
+    if (s.biome) lines.push(`**Biome:** ${s.biome}`);
+    if (s.government?.type)       lines.push(`**Government:** ${s.government.type}`);
+    if (s.government?.leaderName) lines.push(`**Leader:** ${s.government.leaderName}`);
+    lines.push('');
+
+    lines.push('## Stats');
+    lines.push(`- HP: ${s.stats.hp} / ${s.stats.maxHp}  (DT ${s.stats.damageThreshold}, Hardness ${s.stats.hardness})`);
+    lines.push(`- Morale: ${s.stats.morale}%  ·  Unrest: ${s.stats.unrest}%`);
+    lines.push(`- Fort: +${s.stats.fortitude}  Ref: +${s.stats.reflex}  Will: +${s.stats.will}`);
+    lines.push('');
+
+    const { gp, sp, cp, pp } = s.treasury;
+    if (gp || sp || cp || pp) {
+      lines.push('## Treasury');
+      const parts = [];
+      if (pp) parts.push(`${pp} pp`);
+      if (gp) parts.push(`${gp} gp`);
+      if (sp) parts.push(`${sp} sp`);
+      if (cp) parts.push(`${cp} cp`);
+      lines.push(parts.join('  ·  '));
+      lines.push('');
+    }
+
+    const activeStores = (s.stores || []).filter(st => !st.closed);
+    if (activeStores.length) {
+      lines.push('## Stores');
+      for (const store of activeStores) {
+        lines.push(`### ${store.name} (${store.type})`);
+        if (store.owner?.name) lines.push(`**Owner:** ${store.owner.name}`);
+        if (store.income?.dailyAvg) lines.push(`**Daily avg:** ${store.income.dailyAvg} gp`);
+        if (store.inventory?.length) {
+          lines.push('**Inventory:**');
+          for (const item of store.inventory) {
+            lines.push(`- ${item.name}: ${item.price} gp (×${item.stock})`);
+          }
+        }
+      }
+      lines.push('');
+    }
+
+    if (s.leadership?.length) {
+      lines.push('## Leadership');
+      for (const l of s.leadership) {
+        lines.push(`- **${l.title}:** ${l.name}${l.role ? `  —  ${l.role}` : ''}`);
+      }
+      lines.push('');
+    }
+
+    const ranks = s.military?.ranks || [];
+    if (ranks.length) {
+      lines.push('## Military');
+      for (const r of ranks) {
+        lines.push(`- ${r.rank}: ${r.count}${r.leaderName ? `  (${r.leaderName})` : ''}`);
+      }
+      lines.push('');
+    }
+
+    if (s.notes) {
+      lines.push('## Notes');
+      lines.push(s.notes.trim());
+      lines.push('');
+    }
+
+    const md   = lines.join('\n');
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${name.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'settlement'}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   /* ── misc ──────────────────────────────────────────────── */
