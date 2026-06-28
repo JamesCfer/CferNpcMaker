@@ -94,7 +94,7 @@ item that has all its dependencies satisfied.
 - [x] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
 - [x] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
 - [ ] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
-- [ ] 38. **Cost-aware generation** — show the user the estimated Patreon-use cost before generating (1 use per ~3 stores).
+- [x] 38. **Cost-aware generation** — show the user the estimated Patreon-use cost before generating (1 use per ~3 stores).
 
 ## B. Settlement sheet UX & polish (39–50)
 - [x] 39. **Inline NPC chip** — when `staff.actorId` (or `owner.actorId`) is set, render the actor's portrait + level + a Level-Up button inline instead of a bare icon.
@@ -106,8 +106,8 @@ item that has all its dependencies satisfied.
 - [x] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
 - [x] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
 - [ ] 47. **Partial re-render** — switch the sheet to ApplicationV2 PARTS-based rerender so editing one field no longer loses focus.
-- [ ] 48. **Debounced auto-save** — replace `change`-on-blur with debounced auto-save while typing (no extra Save button).
-- [ ] 49. **PDF / Markdown handout export** — header button that renders the settlement as a printable handout (inputs collapsed, statblock-style typography).
+- [x] 48. **Debounced auto-save** — replace `change`-on-blur with debounced auto-save while typing (no extra Save button).
+- [x] 49. **PDF / Markdown handout export** — header button that renders the settlement as a printable handout (inputs collapsed, statblock-style typography).
 - [x] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.
 
 ## C. Economy depth (51–62)
