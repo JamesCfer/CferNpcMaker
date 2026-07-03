@@ -3,16 +3,21 @@
  * Wraps a single 'state' setting containing currentDate, calendarDef, events.
  */
 
-import { DEFAULT_CALENDAR } from './scheduler.js';
+import { DEFAULT_CALENDAR, seasonForMonth, rollWeather } from './scheduler.js';
 
 export const MODULE_ID = 'Pf2eCalendarTimeline';
 export const STATE_KEY = 'state';
 
 export function defaultState() {
+  const currentDate = { year: 4725, month: 6, day: 1, hour: 8 };
+  const season = seasonForMonth(currentDate.month, DEFAULT_CALENDAR);
   return {
-    currentDate: { year: 4725, month: 6, day: 1, hour: 8 },
+    currentDate,
     calendarDef: DEFAULT_CALENDAR,
     events: [],
+    biome: 'temperate',
+    season,
+    weather: rollWeather('temperate', season),
   };
 }
 

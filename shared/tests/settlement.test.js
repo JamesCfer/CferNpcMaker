@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeSettlement }  from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
-import { computeNext, DEFAULT_CALENDAR } from '../../modules/Pf2eCalendarTimeline/scripts/scheduler.js';
+import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
+         seasonForMonth, rollWeather } from '../../modules/Pf2eCalendarTimeline/scripts/scheduler.js';
 import { applyDailyTick }      from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
 import { CURRENT_SCHEMA_VERSION } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
 
@@ -83,6 +84,37 @@ describe('computeNext', () => {
 
   it('defaults to day unit for unknown unit', () => {
     expect(computeNext({ every: 3, unit: 'unknown' }, from)).toEqual(computeNext({ every: 3, unit: 'day' }, from));
+  });
+});
+
+describe('seasonForMonth', () => {
+  it('assigns the four seasons across a 12-month calendar', () => {
+    expect(seasonForMonth(1, DEFAULT_CALENDAR)).toBe('spring');
+    expect(seasonForMonth(4, DEFAULT_CALENDAR)).toBe('summer');
+    expect(seasonForMonth(7, DEFAULT_CALENDAR)).toBe('autumn');
+    expect(seasonForMonth(10, DEFAULT_CALENDAR)).toBe('winter');
+  });
+
+  it('scales to calendars with a different month count', () => {
+    expect(seasonForMonth(1, GENERIC_FANTASY_CALENDAR)).toBe('spring');
+    expect(seasonForMonth(9, GENERIC_FANTASY_CALENDAR)).toBe('winter');
+  });
+});
+
+describe('rollWeather', () => {
+  it('always returns an option from the biome/season table', () => {
+    for (let i = 0; i < 20; i++) {
+      const w = rollWeather('arctic', 'winter', () => i / 20);
+      expect(['clear', 'overcast', 'rain', 'storm', 'snow']).toContain(w);
+    }
+  });
+
+  it('is deterministic for a fixed rng', () => {
+    expect(rollWeather('temperate', 'summer', () => 0)).toBe(rollWeather('temperate', 'summer', () => 0));
+  });
+
+  it('falls back to the temperate table for an unknown biome', () => {
+    expect(rollWeather('lunar', 'spring', () => 0)).toBe(rollWeather('temperate', 'spring', () => 0));
   });
 });
 

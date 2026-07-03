@@ -138,3 +138,47 @@ export function formatDate(date, cal = DEFAULT_CALENDAR) {
   const m = cal.monthNames?.[date.month - 1] || `M${date.month}`;
   return `${m} ${date.day}, ${date.year}`;
 }
+
+export const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+
+/** Quarter-of-the-year season, scaled to any monthsPerYear so custom calendars still get 4 seasons. */
+export function seasonForMonth(month, cal = DEFAULT_CALENDAR) {
+  const idx = Math.floor(((month - 1) / cal.monthsPerYear) * SEASONS.length) % SEASONS.length;
+  return SEASONS[idx];
+}
+
+export const BIOMES = ['temperate', 'arid', 'coastal', 'arctic'];
+
+const WEATHER_BY_BIOME = {
+  temperate: {
+    spring: ['clear', 'overcast', 'rain', 'rain', 'overcast'],
+    summer: ['clear', 'clear', 'overcast', 'storm'],
+    autumn: ['overcast', 'rain', 'clear', 'storm'],
+    winter: ['overcast', 'snow', 'snow', 'clear'],
+  },
+  arid: {
+    spring: ['clear', 'clear', 'overcast'],
+    summer: ['clear', 'clear', 'clear', 'storm'],
+    autumn: ['clear', 'overcast', 'clear'],
+    winter: ['clear', 'overcast', 'clear'],
+  },
+  coastal: {
+    spring: ['overcast', 'rain', 'clear'],
+    summer: ['clear', 'overcast', 'storm'],
+    autumn: ['rain', 'storm', 'overcast'],
+    winter: ['rain', 'overcast', 'storm', 'snow'],
+  },
+  arctic: {
+    spring: ['snow', 'overcast', 'clear'],
+    summer: ['clear', 'overcast', 'rain'],
+    autumn: ['snow', 'overcast', 'clear'],
+    winter: ['snow', 'snow', 'storm', 'clear'],
+  },
+};
+
+/** Weighted-by-repetition weather roll for a biome + season. `rng` is injectable for tests. */
+export function rollWeather(biome, season, rng = Math.random) {
+  const table = WEATHER_BY_BIOME[biome] || WEATHER_BY_BIOME.temperate;
+  const options = table[season] || table.spring;
+  return options[Math.floor(rng() * options.length)];
+}

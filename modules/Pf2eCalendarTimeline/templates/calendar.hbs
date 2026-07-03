@@ -17,12 +17,20 @@
       <button type="button" data-action="loadPreset" class="pf2e-cal-preset-btn">
         <i class="fa-solid fa-calendar-check"></i> Load preset
       </button>
+      <select name="calBiome" class="pf2e-cal-biome-select" title="Biome (drives weather rolls)">
+        {{#each biomes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{value}}</option>{{/each}}
+      </select>
+      <button type="button" data-action="changeBiome" class="pf2e-cal-preset-btn">
+        <i class="fa-solid fa-mountain-sun"></i> Set biome
+      </button>
     </div>
   </div>
 
   <div class="pf2e-calendar-current">
     <div class="pf2e-cal-current-label">
       <strong>Today:</strong> {{currentLabel}} <span class="pf2e-cal-weekday">({{currentWeekday}})</span>
+      <span class="pf2e-cal-pill pf2e-cal-pill--accent" title="Season"><i class="fa-solid fa-leaf"></i> {{seasonLabel}}</span>
+      <span class="pf2e-cal-pill" title="Weather"><i class="fa-solid {{weatherIcon}}"></i> {{weatherLabel}}</span>
     </div>
     <div class="pf2e-cal-current-edit">
       <label>Y <input type="number" name="curYear"  value="{{state.currentDate.year}}"  /></label>
