@@ -5,8 +5,14 @@
  */
 
 import { MODULE_ID, getState, patchState } from './state.js';
-import { DEFAULT_CALENDAR, CALENDAR_PRESETS, addDays, cmpDate, computeNext,
-         dayOrdinal, weekdayIndex, describeRule, formatDate } from './scheduler.js';
+import { DEFAULT_CALENDAR, CALENDAR_PRESETS, BIOMES, addDays, cmpDate, computeNext,
+         dayOrdinal, weekdayIndex, describeRule, formatDate,
+         seasonForMonth, rollWeather } from './scheduler.js';
+
+const WEATHER_ICONS = {
+  clear: 'fa-sun', overcast: 'fa-cloud', rain: 'fa-cloud-rain',
+  storm: 'fa-cloud-bolt', snow: 'fa-snowflake',
+};
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -35,6 +41,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       removeEvent: function(ev) { this._onRemoveEvent(ev); },
       saveDate:    function(ev) { this._onSaveDate(ev); },
       loadPreset:  function(ev) { this._onLoadPreset(ev); },
+      changeBiome: function(ev) { this._onChangeBiome(ev); },
     },
   };
 
@@ -85,6 +92,10 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
           .join(', '),
       }));
 
+    const biome = state.biome || 'temperate';
+    const season = state.season || seasonForMonth(current.month, cal);
+    const weather = state.weather || 'clear';
+
     return {
       state, cal,
       calendarPresets: CALENDAR_PRESETS,
@@ -96,6 +107,12 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       taxTypes: TAX_TYPES,
       settlementJournals,
       upcoming,
+      biomes: BIOMES.map(b => ({ value: b, selected: b === biome })),
+      season,
+      seasonLabel: season.charAt(0).toUpperCase() + season.slice(1),
+      weather,
+      weatherLabel: weather.charAt(0).toUpperCase() + weather.slice(1),
+      weatherIcon: WEATHER_ICONS[weather] || 'fa-cloud-question',
     };
   }
 
@@ -129,7 +146,14 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ev.nextRun = nextRun;
     }
 
+    const biome = cur.biome || 'temperate';
+    const fromSeason = seasonForMonth(fromDate.month, cal);
+    const toSeason   = seasonForMonth(toDate.month, cal);
+    const weather    = rollWeather(biome, toSeason);
+
     cur.currentDate = toDate;
+    cur.season  = toSeason;
+    cur.weather = weather;
     await game.settings.set(MODULE_ID, 'state', cur);
 
     Hooks.callAll('Pf2eCalendarTimeline.dayAdvanced', {
@@ -138,6 +162,14 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const ev of fired) {
       Hooks.callAll('Pf2eCalendarTimeline.eventFired', ev);
     }
+    if (toSeason !== fromSeason) {
+      Hooks.callAll('Pf2eCalendarTimeline.seasonChanged', {
+        season: toSeason, previousSeason: fromSeason, currentDate: toDate,
+      });
+    }
+    Hooks.callAll('Pf2eCalendarTimeline.weatherChanged', {
+      weather, season: toSeason, biome, currentDate: toDate,
+    });
     ui.notifications?.info?.(`Advanced ${days} day${days === 1 ? '' : 's'} → ${formatDate(toDate, cal)}. ${fired.length} event(s) fired.`);
     this.viewYear  = toDate.year;
     this.viewMonth = toDate.month;
@@ -197,6 +229,13 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = ev.currentTarget?.dataset?.eventId;
     if (!id) return;
     await patchState(s => { s.events = (s.events || []).filter(e => e.id !== id); });
+    this.render(false);
+  }
+
+  async _onChangeBiome(ev) {
+    const biome = this.element.querySelector('[name="calBiome"]')?.value;
+    if (!biome) return;
+    await patchState(s => { s.biome = biome; });
     this.render(false);
   }
 
