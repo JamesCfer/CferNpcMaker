@@ -237,16 +237,30 @@ export async function applyTax(doc, payload = {}) {
 }
 
 /**
- * Apply a festival event — reduces unrest by 1 (#54).
+ * Apply a festival event — boosts morale, eases unrest, and costs gp from
+ * the treasury to throw (#54, #99).
  *
  * @param {JournalEntry} doc
+ * @param {{ moraleBoost:number, unrestReduction:number, gpCost:number }} payload
  */
-export async function applyFestival(doc) {
+export async function applyFestival(doc, payload = {}) {
   if (!doc) return;
+  const moraleBoost     = Math.max(0, Number(payload.moraleBoost)     || 10);
+  const unrestReduction = Math.max(0, Number(payload.unrestReduction) || 1);
+  const gpCost          = Math.max(0, Number(payload.gpCost)          || 0);
   const s = foundry.utils.deepClone(getSettlement(doc) || {});
   s.stats = s.stats || {};
-  s.stats.unrest = Math.max(0, (Number(s.stats.unrest) || 0) - 1);
+  s.stats.morale = Math.min(100, (Number(s.stats.morale) || 0) + moraleBoost);
+  s.stats.unrest = Math.max(0, (Number(s.stats.unrest) || 0) - unrestReduction);
+  s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+  s.treasury.gp = Math.max(-9_999_999, (s.treasury.gp || 0) - gpCost);
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+  ChatMessage.create({
+    content: `<h3><i class="fa-solid fa-champagne-glasses"></i> Festival in ${doc.name}!</h3>
+      <p>Morale rises by <strong>${moraleBoost}</strong> and unrest eases by <strong>${unrestReduction}</strong>.
+      The revelry costs the treasury <strong>${gpCost.toLocaleString()}</strong> gp.</p>`,
+    whisper: gmWhisper(),
+  }).catch(() => {});
 }
 
 /**

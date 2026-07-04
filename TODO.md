@@ -26,7 +26,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T7. **PF2e Item — "Drum of the war-march"** — a percussion instrument that buffs allies on a beat.
 - [x] T8. **PF2e NPC — "Harbourmaster"** — a shrewd dock official who controls who sails and who pays.
 - [x] T9. **D&D 5e Creature — "Barrow wight"** — an undead mound-guardian that drains strength and raises skeletal minions. (#96)
-- [ ] T10. **D&D 5e Item — "Everburning lantern"** — a lantern that never needs oil, banishes mundane shadows in its radius, and can be focused to reveal invisible creatures for a short time.
+- [x] T10. **D&D 5e Item — "Everburning lantern"** — a lantern that never needs oil, banishes mundane shadows in its radius, and can be focused to reveal invisible creatures for a short time.
+- [ ] T11. **Hero 6e Character — "Corporate fixer"** — a morally-grey operator who brokers jobs, favours, and gear between supers and syndicates.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -169,7 +170,7 @@ item that has all its dependencies satisfied.
 - [x] 96. **Generic-fantasy preset** — neutral 10-month cycle, 5-day weeks.
 - [x] 97. **Per-day weather roll** — `weather: 'clear|overcast|rain|storm|snow'` derived from biome + month; fires `Pf2eCalendarTimeline.weatherChanged`. (#96)
 - [x] 98. **Season detection** — emit `seasonChanged` when `month` crosses spring/summer/autumn/winter boundaries; surfaced on the calendar header. (#96)
-- [ ] 99. **Festival event template** — preset that boosts target settlements' morale and pulls gp from treasuries (cost of festival).
+- [x] 99. **Festival event template** — preset that boosts target settlements' morale and pulls gp from treasuries (cost of festival).
 - [ ] 100. **Travel-narration helper** — "Advance with travel" button: enter days + party size, fires `inTransit` so other modules can drain rations.
 - [ ] 101. **Click a day to inspect events** — popover listing every event scheduled for that day with quick edit / cancel buttons.
 
