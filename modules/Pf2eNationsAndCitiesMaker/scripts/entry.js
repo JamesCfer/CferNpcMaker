@@ -258,7 +258,7 @@ Hooks.on('Pf2eCalendarTimeline.eventFired', async (event = {}) => {
       const j = game.journal?.get(id);
       if (!j) continue;
       if (event.kind === 'tax')      await applyTax(j, event.payload);
-      if (event.kind === 'festival') await applyFestival(j);
+      if (event.kind === 'festival') await applyFestival(j, event.payload);
       if (event.kind === 'plague')   await applyPlague(j, event.payload);
       if (event.kind === 'famine')   await applyFamine(j, event.payload);
     }

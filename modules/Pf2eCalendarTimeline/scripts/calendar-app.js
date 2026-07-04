@@ -214,13 +214,24 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const rule = { every, unit };
     if (unit === 'month') rule.dayOfMonth = dayOfMonth;
     if (unit === 'year')  { rule.month = month; rule.day = day; }
+
     const event = {
       id: foundry.utils.randomID(12),
-      label, kind: 'tax',
+      label,
       rule,
       nextRun: computeNext(rule, cur.currentDate, cal),
-      payload: { taxType, ratePct, targetSettlementIds: targets },
     };
+    // "Festival / payout" fires the dedicated festival handler (morale + gp
+    // cost) instead of the generic tax collector, so it needs its own kind.
+    if (taxType === 'festival') {
+      const gpCost      = Math.max(0, Number(root.querySelector('[name="evFestivalCost"]').value)  || 0);
+      const moraleBoost = Math.max(0, Number(root.querySelector('[name="evFestivalBoost"]').value) || 0);
+      event.kind = 'festival';
+      event.payload = { gpCost, moraleBoost, targetSettlementIds: targets };
+    } else {
+      event.kind = 'tax';
+      event.payload = { taxType, ratePct, targetSettlementIds: targets };
+    }
     await patchState(s => { s.events = [...(s.events || []), event]; });
     this.render(false);
   }

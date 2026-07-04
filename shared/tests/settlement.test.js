@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { sanitizeSettlement }  from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
 import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
          seasonForMonth, rollWeather } from '../../modules/Pf2eCalendarTimeline/scripts/scheduler.js';
-import { applyDailyTick }      from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
+import { applyDailyTick, applyFestival } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
 import { CURRENT_SCHEMA_VERSION } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
 
 describe('sanitizeSettlement defaults', () => {
@@ -206,5 +206,53 @@ describe('applyDailyTick production credit', () => {
     const doc = makeDocWithProduction(['grain', 'livestock'], 0);
     await applyDailyTick(doc, 1);
     expect(doc.getStored().treasury.gp).toBe(0);
+  });
+});
+
+describe('applyFestival', () => {
+  globalThis.ChatMessage = { create: async () => {} };
+  globalThis.game = { users: [] };
+
+  function makeDoc(morale, unrest, gp) {
+    const settlement = {
+      _schemaVersion: CURRENT_SCHEMA_VERSION,
+      stats: { morale, unrest },
+      treasury: { cp: 0, sp: 0, gp, pp: 0 },
+    };
+    let stored = settlement;
+    return {
+      name: 'Test Town',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('boosts morale and eases unrest by the payload amounts', async () => {
+    const doc = makeDoc(50, 20, 500);
+    await applyFestival(doc, { moraleBoost: 15, unrestReduction: 4, gpCost: 100 });
+    expect(doc.getStored().stats.morale).toBe(65);
+    expect(doc.getStored().stats.unrest).toBe(16);
+  });
+
+  it('drains the gp cost from the treasury', async () => {
+    const doc = makeDoc(50, 20, 500);
+    await applyFestival(doc, { gpCost: 300 });
+    expect(doc.getStored().treasury.gp).toBe(200);
+  });
+
+  it('clamps morale at 100 and unrest at 0', async () => {
+    const doc = makeDoc(95, 2, 100);
+    await applyFestival(doc, { moraleBoost: 20, unrestReduction: 10, gpCost: 0 });
+    expect(doc.getStored().stats.morale).toBe(100);
+    expect(doc.getStored().stats.unrest).toBe(0);
+  });
+
+  it('defaults to a 10 morale boost and 1 unrest reduction with no cost', async () => {
+    const doc = makeDoc(50, 20, 500);
+    await applyFestival(doc, {});
+    expect(doc.getStored().stats.morale).toBe(60);
+    expect(doc.getStored().stats.unrest).toBe(19);
+    expect(doc.getStored().treasury.gp).toBe(500);
   });
 });

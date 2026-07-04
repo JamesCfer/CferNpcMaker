@@ -80,6 +80,7 @@
                 <span class="pf2e-cal-pill">{{ruleLabel}}</span>
                 <span class="pf2e-cal-pill pf2e-cal-pill--accent">{{whenLabel}}</span>
                 {{#if payload.ratePct}}<span class="pf2e-cal-pill">{{payload.taxType}} @ {{payload.ratePct}}%</span>{{/if}}
+                {{#if payload.moraleBoost}}<span class="pf2e-cal-pill">Festival: +{{payload.moraleBoost}} morale, -{{payload.gpCost}} gp</span>{{/if}}
               </div>
               {{#if targetLabel}}
                 <div class="pf2e-cal-event-targets">→ {{targetLabel}}</div>
@@ -100,6 +101,8 @@
           </select>
         </label>
         <label>Rate (%) <input type="number" name="evRate" min="0" max="100" value="5" /></label>
+        <label>Festival cost (gp) <input type="number" name="evFestivalCost" min="0" value="100" /></label>
+        <label>Festival morale boost <input type="number" name="evFestivalBoost" min="0" max="100" value="10" /></label>
         <div class="pf2e-cal-rule">
           <label>Repeat
             <select name="evUnit">
