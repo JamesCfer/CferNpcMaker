@@ -220,6 +220,41 @@ Hooks.on('renderJournalSheet', (app, html) => {
   }
 });
 
+// Reverse-link (#110): NPCs generated through a settlement bridge carry a
+// homeSettlementId flag (set in integrations.js). Show a button on their
+// actor sheet that jumps back to the settlement journal.
+function injectHomeSettlementLink(app, html) {
+  const actor = app?.actor || app?.document;
+  const homeId = actor?.getFlag?.(MODULE_ID, 'homeSettlementId');
+  if (!homeId) return;
+
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root || root.querySelector('.settlement-builder-home-link')) return;
+
+  const anchor = root.querySelector('.sheet-header .tags') || root.querySelector('.sheet-header') || root.querySelector('header');
+  if (!anchor) return;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'settlement-builder-home-link';
+  btn.innerHTML = '<i class="fa-solid fa-house"></i> Open Home Settlement';
+  btn.title = 'Open the settlement this NPC was generated for';
+  btn.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const journal = game.journal?.get(homeId);
+    if (journal) journal.sheet.render(true);
+    else ui.notifications?.warn('The home settlement for this NPC no longer exists.');
+  });
+  anchor.appendChild(btn);
+}
+
+Hooks.on('renderActorSheetPF2e', injectHomeSettlementLink);
+Hooks.on('renderActorSheet', (app, html) => {
+  if (game.system?.id !== 'pf2e') return;
+  injectHomeSettlementLink(app, html);
+});
+
 function getCurrentWeekday() {
   try {
     const state = game.settings.get('Pf2eCalendarTimeline', 'state');

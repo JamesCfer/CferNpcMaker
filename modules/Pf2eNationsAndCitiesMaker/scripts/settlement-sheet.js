@@ -9,7 +9,7 @@
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement, STORE_TYPES, storeTypeLabel } from './constants.js';
 import { applyDailyTick, applyTax }                                                     from './economy.js';
 import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem,
-         rerollStores, rerollSingleStore }                                               from './integrations.js';
+         rerollStores, rerollSingleStore, tagHomeSettlement }                             from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
 import { goodsForProduction }                                                           from './trade-goods.js';
 
@@ -500,6 +500,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       description: `${leader.title || 'Leader'} of ${this.document.name}. ${leader.role || ''}`.trim(),
       onCreate: (actor) => {
         this._patch(s => { if (s.leadership?.[idx]) s.leadership[idx].actorId = actor.id; });
+        tagHomeSettlement(actor, this.document);
       },
     });
   }
@@ -534,6 +535,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
           s.military.commanderActorId = actor.id;
           s.military.commanderName    = actor.name;
         });
+        tagHomeSettlement(actor, this.document);
       },
     });
   }
