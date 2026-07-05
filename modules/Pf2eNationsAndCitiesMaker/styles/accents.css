@@ -26,3 +26,22 @@
 .application.npc-builder .input-with-button .btn-roll-name:hover { background: #ecdcb8; }
 
 .application.npc-builder .settlement-checks { flex-wrap: wrap; gap: 1em; }
+
+/* ── Sheet-injected reverse-link button (#110) ───────────── */
+.settlement-builder-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.5em;
+  border: 1px solid #6b4a14;
+  border-radius: 3px;
+  background: #9b6923;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.78em;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: filter 0.12s;
+}
+.settlement-builder-home-link:hover { filter: brightness(1.15); }

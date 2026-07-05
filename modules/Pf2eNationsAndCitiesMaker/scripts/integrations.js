@@ -44,12 +44,26 @@ export function generateStaffNpc({ settlementDoc, storeId, staff, level = 1, onC
     onCreate: async (actor) => {
       try {
         await attachActorToStaff(settlementDoc, storeId, staff?.id, actor.id);
+        await tagHomeSettlement(actor, settlementDoc);
         if (typeof onCreate === 'function') onCreate(actor);
       } catch (err) {
         console.error(`[${MODULE_ID}] failed to attach actor to staff`, err);
       }
     },
   });
+}
+
+/**
+ * Tag an NPC created through a settlement bridge with the settlement it
+ * belongs to, so its actor sheet can link back. (#109, #110)
+ */
+export async function tagHomeSettlement(actor, settlementDoc) {
+  if (!actor || !settlementDoc) return;
+  try {
+    await actor.setFlag(MODULE_ID, 'homeSettlementId', settlementDoc.id);
+  } catch (err) {
+    console.error(`[${MODULE_ID}] failed to tag home settlement`, err);
+  }
 }
 
 /**

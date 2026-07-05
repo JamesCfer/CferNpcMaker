@@ -27,7 +27,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T8. **PF2e NPC — "Harbourmaster"** — a shrewd dock official who controls who sails and who pays.
 - [x] T9. **D&D 5e Creature — "Barrow wight"** — an undead mound-guardian that drains strength and raises skeletal minions. (#96)
 - [x] T10. **D&D 5e Item — "Everburning lantern"** — a lantern that never needs oil, banishes mundane shadows in its radius, and can be focused to reveal invisible creatures for a short time.
-- [ ] T11. **Hero 6e Character — "Corporate fixer"** — a morally-grey operator who brokers jobs, favours, and gear between supers and syndicates.
+- [x] T11. **Hero 6e Character — "Corporate fixer"** — a morally-grey operator who brokers jobs, favours, and gear between supers and syndicates.
+- [ ] T12. **PF2e Settlement — "Sunken canal district"** — a flood-prone waterfront quarter of stilted shops and gondola trade.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -184,8 +185,8 @@ item that has all its dependencies satisfied.
 - [ ] 108. **Embed thumbnail in chat cards** — generation-success / tax-fired chat cards include the banner thumbnail.
 
 ## I. Cross-module integration (109–115)
-- [ ] 109. **Auto-tag generated NPCs** — NPCs created through a settlement's bridge get `actor.setFlag(Pf2eNationsAndCitiesMaker, 'homeSettlementId', journalId)`.
-- [ ] 110. **Reverse-link from actor sheet** — button on tagged actors: "Open home settlement".
+- [x] 109. **Auto-tag generated NPCs** — NPCs created through a settlement's bridge get `actor.setFlag(Pf2eNationsAndCitiesMaker, 'homeSettlementId', journalId)`.
+- [x] 110. **Reverse-link from actor sheet** — button on tagged actors: "Open home settlement".
 - [ ] 111. **Compendium of 10 prebuilt settlements** — ship a JSON compendium so users can drop a town in without AI credits.
 - [ ] 112. **Compendium of 5 prebuilt nations** — same, but at nation tier.
 - [ ] 113. **Simple Calendar adapter** — optional bridge: if `foundryvtt-simple-calendar` is active, drive our events off its date.
