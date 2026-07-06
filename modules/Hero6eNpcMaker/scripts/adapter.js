@@ -145,7 +145,9 @@ export class Hero6eNpcAdapter extends SystemAdapter {
     // HDC XML — either in a JSON wrapper or raw body
     const hdcXml = data?.hdcXml || (!data ? responseText : null);
     if (!hdcXml || typeof hdcXml !== 'string') {
-      throw new Error('No valid HDC data returned from server');
+      const detail = data?.message || data?.error
+        || (!responseText ? 'server returned an empty response body' : `unrecognized response: ${responseText.slice(0, 200)}`);
+      throw new Error(`No valid HDC data returned from server (${detail})`);
     }
 
     const parser   = new DOMParser();
