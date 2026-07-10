@@ -255,6 +255,34 @@ Hooks.on('renderActorSheet', (app, html) => {
   injectHomeSettlementLink(app, html);
 });
 
+// Settlement icons by kind (#107): give village/town/city/nation journals a
+// distinct icon + colour in the journal directory listing.
+const KIND_ICONS = {
+  village: 'fa-house-chimney',
+  town:    'fa-shop',
+  city:    'fa-city',
+  nation:  'fa-flag',
+};
+
+function applySettlementDirectoryIcons(app, html) {
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  if (!root) return;
+  const rows = root.querySelectorAll('li[data-entry-id], li[data-document-id]');
+  for (const row of rows) {
+    const id = row.dataset.entryId || row.dataset.documentId;
+    const journal = id && game.journal?.get(id);
+    const s = journal && getSettlement(journal);
+    if (!s) continue;
+    const icon = row.querySelector('.document-name i, .entry-name i, a i');
+    if (!icon) continue;
+    icon.className = `fa-solid ${KIND_ICONS[s.kind] || 'fa-city'} settlement-kind-icon settlement-kind-icon--${s.kind}`;
+    icon.title = s.kind.charAt(0).toUpperCase() + s.kind.slice(1);
+  }
+}
+
+Hooks.on('renderJournalDirectory', applySettlementDirectoryIcons);
+Hooks.on('renderJournalDirectoryPF2e', applySettlementDirectoryIcons);
+
 function getCurrentWeekday() {
   try {
     const state = game.settings.get('Pf2eCalendarTimeline', 'state');

@@ -29,6 +29,7 @@ Hooks.once('init', () => {
 Hooks.once('ready', () => {
   foundry.applications.handlebars.loadTemplates([
     `modules/${MODULE_ID}/templates/calendar.hbs`,
+    `modules/${MODULE_ID}/templates/day-popover.hbs`,
   ]).catch(err => console.warn(`[${MODULE_ID}] template preload`, err));
 
   console.log(`Pf2eCalendarTimeline ready.`);
