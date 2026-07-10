@@ -1,0 +1,26 @@
+<div class="pf2e-cal-day-popover-body">
+  {{#if events.length}}
+    <ul class="pf2e-cal-event-list">
+      {{#each events}}
+        <li class="pf2e-cal-event-row">
+          <div class="pf2e-cal-event-top">
+            <strong>{{label}}</strong>
+            <div class="pf2e-cal-day-popover-actions">
+              <button type="button" class="pf2e-cal-event-edit" data-action="editEvent" data-event-id="{{id}}"
+                      title="Edit label"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="pf2e-cal-event-x" data-action="cancelEvent" data-event-id="{{id}}"
+                      title="Cancel event"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </div>
+          <div class="pf2e-cal-event-meta">
+            <span class="pf2e-cal-pill">{{ruleLabel}}</span>
+            {{#if payload.ratePct}}<span class="pf2e-cal-pill">{{payload.taxType}} @ {{payload.ratePct}}%</span>{{/if}}
+            {{#if payload.moraleBoost}}<span class="pf2e-cal-pill">Festival: +{{payload.moraleBoost}} morale, -{{payload.gpCost}} gp</span>{{/if}}
+          </div>
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <em class="pf2e-cal-empty">No events scheduled for {{dateLabel}}.</em>
+  {{/if}}
+</div>

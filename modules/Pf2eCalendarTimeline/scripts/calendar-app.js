@@ -8,6 +8,7 @@ import { MODULE_ID, getState, patchState } from './state.js';
 import { DEFAULT_CALENDAR, CALENDAR_PRESETS, BIOMES, addDays, cmpDate, computeNext,
          dayOrdinal, weekdayIndex, describeRule, formatDate,
          seasonForMonth, rollWeather } from './scheduler.js';
+import { DayEventsPopover } from './day-popover.js';
 
 const WEATHER_ICONS = {
   clear: 'fa-sun', overcast: 'fa-cloud', rain: 'fa-cloud-rain',
@@ -35,6 +36,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tickDay:     function() { this._advance(1); },
       tickWeek:    function() { this._advance(7); },
       advanceN:    function() { this._advancePrompt(); },
+      advanceWithTravel: function() { this._advanceWithTravelPrompt(); },
       prevMonth:   function() { this._navMonth(-1); },
       nextMonth:   function() { this._navMonth(1); },
       addEvent:    function() { this._onAddEvent(); },
@@ -42,6 +44,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       saveDate:    function(ev) { this._onSaveDate(ev); },
       loadPreset:  function(ev) { this._onLoadPreset(ev); },
       changeBiome: function(ev) { this._onChangeBiome(ev); },
+      inspectDay:  function(ev) { this._onInspectDay(ev); },
     },
   };
 
@@ -186,6 +189,39 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (res) this._advance(res);
   }
 
+  async _advanceWithTravelPrompt() {
+    const res = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Advance With Travel' },
+      content: `
+        <div style="display:flex;flex-direction:column;gap:0.5em;">
+          <label>Days <input name="days" type="number" min="1" value="1" /></label>
+          <label>Party size <input name="partySize" type="number" min="1" value="4" /></label>
+        </div>`,
+      ok: {
+        label: 'Advance',
+        callback: (_e, _b, dlg) => ({
+          days:      Number(dlg.element.querySelector('[name="days"]').value)      || 1,
+          partySize: Number(dlg.element.querySelector('[name="partySize"]').value) || 1,
+        }),
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (res) this._advanceWithTravel(res);
+  }
+
+  /**
+   * Like _advance(), but fires an `inTransit` hook first so other modules
+   * (rations, encumbrance, random encounters) can react to a travelling
+   * party before the clock — and its usual dayAdvanced/eventFired hooks — moves.
+   */
+  async _advanceWithTravel({ days, partySize }) {
+    days = Math.max(1, Math.floor(Number(days) || 1));
+    partySize = Math.max(1, Math.floor(Number(partySize) || 1));
+    const fromDate = getState().currentDate;
+    Hooks.callAll('Pf2eCalendarTimeline.inTransit', { days, partySize, fromDate });
+    await this._advance(days);
+  }
+
   async _onSaveDate(ev) {
     const form = ev.currentTarget?.closest('.pf2e-calendar-current');
     if (!form) return;
@@ -248,6 +284,12 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!biome) return;
     await patchState(s => { s.biome = biome; });
     this.render(false);
+  }
+
+  _onInspectDay(ev) {
+    const day = Number(ev.currentTarget?.dataset?.day);
+    if (!day) return;
+    new DayEventsPopover({ year: this.viewYear, month: this.viewMonth, day }, this).render({ force: true });
   }
 
   async _onLoadPreset(ev) {

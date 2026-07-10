@@ -9,6 +9,7 @@
       <button type="button" data-action="tickDay"><i class="fa-solid fa-sun"></i> +1 Day</button>
       <button type="button" data-action="tickWeek"><i class="fa-solid fa-calendar-week"></i> +1 Week</button>
       <button type="button" data-action="advanceN"><i class="fa-solid fa-forward"></i> Advance…</button>
+      <button type="button" data-action="advanceWithTravel"><i class="fa-solid fa-person-walking-luggage"></i> Advance w/ Travel…</button>
     </div>
     <div class="pf2e-cal-preset-row">
       <select name="calPreset" class="pf2e-cal-preset-select">
@@ -56,7 +57,8 @@
           {{#if blank}}
             <div class="pf2e-cal-day pf2e-cal-day--blank"></div>
           {{else}}
-            <div class="pf2e-cal-day{{#if isCurrent}} pf2e-cal-day--today{{/if}}">
+            <div class="pf2e-cal-day{{#if isCurrent}} pf2e-cal-day--today{{/if}}"
+                 data-action="inspectDay" data-day="{{day}}" title="Click to inspect this day's events">
               <span class="pf2e-cal-daynum">{{day}}</span>
               {{#if eventCount}}<span class="pf2e-cal-event-dot" title="{{eventCount}} event(s)">●</span>{{/if}}
             </div>

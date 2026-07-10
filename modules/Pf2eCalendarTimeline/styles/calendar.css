@@ -56,9 +56,11 @@
 }
 .pf2e-cal-day {
   background: #fffbef; border: 1px solid #d8b888; border-radius: 3px;
-  min-height: 56px; padding: 0.25em; position: relative;
+  min-height: 56px; padding: 0.25em; position: relative; cursor: pointer;
 }
-.pf2e-cal-day--blank { background: transparent; border-color: transparent; }
+.pf2e-cal-day:hover { background: #f0e3c0; }
+.pf2e-cal-day--blank { background: transparent; border-color: transparent; cursor: default; }
+.pf2e-cal-day--blank:hover { background: transparent; }
 .pf2e-cal-day--today { background: #ffe2b6; border-color: #b6792b; box-shadow: inset 0 0 0 1px #b6792b; }
 .pf2e-cal-daynum { font-weight: 700; color: #4a2818; }
 .pf2e-cal-event-dot { color: #b6792b; position: absolute; bottom: 4px; right: 6px; font-size: 0.8em; }
@@ -97,3 +99,11 @@
   border: 1px solid #2a1808; padding: 0.45em; border-radius: 4px; cursor: pointer; font-weight: 700;
 }
 .pf2e-cal-add-btn:hover { filter: brightness(1.1); }
+
+.pf2e-cal-day-popover { font-family: "Signika", "Roboto", sans-serif; }
+.pf2e-cal-day-popover-body { padding: 0.6em; background: #f6efe1; color: #2c1f10; }
+.pf2e-cal-day-popover-actions { display: flex; gap: 0.3em; }
+.pf2e-cal-event-edit {
+  border: 1px solid #785038; background: #fff; color: #4a2818;
+  width: 24px; height: 24px; border-radius: 4px; cursor: pointer;
+}
