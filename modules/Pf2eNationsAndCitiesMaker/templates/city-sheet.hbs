@@ -15,6 +15,12 @@
       {{/if}}
       <button type="button" data-action="manualTax"><i class="fa-solid fa-coins"></i> Apply Tax</button>
       <button type="button" data-action="exportHandout"><i class="fa-solid fa-file-arrow-down"></i> Export Handout</button>
+      {{#if settlement.sceneId}}
+        <button type="button" data-action="openScene" title="Open linked scene"><i class="fa-solid fa-map"></i> {{sceneName}}</button>
+        <button type="button" data-action="unlinkScene" class="pf2e-icon-btn" title="Unlink scene"><i class="fa-solid fa-link-slash"></i></button>
+      {{else}}
+        <button type="button" data-action="linkScene"><i class="fa-solid fa-map-location-dot"></i> Link Scene</button>
+      {{/if}}
       <button type="button" data-action="openBuilder"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Builder</button>
     </div>
   </div>

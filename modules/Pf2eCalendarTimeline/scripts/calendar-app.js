@@ -9,6 +9,7 @@ import { DEFAULT_CALENDAR, CALENDAR_PRESETS, BIOMES, addDays, cmpDate, computeNe
          dayOrdinal, weekdayIndex, describeRule, formatDate,
          seasonForMonth, rollWeather } from './scheduler.js';
 import { DayEventsPopover } from './day-popover.js';
+import { escapeHtml } from './core/utils.js';
 
 const WEATHER_ICONS = {
   clear: 'fa-sun', overcast: 'fa-cloud', rain: 'fa-cloud-rain',
@@ -43,6 +44,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       removeEvent: function(ev) { this._onRemoveEvent(ev); },
       saveDate:    function(ev) { this._onSaveDate(ev); },
       loadPreset:  function(ev) { this._onLoadPreset(ev); },
+      editCalendar: function()  { this._onEditCalendar(); },
       changeBiome: function(ev) { this._onChangeBiome(ev); },
       inspectDay:  function(ev) { this._onInspectDay(ev); },
     },
@@ -301,6 +303,54 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.viewMonth = Math.min(this.viewMonth, preset.def.monthsPerYear);
     this.render(false);
     ui.notifications?.info?.(`Calendar preset loaded: ${preset.label}`);
+  }
+
+  async _onEditCalendar() {
+    const cal = getState().calendarDef || DEFAULT_CALENDAR;
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.6em;">
+        <label>Days per month (comma-separated, one number per month)
+          <input type="text" name="daysPerMonth" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.daysPerMonth.join(', '))}" />
+        </label>
+        <label>Month names (comma-separated)
+          <input type="text" name="monthNames" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.monthNames.join(', '))}" />
+        </label>
+        <label>Weekday names (comma-separated)
+          <input type="text" name="weekdays" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.weekdays.join(', '))}" />
+        </label>
+        <p style="font-size:0.85em;opacity:0.8;margin:0;">Month count follows the days-per-month list; missing month names are auto-numbered, extras are dropped.</p>
+      </div>`;
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Edit Custom Calendar' },
+      content: html,
+      ok: {
+        label: 'Save',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          const daysPerMonth = (root.querySelector('[name="daysPerMonth"]')?.value || '')
+            .split(',').map(v => parseInt(v.trim(), 10)).filter(v => Number.isFinite(v) && v > 0);
+          const monthNames = (root.querySelector('[name="monthNames"]')?.value || '')
+            .split(',').map(v => v.trim()).filter(Boolean);
+          const weekdays = (root.querySelector('[name="weekdays"]')?.value || '')
+            .split(',').map(v => v.trim()).filter(Boolean);
+          return { daysPerMonth, monthNames, weekdays };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result) return;
+    if (!result.daysPerMonth.length || !result.weekdays.length) {
+      ui.notifications?.warn?.('A custom calendar needs at least one month and one weekday.');
+      return;
+    }
+    const monthsPerYear = result.daysPerMonth.length;
+    const monthNames = Array.from({ length: monthsPerYear }, (_, i) => result.monthNames[i] || `Month ${i + 1}`);
+    await patchState(s => {
+      s.calendarDef = { monthsPerYear, daysPerMonth: result.daysPerMonth, weekdays: result.weekdays, monthNames };
+    });
+    this.viewMonth = Math.min(this.viewMonth, monthsPerYear);
+    this.render(false);
+    ui.notifications?.info?.('Custom calendar saved.');
   }
 }
 
