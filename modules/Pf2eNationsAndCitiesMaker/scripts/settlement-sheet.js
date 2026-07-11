@@ -12,6 +12,7 @@ import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem,
          rerollStores, rerollSingleStore, tagHomeSettlement }                             from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
 import { goodsForProduction }                                                           from './trade-goods.js';
+import { escapeHtml }                                                                   from './core/utils.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -90,6 +91,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       addDistrict:         function()   { this._onAddDistrict(); },
       removeDistrict:      function(ev) { this._onRemoveDistrict(ev); },
       exportHandout:       function()   { this._onExportHandout(); },
+      linkScene:           function()   { this._onLinkScene(); },
+      openScene:           function()   { this._onOpenScene(); },
+      unlinkScene:         function()   { this._onUnlinkScene(); },
     },
   };
 
@@ -187,6 +191,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
 
     const calendarActive = !!game.modules?.get('Pf2eCalendarTimeline')?.active;
+    const sceneName = settlement.sceneId ? (game.scenes?.get(settlement.sceneId)?.name || 'Unknown Scene') : null;
 
     const sparklineSvg = buildSparklineSvg(raw.treasuryHistory);
     const settlementJournals = (game.journal?.contents || [])
@@ -222,6 +227,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       moralePct: settlement.stats.morale,
       unrestPct: settlement.stats.unrest,
       calendarActive,
+      sceneName,
       canGenerateNpc:   canGenerateNpc(),
       canGenerateItem:  canGenerateItem(),
       showClosed,
@@ -832,6 +838,40 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       const adapter = new SettlementAdapter();
       import('./core/app.js').then(({ openBuilder }) => openBuilder(adapter));
     });
+  }
+
+  /* ── scene link (#106) ────────────────────────────────── */
+
+  async _onLinkScene() {
+    const scenes = (game.scenes?.contents || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    if (!scenes.length) { ui.notifications?.warn?.('No scenes exist to link.'); return; }
+    const options = scenes.map(sc => `<option value="${sc.id}">${escapeHtml(sc.name)}</option>`).join('');
+    const sceneId = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Link Scene' },
+      content: `<div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Scene
+          <select name="sceneId" style="width:100%;margin-top:0.25em;">${options}</select>
+        </label>
+      </div>`,
+      ok: {
+        label: 'Link',
+        callback: (_e, _b, dlg) => dlg.element.querySelector('[name="sceneId"]')?.value || null,
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!sceneId) return;
+    this._patch(s => { s.sceneId = sceneId; });
+  }
+
+  _onOpenScene() {
+    const settlement = sanitizeSettlement(getSettlement(this.document) || {});
+    const scene = settlement.sceneId ? game.scenes?.get(settlement.sceneId) : null;
+    if (!scene) { ui.notifications?.warn?.('Linked scene no longer exists.'); return; }
+    scene.view();
+  }
+
+  _onUnlinkScene() {
+    this._patch(s => { s.sceneId = null; });
   }
 
   _onSaveNotes() {

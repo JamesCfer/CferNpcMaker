@@ -29,7 +29,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T10. **D&D 5e Item — "Everburning lantern"** — a lantern that never needs oil, banishes mundane shadows in its radius, and can be focused to reveal invisible creatures for a short time.
 - [x] T11. **Hero 6e Character — "Corporate fixer"** — a morally-grey operator who brokers jobs, favours, and gear between supers and syndicates.
 - [x] T12. **PF2e Settlement — "Sunken canal district"** — a flood-prone waterfront quarter of stilted shops and gondola trade.
-- [ ] T13. **PF2e NPC — "Reliquary hunter"** — a grave-robbing relic-scout who trades in half-legal saints' bones and cursed trinkets.
+- [x] T13. **PF2e NPC — "Reliquary hunter"** — a grave-robbing relic-scout who trades in half-legal saints' bones and cursed trinkets.
+- [ ] T14. **PF2e Settlement — "Mountain pilgrimage waystation"** — a terraced highway town of hostels and shrines that lives off pilgrims passing to a sacred peak.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -166,7 +167,7 @@ item that has all its dependencies satisfied.
 - [ ] 92. **Diplomatic gifts** — chat-button action that transfers gp between nations and bumps their relation score.
 
 ## G. Calendar features (93–101)
-- [ ] 93. **Custom calendar editor UI** — modal that edits `calendarDef` (months, daysPerMonth, weekdays, monthNames).
+- [x] 93. **Custom calendar editor UI** — modal that edits `calendarDef` (months, daysPerMonth, weekdays, monthNames).
 - [x] 94. **Golarion preset** — pre-built Inner Sea calendar (12 months, 7 weekdays, official month names).
 - [x] 95. **Gregorian preset** — Earth months / weekdays.
 - [x] 96. **Generic-fantasy preset** — neutral 10-month cycle, 5-day weeks.
@@ -181,7 +182,7 @@ item that has all its dependencies satisfied.
 - [ ] 103. **Procedural town SVG** — render a top-down layout: city wall, streets, shop dots sized by population; click a dot to scroll to that store card.
 - [ ] 104. **World-map scene pins** — when a settlement has `sceneId`, the scene note uses the module icon and tooltip shows kind + population.
 - [ ] 105. **Nation border overlay** — Nation sheet lets the GM draw a region on the world map; the region is rendered with the nation's colour.
-- [ ] 106. **Scene-link button** — header button to set/clear `sceneId`; opens the linked scene when clicked.
+- [x] 106. **Scene-link button** — header button to set/clear `sceneId`; opens the linked scene when clicked.
 - [x] 107. **Settlement icon by kind** — village / town / city / nation get distinct icons on the journal directory.
 - [ ] 108. **Embed thumbnail in chat cards** — generation-success / tax-fired chat cards include the banner thumbnail.
 
