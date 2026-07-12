@@ -46,6 +46,11 @@
   font-weight: 600; font-size: 0.85em;
 }
 .pf2e-settlement-header-actions button:hover { background: #f0e3c0; }
+.pf2e-settlement-header-actions button:focus-visible,
+.pf2e-icon-btn:focus-visible {
+  outline: 2px solid #5a3d18; outline-offset: 1px;
+}
+button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 
 .pf2e-tag { padding: 0.2em 0.55em; border-radius: 4px; font-size: 0.78em; }
 .pf2e-tag--ok { background: #d9efd9; color: #25602a; border: 1px solid #6a9e60; }
@@ -67,6 +72,9 @@
   background: #9b6923; color: #fff;
 }
 .pf2e-settlement-tab.is-active i { color: #ffe7a8; }
+.pf2e-settlement-tab:focus-visible {
+  outline: 2px solid #5a3d18; outline-offset: -2px;
+}
 
 .pf2e-settlement-tab-body { flex: 1; overflow: auto; min-width: 0; padding-right: 0.25em; }
 

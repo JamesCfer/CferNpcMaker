@@ -215,6 +215,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       docId:      this.document.id,
       settlement,
       tabs,
+      activeTab: activeKey,
       isOverviewActive:   activeKey === 'overview',
       isStoresActive:     activeKey === 'stores',
       isGuardsActive:     activeKey === 'guards',
