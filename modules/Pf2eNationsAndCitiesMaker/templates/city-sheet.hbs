@@ -27,17 +27,20 @@
 
   <div class="pf2e-settlement-body">
 
-    <nav class="pf2e-settlement-tabs">
+    <nav class="pf2e-settlement-tabs" role="tablist">
       {{#each tabs}}
         <button type="button"
                 class="pf2e-settlement-tab{{#if isActive}} is-active{{/if}}"
-                data-action="switchTab" data-tab="{{key}}">
+                data-action="switchTab" data-tab="{{key}}"
+                role="tab" id="pf2e-settlement-tab-{{key}}"
+                aria-selected="{{isActive}}" aria-controls="pf2e-settlement-tabpanel">
           <i class="{{icon}}"></i> {{label}}
         </button>
       {{/each}}
     </nav>
 
-    <section class="pf2e-settlement-tab-body">
+    <section class="pf2e-settlement-tab-body" role="tabpanel" id="pf2e-settlement-tabpanel"
+              aria-labelledby="pf2e-settlement-tab-{{activeTab}}">
 
       {{#if isOverviewActive}}
         {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/statblock.hbs"
