@@ -31,7 +31,7 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T12. **PF2e Settlement — "Sunken canal district"** — a flood-prone waterfront quarter of stilted shops and gondola trade.
 - [x] T13. **PF2e NPC — "Reliquary hunter"** — a grave-robbing relic-scout who trades in half-legal saints' bones and cursed trinkets.
 - [x] T14. **PF2e Settlement — "Mountain pilgrimage waystation"** — a terraced highway town of hostels and shrines that lives off pilgrims passing to a sacred peak.
-- [x] T15. **Hero 6e Character — "Reformed villain"** — a former supervillain working off a plea deal, powers intact but leashed by a handler and a parole clock.
+- [x] T15. **Hero 6e Character — "Reformed villain"** — a former supervillain working off a plea deal, powers intact but leashed by a handler and a parole clock. (#103)
 - [ ] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
@@ -210,9 +210,9 @@ item that has all its dependencies satisfied.
 - [ ] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.
 - [ ] 124. **i18n pass (Calendar)** — same.
 - [ ] 125. **High-contrast theme variant** — toggle in module settings; overrides the parchment palette with strong-contrast colours.
-- [x] 126. **Keyboard navigation** — Tab order through sheet tabs, Enter on store header toggles compact view, Esc closes the sheet.
+- [x] 126. **Keyboard navigation** — Tab order through sheet tabs, Enter on store header toggles compact view, Esc closes the sheet. (#103)
 - [x] 127. **ARIA roles** — `role="tablist"` / `role="tabpanel"` on sheet tabs; `aria-busy` on generating buttons; visible focus rings.
-- [x] 128. **Screen-reader live region** — tax-fired / day-advanced notifications announced to assistive tech.
+- [x] 128. **Screen-reader live region** — tax-fired / day-advanced notifications announced to assistive tech. (#103)
 
 ---
 
