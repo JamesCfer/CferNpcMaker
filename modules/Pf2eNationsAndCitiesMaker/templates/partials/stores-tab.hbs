@@ -97,9 +97,15 @@
 
           {{else}}
 
-            <article class="pf2e-store-card{{#if closed}} is-closed{{/if}}" data-store-id="{{id}}">
+            <article class="pf2e-store-card{{#if closed}} is-closed{{/if}}{{#if collapsed}} is-collapsed{{/if}}" data-store-id="{{id}}">
 
               <header class="pf2e-store-card-header">
+                <button type="button" class="pf2e-icon-btn pf2e-store-collapse-toggle"
+                        data-action="toggleStoreCollapse" data-store-id="{{id}}"
+                        aria-expanded="{{#if collapsed}}false{{else}}true{{/if}}"
+                        title="{{#if collapsed}}Expand{{else}}Collapse{{/if}} store details">
+                  <i class="fa-solid {{#if collapsed}}fa-chevron-right{{else}}fa-chevron-down{{/if}}"></i>
+                </button>
                 <div class="pf2e-store-card-name">
                   {{#if closed}}
                     <span class="pf2e-closed-badge"><i class="fa-solid fa-lock"></i> Bankrupt</span>

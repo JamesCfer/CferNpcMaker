@@ -78,6 +78,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       saveNotes:           function()   { this._onSaveNotes(); },
       toggleShowClosed:    function()   { this._onToggleShowClosed(); },
       toggleCompactStores: function()   { this._onToggleCompactStores(); },
+      toggleStoreCollapse: function(ev) { this._onToggleStoreCollapse(ev); },
       rerollAllStores:     function()   { this._onRerollAllStores(); },
       rerollStore:         function(ev) { this._onRerollStore(ev); },
       reopenStore:         function(ev) { this._onReopenStore(ev); },
@@ -109,6 +110,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.showClosed = false;
     this.compactStores = false;
     this.districtFilter = null;
+    this.collapsedStoreIds = new Set();
+    this._focusTabKey = null;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -159,6 +162,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         ...store,
         _globalIndex: gi,
         effectiveMul,
+        collapsed: this.collapsedStoreIds.has(store.id),
         ownerActor: resolveActor(store.owner?.actorId),
         staff: (store.staff || []).map(p => ({ ...p, resolvedActor: resolveActor(p.actorId) })),
         hours: {
@@ -294,6 +298,40 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       section.addEventListener('dragleave', ()   => section.classList.remove('drag-over'));
       section.addEventListener('drop',      (ev) => { section.classList.remove('drag-over'); this._onDropItemOnInventory(ev); });
     });
+
+    // Keyboard navigation (#126): roving-tabindex + arrow keys across sheet tabs.
+    const tabNav = this.element.querySelector('.pf2e-settlement-tabs');
+    if (tabNav) {
+      const tabEls = Array.from(tabNav.querySelectorAll('[role="tab"]'));
+      tabEls.forEach(el => el.setAttribute('tabindex', el.classList.contains('is-active') ? '0' : '-1'));
+      tabNav.addEventListener('keydown', (ev) => {
+        const idx = tabEls.indexOf(document.activeElement);
+        if (idx === -1) return;
+        let next = null;
+        if (ev.key === 'ArrowRight') next = tabEls[(idx + 1) % tabEls.length];
+        else if (ev.key === 'ArrowLeft') next = tabEls[(idx - 1 + tabEls.length) % tabEls.length];
+        else if (ev.key === 'Home') next = tabEls[0];
+        else if (ev.key === 'End') next = tabEls[tabEls.length - 1];
+        if (!next) return;
+        ev.preventDefault();
+        this._focusTabKey = next.dataset.tab;
+        next.click();
+      });
+    }
+    if (this._focusTabKey) {
+      this.element.querySelector(`.pf2e-settlement-tab[data-tab="${this._focusTabKey}"]`)?.focus();
+      this._focusTabKey = null;
+    }
+    if (this._pendingAnnouncement) {
+      const region = this.element.querySelector('[data-live-region]');
+      if (region) region.textContent = this._pendingAnnouncement;
+      this._pendingAnnouncement = null;
+    }
+
+    // Esc closes the sheet (#126)
+    this.element.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') this.close();
+    });
   }
 
   /* ── helpers ───────────────────────────────────────────── */
@@ -358,7 +396,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onTickDay(days = 1) {
     await applyDailyTick(this.document, days);
-    ui.notifications?.info?.(`Ticked ${days} day${days === 1 ? '' : 's'} for ${this.document.name}.`);
+    const text = `Ticked ${days} day${days === 1 ? '' : 's'} for ${this.document.name}.`;
+    ui.notifications?.info?.(text);
+    this.announce(text);
     this.render(false);
   }
 
@@ -394,8 +434,17 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => null);
     if (!result) return;
     const { collected } = await applyTax(this.document, result);
-    ui.notifications?.info?.(`Tax collected: ${collected} gp.`);
+    const text = `Tax collected: ${collected} gp.`;
+    ui.notifications?.info?.(text);
+    this.announce(text);
     this.render(false);
+  }
+
+  // Stashed so _onRender can re-apply it once render(false) rebuilds the DOM.
+  announce(text) {
+    this._pendingAnnouncement = text;
+    const region = this.element?.querySelector('[data-live-region]');
+    if (region) region.textContent = text;
   }
 
   /* ── stores ────────────────────────────────────────────── */
@@ -556,6 +605,14 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onToggleCompactStores() {
     this.compactStores = !this.compactStores;
+    this.render(false);
+  }
+
+  _onToggleStoreCollapse(ev) {
+    const id = ev.currentTarget?.dataset?.storeId;
+    if (!id) return;
+    if (this.collapsedStoreIds.has(id)) this.collapsedStoreIds.delete(id);
+    else this.collapsedStoreIds.add(id);
     this.render(false);
   }
 
