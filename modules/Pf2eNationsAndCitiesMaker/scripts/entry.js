@@ -166,6 +166,11 @@ Hooks.once('init', () => {
     range: { min: 0, max: 50, step: 1 },
     default: 15,
   });
+  game.settings.register(MODULE_ID, 'highContrastTheme', {
+    name: 'SettlementBuilder.Settings.HighContrast.Name',
+    hint: 'SettlementBuilder.Settings.HighContrast.Hint',
+    scope: 'client', config: true, type: Boolean, default: false,
+  });
 
   game.settings.registerMenu(MODULE_ID, 'resetWelcome', {
     name:       'SettlementBuilder.Settings.ResetWelcome.Name',

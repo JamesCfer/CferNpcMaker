@@ -4,6 +4,7 @@ import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
          seasonForMonth, rollWeather } from '../../modules/Pf2eCalendarTimeline/scripts/scheduler.js';
 import { applyDailyTick, applyFestival } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
 import { CURRENT_SCHEMA_VERSION } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
+import { generateHooks } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/hooks.js';
 
 describe('sanitizeSettlement defaults', () => {
   it('fills in kind and size', () => {
@@ -254,5 +255,31 @@ describe('applyFestival', () => {
     expect(doc.getStored().stats.morale).toBe(60);
     expect(doc.getStored().stats.unrest).toBe(19);
     expect(doc.getStored().treasury.gp).toBe(500);
+  });
+});
+
+describe('generateHooks', () => {
+  it('returns 3 unique hooks for a bare settlement', () => {
+    const hooks = generateHooks(sanitizeSettlement({}), 'Test Town');
+    expect(hooks).toHaveLength(3);
+    expect(new Set(hooks).size).toBe(3);
+  });
+
+  it('mentions a black-market store when one exists', () => {
+    const settlement = sanitizeSettlement({ stores: [{ name: 'The Quiet Crate', isBlackMarket: true }] });
+    const hooks = generateHooks(settlement, 'Test Town');
+    expect(hooks.some(h => h.includes('The Quiet Crate'))).toBe(true);
+  });
+
+  it('mentions a closed store when one exists', () => {
+    const settlement = sanitizeSettlement({ stores: [{ name: 'Old Mill', closed: true }] });
+    const hooks = generateHooks(settlement, 'Test Town');
+    expect(hooks.some(h => h.includes('Old Mill'))).toBe(true);
+  });
+
+  it('mentions a district when one exists', () => {
+    const settlement = sanitizeSettlement({ districts: [{ name: 'Dockside' }] });
+    const hooks = generateHooks(settlement, 'Test Town');
+    expect(hooks.some(h => h.includes('Dockside'))).toBe(true);
   });
 });

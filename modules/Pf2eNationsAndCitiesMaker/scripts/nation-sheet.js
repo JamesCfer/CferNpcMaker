@@ -71,6 +71,10 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     return { doc: this.document, nation, cities, totals, availableJournals };
   }
 
+  _onRender() {
+    this.element.classList.toggle('pf2e-high-contrast', !!game.settings.get(MODULE_ID, 'highContrastTheme'));
+  }
+
   async _patch(mutator) {
     const cur = foundry.utils.deepClone(getSettlement(this.document) || {});
     mutator(cur);
