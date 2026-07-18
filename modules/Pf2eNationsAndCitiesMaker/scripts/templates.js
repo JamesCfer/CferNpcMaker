@@ -137,9 +137,9 @@ const NAME_TABLES = {
   river:   { prefix: ['Riven', 'Bridge', 'Ford', 'Reed', 'Otter', 'Mill'],         root: ['ford', 'bridge', 'mill', 'crossing', 'bend', 'reach'] },
 };
 
-function pick(arr, rng) { return arr[Math.floor(rng() * arr.length)]; }
+export function pick(arr, rng) { return arr[Math.floor(rng() * arr.length)]; }
 
-function rngFromSeed(seed) {
+export function rngFromSeed(seed) {
   let s = 0;
   for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
   return function() { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xFFFFFFFF; };

@@ -32,7 +32,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T13. **PF2e NPC — "Reliquary hunter"** — a grave-robbing relic-scout who trades in half-legal saints' bones and cursed trinkets.
 - [x] T14. **PF2e Settlement — "Mountain pilgrimage waystation"** — a terraced highway town of hostels and shrines that lives off pilgrims passing to a sacred peak.
 - [x] T15. **Hero 6e Character — "Reformed villain"** — a former supervillain working off a plea deal, powers intact but leashed by a handler and a parole clock. (#103)
-- [ ] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
+- [x] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
+- [ ] T17. **D&D 5e Creature — "Bog hag"** — a swamp-dwelling hag who lures travellers with illusions of safe ground and trades false bargains for years of life.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -138,7 +139,7 @@ item that has all its dependencies satisfied.
 - [x] 65. **Famine event** — drains treasury, raises unrest, halts growth until resolved.
 - [x] 66. **Religion tracking** — `religions: [{ name, followers, templeStoreId, influence }]`; surfaced on the Leadership tab.
 - [x] 67. **Crime / banditry level** — 0–10 setting that raises tax leakage and triggers chat-card incident reports on `dayAdvanced` rolls.
-- [ ] 68. **Adventurer-hook generator** — sheet header button calls a small AI endpoint (or local table) to produce 3 plot hooks tied to the settlement's current state.
+- [x] 68. **Adventurer-hook generator** — sheet header button calls a small AI endpoint (or local table) to produce 3 plot hooks tied to the settlement's current state.
 - [x] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".
 
 ## E. Military & warfare (70–82)
@@ -209,7 +210,7 @@ item that has all its dependencies satisfied.
 ## K. Accessibility & localisation (123–128)
 - [ ] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.
 - [ ] 124. **i18n pass (Calendar)** — same.
-- [ ] 125. **High-contrast theme variant** — toggle in module settings; overrides the parchment palette with strong-contrast colours.
+- [x] 125. **High-contrast theme variant** — toggle in module settings; overrides the parchment palette with strong-contrast colours.
 - [x] 126. **Keyboard navigation** — Tab order through sheet tabs, Enter on store header toggles compact view, Esc closes the sheet. (#103)
 - [x] 127. **ARIA roles** — `role="tablist"` / `role="tabpanel"` on sheet tabs; `aria-busy` on generating buttons; visible focus rings.
 - [x] 128. **Screen-reader live region** — tax-fired / day-advanced notifications announced to assistive tech. (#103)

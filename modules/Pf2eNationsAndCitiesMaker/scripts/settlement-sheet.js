@@ -12,6 +12,7 @@ import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem,
          rerollStores, rerollSingleStore, tagHomeSettlement }                             from './integrations.js';
 import { sanitizeSettlement }                                                           from './sanitizer.js';
 import { goodsForProduction }                                                           from './trade-goods.js';
+import { generateHooks }                                                                from './hooks.js';
 import { escapeHtml }                                                                   from './core/utils.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -95,6 +96,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       linkScene:           function()   { this._onLinkScene(); },
       openScene:           function()   { this._onOpenScene(); },
       unlinkScene:         function()   { this._onUnlinkScene(); },
+      generateHooks:       function()   { this._onGenerateHooks(); },
     },
   };
 
@@ -267,6 +269,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onRender() {
+    this.element.classList.toggle('pf2e-high-contrast', !!game.settings.get(MODULE_ID, 'highContrastTheme'));
+
     this.element.querySelectorAll('[data-settlement-path]').forEach(input => {
       const tag  = input.tagName.toLowerCase();
       const type = input.getAttribute('type')?.toLowerCase();
@@ -438,6 +442,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications?.info?.(text);
     this.announce(text);
     this.render(false);
+  }
+
+  async _onGenerateHooks() {
+    const settlement = sanitizeSettlement(getSettlement(this.document) || {});
+    const hooks = generateHooks(settlement, this.document.name);
+    const list = `<ol class="pf2e-hooks-list">${hooks.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ol>`;
+    const post = await foundry.applications.api.DialogV2.confirm({
+      window:      { title: `Adventure Hooks — ${this.document.name}` },
+      content:     list,
+      yes:         { label: 'Post to Chat', icon: 'fa-solid fa-comment' },
+      no:          { label: 'Close' },
+      rejectClose: false,
+    }).catch(() => false);
+    if (!post) return;
+    ChatMessage.create({
+      content: `<h3><i class="fa-solid fa-scroll"></i> Adventure Hooks — ${this.document.name}</h3>${list}`,
+      speaker: { alias: this.document.name },
+    });
   }
 
   // Stashed so _onRender can re-apply it once render(false) rebuilds the DOM.

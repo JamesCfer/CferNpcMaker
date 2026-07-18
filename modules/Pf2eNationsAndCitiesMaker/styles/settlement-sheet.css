@@ -409,6 +409,9 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
   background: rgba(155, 105, 35, 0.12); outline: 2px dashed #9b6923;
 }
 
+/* ── adventure hooks (#68) ───────────────────────────────── */
+.pf2e-hooks-list { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 0.5em; }
+
 /* ── nation sheet ────────────────────────────────────────── */
 .pf2e-nation-summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em;
@@ -429,4 +432,85 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-nation-cities a:hover { text-decoration: underline; }
 
 .pf2e-nation-add-city { display: flex; gap: 0.4em; margin-top: 0.4em; }
+
+/* ── high-contrast theme (#125) ──────────────────────────── */
+.pf2e-high-contrast.pf2e-settlement-sheet,
+.pf2e-high-contrast.pf2e-nation-sheet {
+  background: #000 !important;
+  color: #fff !important;
+}
+.pf2e-high-contrast .pf2e-settlement-header,
+.pf2e-high-contrast .pf2e-nation-header { border-bottom-color: #ffd54a !important; }
+.pf2e-high-contrast .pf2e-settlement-title h2,
+.pf2e-high-contrast .pf2e-nation-header h2,
+.pf2e-high-contrast .pf2e-settlement-title i,
+.pf2e-high-contrast .pf2e-nation-header i,
+.pf2e-high-contrast h4 { color: #ffd54a !important; }
+.pf2e-high-contrast .pf2e-settlement-tabs { border-right-color: #fff !important; }
+.pf2e-high-contrast .pf2e-settlement-tab { color: #fff !important; }
+.pf2e-high-contrast .pf2e-settlement-tab.is-active,
+.pf2e-high-contrast .pf2e-store-tab.is-active,
+.pf2e-high-contrast .pf2e-settlement-btn.is-active {
+  background: #ffd54a !important; color: #000 !important;
+}
+.pf2e-high-contrast .pf2e-settlement-tab.is-active i { color: #000 !important; }
+.pf2e-high-contrast input,
+.pf2e-high-contrast select,
+.pf2e-high-contrast textarea {
+  background: #000 !important; color: #fff !important; border: 1px solid #fff !important;
+}
+.pf2e-high-contrast button,
+.pf2e-high-contrast .pf2e-icon-btn,
+.pf2e-high-contrast .pf2e-settlement-btn,
+.pf2e-high-contrast .pf2e-store-tab,
+.pf2e-high-contrast .pf2e-settlement-header-actions button {
+  background: #000 !important; color: #ffd54a !important; border: 2px solid #ffd54a !important;
+}
+.pf2e-high-contrast button:hover,
+.pf2e-high-contrast .pf2e-icon-btn:hover {
+  background: #ffd54a !important; color: #000 !important;
+}
+.pf2e-high-contrast .pf2e-store-card,
+.pf2e-high-contrast .pf2e-leader-card,
+.pf2e-high-contrast .pf2e-religion-card,
+.pf2e-high-contrast .pf2e-statblock-treasury,
+.pf2e-high-contrast .pf2e-statblock-production,
+.pf2e-high-contrast .pf2e-statblock-demographics,
+.pf2e-high-contrast .pf2e-treasury-sparkline,
+.pf2e-high-contrast .pf2e-guards-summary,
+.pf2e-high-contrast .pf2e-nation-summary {
+  background: #111 !important; border-color: #fff !important;
+}
+.pf2e-high-contrast .pf2e-empty,
+.pf2e-high-contrast em.pf2e-empty,
+.pf2e-high-contrast .pf2e-stat-cell label,
+.pf2e-high-contrast .pf2e-statblock-cell label,
+.pf2e-high-contrast .pf2e-store-info label,
+.pf2e-high-contrast .pf2e-religion-label,
+.pf2e-high-contrast .pf2e-demographic-pct-label,
+.pf2e-high-contrast .pf2e-store-schedule > label,
+.pf2e-high-contrast .pf2e-schedule-grid th,
+.pf2e-high-contrast .pf2e-schedule-day-label,
+.pf2e-high-contrast .pf2e-guards-wages,
+.pf2e-high-contrast .pf2e-nation-stat label {
+  color: #ffd54a !important;
+}
+.pf2e-high-contrast .pf2e-settlement-kind-pill,
+.pf2e-high-contrast .pf2e-store-type-pill,
+.pf2e-high-contrast .pf2e-store-tier-pill,
+.pf2e-high-contrast .pf2e-production-tag,
+.pf2e-high-contrast .pf2e-npc-chip-level,
+.pf2e-high-contrast .pf2e-closed-badge,
+.pf2e-high-contrast .pf2e-tag--ok {
+  background: #000 !important; color: #ffd54a !important; border: 1px solid #ffd54a !important;
+}
+.pf2e-high-contrast .pf2e-hp-bar,
+.pf2e-high-contrast .pf2e-meter,
+.pf2e-high-contrast .pf2e-demographic-bar-wrap { background: #333 !important; border-color: #fff !important; }
+.pf2e-high-contrast .pf2e-hp-fill { background: #ff5252 !important; }
+.pf2e-high-contrast .pf2e-meter--good div,
+.pf2e-high-contrast .pf2e-demographic-bar { background: #69f0ae !important; }
+.pf2e-high-contrast .pf2e-meter--bad div { background: #ff5252 !important; }
+.pf2e-high-contrast table th,
+.pf2e-high-contrast table td { border-color: #444 !important; }
 .pf2e-nation-add-city select { flex: 1; padding: 0.3em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
