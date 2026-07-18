@@ -67,41 +67,50 @@ function shuffle(arr, rng) {
 export function generateHooks(settlement, name) {
   const rng = rngFromSeed(`${name}|${Date.now()}|${Math.random()}`);
   const ctx = { name };
-  const pools = [];
 
-  if ((settlement.stats?.unrest ?? 0) >= 40) pools.push(...UNREST_HOOKS);
-  if ((settlement.crimeLevel ?? 0) >= 5) pools.push(...CRIME_HOOKS);
+  // Each entry is a pool of hooks tied to one piece of settlement state.
+  // At most one hook per active pool makes it into the final 3, so a hook
+  // tied to real state (unrest, a district, ...) is never crowded out by
+  // the always-present generic filler pool.
+  const statePools = [];
+
+  if ((settlement.stats?.unrest ?? 0) >= 40) statePools.push(UNREST_HOOKS.map(t => fill(t, ctx)));
+  if ((settlement.crimeLevel ?? 0) >= 5) statePools.push(CRIME_HOOKS.map(t => fill(t, ctx)));
 
   const blackMarketStores = (settlement.stores || []).filter(s => s.isBlackMarket);
   if (blackMarketStores.length) {
-    pools.push(...BLACK_MARKET_HOOKS.map(t => fill(t, { ...ctx, store: pick(blackMarketStores, rng).name })));
+    statePools.push(BLACK_MARKET_HOOKS.map(t => fill(t, { ...ctx, store: pick(blackMarketStores, rng).name })));
   }
 
   const closedStores = (settlement.stores || []).filter(s => s.closed);
   if (closedStores.length) {
-    pools.push(...BANKRUPTCY_HOOKS.map(t => fill(t, { ...ctx, store: pick(closedStores, rng).name })));
+    statePools.push(BANKRUPTCY_HOOKS.map(t => fill(t, { ...ctx, store: pick(closedStores, rng).name })));
   }
 
   if ((settlement.religions || []).length) {
-    pools.push(...RELIGION_HOOKS.map(t => fill(t, { ...ctx, religion: pick(settlement.religions, rng).name })));
+    statePools.push(RELIGION_HOOKS.map(t => fill(t, { ...ctx, religion: pick(settlement.religions, rng).name })));
   }
 
   if ((settlement.districts || []).length) {
-    pools.push(...DISTRICT_HOOKS.map(t => fill(t, { ...ctx, district: pick(settlement.districts, rng).name })));
+    statePools.push(DISTRICT_HOOKS.map(t => fill(t, { ...ctx, district: pick(settlement.districts, rng).name })));
   }
 
   if ((settlement.tradeRoutes || []).length) {
-    pools.push(...TRADE_ROUTE_HOOKS.map(t => fill(t, ctx)));
+    statePools.push(TRADE_ROUTE_HOOKS.map(t => fill(t, ctx)));
   }
 
-  pools.push(...GENERIC_HOOKS.map(t => fill(t, ctx)));
-
-  const shuffled = shuffle(pools, rng);
-  const unique = [];
-  for (const hook of shuffled) {
-    if (unique.includes(hook)) continue;
-    unique.push(hook);
-    if (unique.length === 3) break;
+  const hooks = [];
+  for (const pool of shuffle(statePools, rng)) {
+    if (hooks.length === 3) break;
+    hooks.push(pick(pool, rng));
   }
-  return unique;
+
+  if (hooks.length < 3) {
+    for (const hook of shuffle(GENERIC_HOOKS.map(t => fill(t, ctx)), rng)) {
+      if (hooks.length === 3) break;
+      if (!hooks.includes(hook)) hooks.push(hook);
+    }
+  }
+
+  return hooks;
 }
