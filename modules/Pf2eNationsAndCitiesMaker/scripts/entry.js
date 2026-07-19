@@ -9,7 +9,7 @@ import { registerSidebar }            from './core/sidebar.js';
 import { startHeartbeat }             from './core/heartbeat.js';
 import { Storage }                    from './core/storage.js';
 import { SettlementAdapter }          from './adapter.js';
-import { MODULE_ID, getSettlement }   from './constants.js';
+import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
@@ -287,6 +287,22 @@ function applySettlementDirectoryIcons(app, html) {
 
 Hooks.on('renderJournalDirectory', applySettlementDirectoryIcons);
 Hooks.on('renderJournalDirectoryPF2e', applySettlementDirectoryIcons);
+
+// Drop settlement onto scene to link (#114): dragging a settlement journal
+// onto the canvas auto-sets its sceneId, same effect as the sheet's "Link
+// Scene" button, so a GM can just drag the journal onto the right map.
+Hooks.on('dropCanvasData', (canvas, data) => {
+  if (data.type !== 'JournalEntry' || !data.uuid) return;
+  fromUuid(data.uuid).then(journal => {
+    const s = journal && getSettlement(journal);
+    const sceneId = canvas?.scene?.id;
+    if (!s || !sceneId || s.sceneId === sceneId) return;
+    const next = foundry.utils.deepClone(s);
+    next.sceneId = sceneId;
+    setSettlement(journal, next);
+    ui.notifications?.info?.(`Linked "${journal.name}" to this scene.`);
+  }).catch(err => log('error', 'dropCanvasData scene link failed', err));
+});
 
 function getCurrentWeekday() {
   try {
