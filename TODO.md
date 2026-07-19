@@ -33,7 +33,7 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T14. **PF2e Settlement — "Mountain pilgrimage waystation"** — a terraced highway town of hostels and shrines that lives off pilgrims passing to a sacred peak.
 - [x] T15. **Hero 6e Character — "Reformed villain"** — a former supervillain working off a plea deal, powers intact but leashed by a handler and a parole clock. (#103)
 - [x] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
-- [ ] T17. **D&D 5e Creature — "Bog hag"** — a swamp-dwelling hag who lures travellers with illusions of safe ground and trades false bargains for years of life.
+- [x] T17. **D&D 5e Creature — "Bog hag"** — a swamp-dwelling hag who lures travellers with illusions of safe ground and trades false bargains for years of life.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -194,8 +194,8 @@ item that has all its dependencies satisfied.
 - [x] 110. **Reverse-link from actor sheet** — button on tagged actors: "Open home settlement".
 - [ ] 111. **Compendium of 10 prebuilt settlements** — ship a JSON compendium so users can drop a town in without AI credits.
 - [ ] 112. **Compendium of 5 prebuilt nations** — same, but at nation tier.
-- [ ] 113. **Simple Calendar adapter** — optional bridge: if `foundryvtt-simple-calendar` is active, drive our events off its date.
-- [ ] 114. **Drop settlement onto scene to link** — drag a settlement journal onto a scene to set `sceneId` automatically.
+- [x] 113. **Simple Calendar adapter** — optional bridge: if `foundryvtt-simple-calendar` is active, drive our events off its date.
+- [x] 114. **Drop settlement onto scene to link** — drag a settlement journal onto a scene to set `sceneId` automatically.
 - [ ] 115. **Adventurer guild integration** — a special store type that lets the GM post "jobs" (custom payloads) and roll which adventurers (NPCs) take them.
 
 ## J. Performance, DX & migrations (116–122)

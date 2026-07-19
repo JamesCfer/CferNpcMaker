@@ -26,6 +26,58 @@ const TAX_TYPES = [
   { value: 'festival', label: 'Festival / payout' },
 ];
 
+/**
+ * Advance the world clock by N days, firing dayAdvanced once and eventFired
+ * for each scheduled event whose nextRun falls within the window. Shared by
+ * the calendar UI's own advance actions and external bridges (e.g. Simple
+ * Calendar) that drive our events off another module's clock.
+ */
+export async function advanceCalendarByDays(days) {
+  days = Math.max(1, Math.floor(Number(days) || 1));
+  const cur = getState();
+  const cal = cur.calendarDef || DEFAULT_CALENDAR;
+  const fromDate = cur.currentDate;
+  const toDate   = addDays(fromDate, days, cal);
+
+  const fired = [];
+  for (const ev of cur.events || []) {
+    // Fire events whose nextRun is strictly > fromDate and <= toDate.
+    let nextRun = ev.nextRun || fromDate;
+    while (cmpDate(nextRun, toDate) <= 0 && cmpDate(nextRun, fromDate) > 0) {
+      fired.push({ ...ev, nextRun });
+      nextRun = computeNext(ev.rule, nextRun, cal);
+    }
+    ev.nextRun = nextRun;
+  }
+
+  const biome = cur.biome || 'temperate';
+  const fromSeason = seasonForMonth(fromDate.month, cal);
+  const toSeason   = seasonForMonth(toDate.month, cal);
+  const weather    = rollWeather(biome, toSeason);
+
+  cur.currentDate = toDate;
+  cur.season  = toSeason;
+  cur.weather = weather;
+  await game.settings.set(MODULE_ID, 'state', cur);
+
+  Hooks.callAll('Pf2eCalendarTimeline.dayAdvanced', {
+    days, currentDate: toDate, fromDate,
+  });
+  for (const ev of fired) {
+    Hooks.callAll('Pf2eCalendarTimeline.eventFired', ev);
+  }
+  if (toSeason !== fromSeason) {
+    Hooks.callAll('Pf2eCalendarTimeline.seasonChanged', {
+      season: toSeason, previousSeason: fromSeason, currentDate: toDate,
+    });
+  }
+  Hooks.callAll('Pf2eCalendarTimeline.weatherChanged', {
+    weather, season: toSeason, biome, currentDate: toDate,
+  });
+
+  return { days, cal, fromDate, toDate, fired };
+}
+
 export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: 'pf2e-calendar-app',
@@ -129,53 +181,9 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render(false);
   }
 
-  /**
-   * Advance the world clock by N days, firing dayAdvanced once and eventFired
-   * for each scheduled event whose nextRun falls within the window.
-   */
   async _advance(days) {
-    days = Math.max(1, Math.floor(Number(days) || 1));
-    const cur = getState();
-    const cal = cur.calendarDef || DEFAULT_CALENDAR;
-    const fromDate = cur.currentDate;
-    const toDate   = addDays(fromDate, days, cal);
-
-    const fired = [];
-    for (const ev of cur.events || []) {
-      // Fire events whose nextRun is strictly > fromDate and <= toDate.
-      let nextRun = ev.nextRun || fromDate;
-      while (cmpDate(nextRun, toDate) <= 0 && cmpDate(nextRun, fromDate) > 0) {
-        fired.push({ ...ev, nextRun });
-        nextRun = computeNext(ev.rule, nextRun, cal);
-      }
-      ev.nextRun = nextRun;
-    }
-
-    const biome = cur.biome || 'temperate';
-    const fromSeason = seasonForMonth(fromDate.month, cal);
-    const toSeason   = seasonForMonth(toDate.month, cal);
-    const weather    = rollWeather(biome, toSeason);
-
-    cur.currentDate = toDate;
-    cur.season  = toSeason;
-    cur.weather = weather;
-    await game.settings.set(MODULE_ID, 'state', cur);
-
-    Hooks.callAll('Pf2eCalendarTimeline.dayAdvanced', {
-      days, currentDate: toDate, fromDate,
-    });
-    for (const ev of fired) {
-      Hooks.callAll('Pf2eCalendarTimeline.eventFired', ev);
-    }
-    if (toSeason !== fromSeason) {
-      Hooks.callAll('Pf2eCalendarTimeline.seasonChanged', {
-        season: toSeason, previousSeason: fromSeason, currentDate: toDate,
-      });
-    }
-    Hooks.callAll('Pf2eCalendarTimeline.weatherChanged', {
-      weather, season: toSeason, biome, currentDate: toDate,
-    });
-    ui.notifications?.info?.(`Advanced ${days} day${days === 1 ? '' : 's'} → ${formatDate(toDate, cal)}. ${fired.length} event(s) fired.`);
+    const { days: normDays, cal, toDate, fired } = await advanceCalendarByDays(days);
+    ui.notifications?.info?.(`Advanced ${normDays} day${normDays === 1 ? '' : 's'} → ${formatDate(toDate, cal)}. ${fired.length} event(s) fired.`);
     this.viewYear  = toDate.year;
     this.viewMonth = toDate.month;
     this.render(false);

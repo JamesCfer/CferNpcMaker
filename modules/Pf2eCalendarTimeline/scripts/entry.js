@@ -8,6 +8,7 @@ import { startHeartbeat }       from './core/heartbeat.js';
 import { MODULE_ID, STATE_KEY, defaultState } from './state.js';
 import { openCalendar }         from './calendar-app.js';
 import { CalendarAdapter }      from './adapter.js';
+import { registerSimpleCalendarBridge } from './simple-calendar-bridge.js';
 
 const adapter = new CalendarAdapter();
 
@@ -24,6 +25,7 @@ Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'welcomeMessageShown', {
     scope: 'world', config: false, type: Boolean, default: false,
   });
+  registerSimpleCalendarBridge();
 });
 
 Hooks.once('ready', () => {
