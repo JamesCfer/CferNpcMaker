@@ -181,13 +181,13 @@ item that has all its dependencies satisfied.
 - [x] 101. **Click a day to inspect events** — popover listing every event scheduled for that day with quick edit / cancel buttons.
 
 ## H. Map & visuals (102–108)
-- [ ] 102. **Settlement banner image picker** — file picker on the header; falls back to AI-generated banner when set.
+- [x] 102. **Settlement banner image picker** — file picker on the header; falls back to AI-generated banner when set.
 - [ ] 103. **Procedural town SVG** — render a top-down layout: city wall, streets, shop dots sized by population; click a dot to scroll to that store card.
-- [ ] 104. **World-map scene pins** — when a settlement has `sceneId`, the scene note uses the module icon and tooltip shows kind + population.
+- [x] 104. **World-map scene pins** — when a settlement has `sceneId`, the scene note uses the module icon and tooltip shows kind + population.
 - [ ] 105. **Nation border overlay** — Nation sheet lets the GM draw a region on the world map; the region is rendered with the nation's colour.
 - [x] 106. **Scene-link button** — header button to set/clear `sceneId`; opens the linked scene when clicked.
 - [x] 107. **Settlement icon by kind** — village / town / city / nation get distinct icons on the journal directory.
-- [ ] 108. **Embed thumbnail in chat cards** — generation-success / tax-fired chat cards include the banner thumbnail.
+- [x] 108. **Embed thumbnail in chat cards** — generation-success / tax-fired chat cards include the banner thumbnail.
 
 ## I. Cross-module integration (109–115)
 - [x] 109. **Auto-tag generated NPCs** — NPCs created through a settlement's bridge get `actor.setFlag(Pf2eNationsAndCitiesMaker, 'homeSettlementId', journalId)`.

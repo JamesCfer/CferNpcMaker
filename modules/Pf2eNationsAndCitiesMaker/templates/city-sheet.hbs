@@ -2,6 +2,10 @@
 
   <div class="pf2e-sr-only" aria-live="polite" aria-atomic="true" data-live-region></div>
 
+  {{#if settlement.bannerImage}}
+    <img class="pf2e-settlement-banner" src="{{settlement.bannerImage}}" alt="{{doc.name}} banner" />
+  {{/if}}
+
   <div class="pf2e-settlement-header">
     <div class="pf2e-settlement-title">
       <i class="fa-solid fa-city"></i>
@@ -23,6 +27,12 @@
         <button type="button" data-action="unlinkScene" class="pf2e-icon-btn" title="Unlink scene"><i class="fa-solid fa-link-slash"></i></button>
       {{else}}
         <button type="button" data-action="linkScene"><i class="fa-solid fa-map-location-dot"></i> Link Scene</button>
+      {{/if}}
+      <button type="button" data-action="editBanner" title="Pick a banner image"><i class="fa-solid fa-image"></i> {{#if settlement.bannerImage}}Change{{else}}Set{{/if}} Banner</button>
+      {{#if settlement.bannerImage}}
+        <button type="button" data-action="removeBanner" class="pf2e-icon-btn" title="Remove banner"><i class="fa-solid fa-trash"></i></button>
+      {{else}}
+        <button type="button" data-action="generateBanner" title="Generate an AI banner"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Banner</button>
       {{/if}}
       <button type="button" data-action="openBuilder"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Builder</button>
     </div>

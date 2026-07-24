@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { sanitizeSettlement }  from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
 import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
          seasonForMonth, rollWeather } from '../../modules/Pf2eCalendarTimeline/scripts/scheduler.js';
-import { applyDailyTick, applyFestival } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
-import { CURRENT_SCHEMA_VERSION } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
+import { applyDailyTick, applyFestival, applyTax } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
+import { CURRENT_SCHEMA_VERSION, migrateSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
 import { generateHooks } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/hooks.js';
+import { settlementNoteIcon, settlementNoteTooltip } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/scene-notes.js';
 
 describe('sanitizeSettlement defaults', () => {
   it('fills in kind and size', () => {
@@ -45,6 +46,14 @@ describe('sanitizeSettlement defaults', () => {
 
   it('stamps _schemaVersion', () => {
     expect(sanitizeSettlement({})._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+
+  it('defaults bannerImage to null', () => {
+    expect(sanitizeSettlement({}).bannerImage).toBeNull();
+  });
+
+  it('preserves a valid bannerImage path', () => {
+    expect(sanitizeSettlement({ bannerImage: 'worlds/foo/banner.webp' }).bannerImage).toBe('worlds/foo/banner.webp');
   });
 });
 
@@ -255,6 +264,87 @@ describe('applyFestival', () => {
     expect(doc.getStored().stats.morale).toBe(60);
     expect(doc.getStored().stats.unrest).toBe(19);
     expect(doc.getStored().treasury.gp).toBe(500);
+  });
+});
+
+describe('applyTax', () => {
+  globalThis.ChatMessage = { create: async () => {} };
+  globalThis.game = { users: [] };
+
+  function makeDoc(balance, bannerImage = null) {
+    const settlement = {
+      _schemaVersion: CURRENT_SCHEMA_VERSION,
+      stores: [{ id: 's1', closed: false, income: { balance, dailyAvg: 5, lastTick: 0 } }],
+      treasury: { cp: 0, sp: 0, gp: 0, pp: 0 },
+      stats: { unrest: 10 },
+      bannerImage,
+    };
+    let stored = settlement;
+    return {
+      name: 'Test Town',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('collects a percentage of positive store balances into the treasury', async () => {
+    const doc = makeDoc(1000);
+    const { collected } = await applyTax(doc, { taxType: 'income', ratePct: 10 });
+    expect(collected).toBe(100);
+    expect(doc.getStored().treasury.gp).toBe(100);
+    expect(doc.getStored().stores[0].income.balance).toBe(900);
+  });
+
+  it('raises unrest by 1', async () => {
+    const doc = makeDoc(1000);
+    await applyTax(doc, { ratePct: 5 });
+    expect(doc.getStored().stats.unrest).toBe(11);
+  });
+
+  it('posts a chat card including the banner thumbnail when one is set (#108)', async () => {
+    const posted = [];
+    globalThis.ChatMessage = { create: async (data) => { posted.push(data); } };
+    const doc = makeDoc(1000, 'worlds/foo/banner.webp');
+    await applyTax(doc, { ratePct: 10 });
+    expect(posted).toHaveLength(1);
+    expect(posted[0].content).toContain('worlds/foo/banner.webp');
+  });
+
+  it('omits the thumbnail when no banner is set', async () => {
+    const posted = [];
+    globalThis.ChatMessage = { create: async (data) => { posted.push(data); } };
+    const doc = makeDoc(1000);
+    await applyTax(doc, { ratePct: 10 });
+    expect(posted[0].content).not.toContain('<img');
+  });
+});
+
+describe('migrateSettlement', () => {
+  it('adds bannerImage: null when upgrading from schema 4', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 4, kind: 'town' });
+    expect(migrated._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.bannerImage).toBeNull();
+  });
+
+  it('leaves an existing bannerImage untouched', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 4, bannerImage: 'foo.webp' });
+    expect(migrated.bannerImage).toBe('foo.webp');
+  });
+});
+
+describe('settlementNoteIcon / settlementNoteTooltip', () => {
+  it('maps each kind to a distinct icon path', () => {
+    const icons = new Set(['village', 'town', 'city', 'nation'].map(settlementNoteIcon));
+    expect(icons.size).toBe(4);
+  });
+
+  it('falls back to the city icon for an unknown kind', () => {
+    expect(settlementNoteIcon('nonsense')).toBe(settlementNoteIcon('city'));
+  });
+
+  it('formats the tooltip as "<Kind> · Population <n>"', () => {
+    expect(settlementNoteTooltip({ kind: 'town', population: 1500 })).toBe('Town · Population 1,500');
   });
 });
 

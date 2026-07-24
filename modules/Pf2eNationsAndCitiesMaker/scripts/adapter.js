@@ -172,6 +172,16 @@ export class SettlementAdapter extends SystemAdapter {
 
     if (!journal) throw new Error('Failed to create the settlement journal entry.');
 
+    const bannerHtml = settlement.bannerImage
+      ? `<img src="${settlement.bannerImage}" alt="${journal.name}" style="width:100%;max-height:120px;object-fit:cover;border-radius:4px;margin:0.3em 0;" />`
+      : '';
+    ChatMessage.create({
+      content: `<h3><i class="fa-solid fa-city"></i> ${journal.name} Founded</h3>${bannerHtml}
+        <p>A new ${settlement.kind} has been generated: <strong>${journal.name}</strong>
+        (population ${settlement.population.toLocaleString()}).</p>`,
+      whisper: game.users?.filter(u => u.isGM).map(u => u.id) ?? [],
+    }).catch(() => {});
+
     // Open the matching custom sheet.
     if (settlement.kind === 'nation') {
       new NationSheet(journal).render(true);

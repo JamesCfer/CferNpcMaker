@@ -14,6 +14,7 @@ import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
+import { settlementNoteIcon, settlementNoteTooltip } from './scene-notes.js';
 import { log }                        from './logger.js';
 
 const adapter = new SettlementAdapter();
@@ -302,6 +303,19 @@ Hooks.on('dropCanvasData', (canvas, data) => {
     setSettlement(journal, next);
     ui.notifications?.info?.(`Linked "${journal.name}" to this scene.`);
   }).catch(err => log('error', 'dropCanvasData scene link failed', err));
+});
+
+// World-map scene pins (#104): whenever a Note gets created for a settlement
+// journal (e.g. by dragging it onto the canvas), style it with the module's
+// kind icon and a kind/population tooltip instead of the generic journal icon.
+Hooks.on('preCreateNote', (note, data) => {
+  const journal = data.entryId ? game.journal?.get(data.entryId) : null;
+  const s = journal && getSettlement(journal);
+  if (!s) return;
+  note.updateSource({
+    'texture.src': settlementNoteIcon(s.kind),
+    text: settlementNoteTooltip(s),
+  });
 });
 
 function getCurrentWeekday() {

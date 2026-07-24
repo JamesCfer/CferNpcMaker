@@ -116,6 +116,7 @@
  * @property {Religion[]}       religions
  * @property {number}           priceMultiplier  multiplied into all displayed prices (1.0 = normal) (#62)
  * @property {string[]}         childCityIds
+ * @property {string|null}      bannerImage      header banner image path; AI-generated or user-picked (#102)
  * @property {string}           notes
  * @property {{ endpoint: string, model: string, prompt: string }} ai
  */

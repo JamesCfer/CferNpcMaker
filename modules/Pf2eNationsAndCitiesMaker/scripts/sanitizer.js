@@ -168,6 +168,7 @@ export function sanitizeSettlement(raw, formData = {}) {
     })) : [],
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
+    bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
     notes: safeString(s.notes, ''),
     ai: {
       endpoint: safeString(s.ai?.endpoint, 'city-builder'),

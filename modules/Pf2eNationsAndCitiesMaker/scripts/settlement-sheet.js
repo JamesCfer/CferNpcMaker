@@ -13,7 +13,11 @@ import { generateStaffNpc, generateStoreItem, canGenerateNpc, canGenerateItem,
 import { sanitizeSettlement }                                                           from './sanitizer.js';
 import { goodsForProduction }                                                           from './trade-goods.js';
 import { generateHooks }                                                                from './hooks.js';
+import { syncSettlementNotes }                                                          from './scene-notes.js';
 import { escapeHtml }                                                                   from './core/utils.js';
+import { Storage }                                                                      from './core/storage.js';
+import { isDevMode }                                                                    from './core/n8n.js';
+import { generateImage, IMAGE_COST }                                                    from './core/image-gen.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -97,6 +101,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       openScene:           function()   { this._onOpenScene(); },
       unlinkScene:         function()   { this._onUnlinkScene(); },
       generateHooks:       function()   { this._onGenerateHooks(); },
+      editBanner:          function()   { this._onEditBanner(); },
+      generateBanner:      function()   { this._onGenerateBanner(); },
+      removeBanner:        function()   { this._onRemoveBanner(); },
     },
   };
 
@@ -344,6 +351,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const cur  = foundry.utils.deepClone(getSettlement(this.document) || {});
     mutator(cur);
     await this.document.setFlag(FLAG_SCOPE, FLAG_KEY, cur);
+    syncSettlementNotes(this.document, cur).catch(() => {});
     this.render(false);
   }
 
@@ -952,6 +960,55 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onUnlinkScene() {
     this._patch(s => { s.sceneId = null; });
+  }
+
+  /* ── banner image (#102) ───────────────────────────────── */
+
+  _onEditBanner() {
+    const settlement = getSettlement(this.document) || {};
+    new FilePicker({
+      type: 'image',
+      current: settlement.bannerImage || '',
+      callback: (path) => this._patch(s => { s.bannerImage = path; }),
+    }).render(true);
+  }
+
+  _onRemoveBanner() {
+    this._patch(s => { s.bannerImage = null; });
+  }
+
+  async _onGenerateBanner() {
+    const key = new Storage(MODULE_ID).getKey();
+    if (!key) { ui.notifications?.warn?.('Sign in to the Settlement Builder to generate an AI banner.'); return; }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window:      { title: 'Generate Banner' },
+      content:     `<p>Generate an AI banner image for <strong>${this.document.name}</strong>? This uses ${IMAGE_COST} NPC uses.</p>`,
+      yes:         { label: 'Generate', icon: 'fa-solid fa-wand-magic-sparkles' },
+      no:          { label: 'Cancel' },
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return;
+
+    const settlement = sanitizeSettlement(getSettlement(this.document) || {});
+    ui.notifications?.info?.('Generating banner…');
+    try {
+      const { savedPath, message } = await generateImage({
+        npcData:  { name: this.document.name, kind: settlement.kind, biome: settlement.biome, notes: settlement.notes },
+        system:   'pf2e',
+        artStyle: 'wide landscape banner illustration',
+        key,
+        devMode:  isDevMode(MODULE_ID),
+        onAuthFailed:   () => ui.notifications?.error?.('Session expired — please sign in again.'),
+        onRateLimited:  () => ui.notifications?.warn?.('Monthly image limit reached.'),
+      });
+      if (savedPath) {
+        await this._patch(s => { s.bannerImage = savedPath; });
+        ui.notifications?.info?.(message || 'Banner generated.');
+      }
+    } catch (err) {
+      ui.notifications?.error?.(`Banner generation failed: ${err.message}`);
+    }
   }
 
   _onSaveNotes() {

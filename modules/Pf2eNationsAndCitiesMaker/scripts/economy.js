@@ -4,6 +4,7 @@
  */
 
 import { FLAG_SCOPE, FLAG_KEY, MODULE_ID, getSettlement } from './constants.js';
+import { syncSettlementNotes } from './scene-notes.js';
 
 const THIRTY_GAME_DAYS = 30;
 
@@ -174,6 +175,7 @@ export async function applyDailyTick(doc, days = 1, weekday = null) {
   if (s.treasuryHistory.length > 30) s.treasuryHistory = s.treasuryHistory.slice(-30);
 
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+  await syncSettlementNotes(doc, s);
 
   if (isRioting) {
     ChatMessage.create({
@@ -233,6 +235,16 @@ export async function applyTax(doc, payload = {}) {
   s.notes = `${log}<br>${s.notes || ''}`;
 
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+
+  const bannerHtml = s.bannerImage
+    ? `<img src="${s.bannerImage}" alt="${doc.name}" style="width:100%;max-height:120px;object-fit:cover;border-radius:4px;margin:0.3em 0;" />`
+    : '';
+  ChatMessage.create({
+    content: `<h3><i class="fa-solid fa-coins"></i> Tax Collected in ${doc.name}</h3>${bannerHtml}
+      <p>${payload.taxType || 'income'} tax @${ratePct}% collected <strong>${collected.toLocaleString()}</strong> gp.</p>`,
+    whisper: gmWhisper(),
+  }).catch(() => {});
+
   return { collected };
 }
 
@@ -279,6 +291,7 @@ export async function applyPlague(doc, payload = {}) {
   s.stats = s.stats || {};
   s.stats.unrest = Math.min(100, (Number(s.stats.unrest) || 0) + Math.round(ratePct / 5));
   await doc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+  await syncSettlementNotes(doc, s);
   ChatMessage.create({
     content: `<h3><i class="fa-solid fa-biohazard"></i> Plague Strikes ${doc.name}!</h3>
       <p>A plague has swept through the settlement, claiming <strong>${lost.toLocaleString()}</strong> lives
