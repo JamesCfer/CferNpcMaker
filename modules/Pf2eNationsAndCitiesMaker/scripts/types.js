@@ -139,14 +139,16 @@
  */
 
 /**
- * Stub — Army document shape (Section E military, not yet implemented).
+ * Army document shape (#70). Lives on its own JournalEntry, same flag path
+ * as Settlement/Nation. `mode` (garrison/field, #74) and `commanderActorId`
+ * bonuses (#78) are still unimplemented — the field exists so later cycles
+ * don't need another schema migration.
  * @typedef {object} Army
- * @property {string} id
- * @property {string} name
- * @property {string} stationedAt         journal ID of the home settlement
- * @property {'garrison'|'field'} mode
- * @property {Array<{ type: string, count: number, level: number, equipment: string, morale: number }>} units
+ * @property {'army'} kind
+ * @property {string|null} stationedAt    journal ID of the home settlement
+ * @property {Array<{ id: string, type: string, count: number, level: number, equipment: string, morale: number }>} units
  * @property {string|null} commanderActorId
+ * @property {string} notes
  */
 
 /**

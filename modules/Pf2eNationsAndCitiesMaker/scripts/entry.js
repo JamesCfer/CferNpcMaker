@@ -12,6 +12,11 @@ import { SettlementAdapter }          from './adapter.js';
 import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
+import { ArmySheet }                  from './army-sheet.js';
+import { createArmy }                 from './army.js';
+import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settlements.js';
+import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
+import { sanitizeSettlement }                           from './sanitizer.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
 import { settlementNoteIcon, settlementNoteTooltip } from './scene-notes.js';
@@ -87,6 +92,75 @@ class ClearSettlementsMenu {
 class FixtureSheetMenu {
   async render() {
     await openWithFixture();
+    return this;
+  }
+}
+
+class CreateArmyMenu {
+  render() {
+    foundry.applications.api.DialogV2.prompt({
+      window: { title: game.i18n.localize('SettlementBuilder.Settings.CreateArmy.Name') },
+      content: `<label>${game.i18n.localize('SettlementBuilder.Settings.CreateArmy.Hint')}
+        <input type="text" name="armyName" placeholder="Army name" style="width:100%;margin-top:0.25em;" />
+      </label>`,
+      ok: {
+        label:    game.i18n.localize('SettlementBuilder.Settings.CreateArmy.ConfirmLabel'),
+        icon:     'fa-solid fa-shield-halved',
+        callback: (_e, _b, dlg) => dlg.element.querySelector('[name="armyName"]')?.value?.trim() || '',
+      },
+      rejectClose: false,
+    }).then(async name => {
+      if (!name) return;
+      const journal = await createArmy(name);
+      if (journal) new ArmySheet(journal).render(true);
+    }).catch(() => {});
+    return this;
+  }
+}
+
+function prebuiltName(label) { return label.replace(/\s*\([^)]*\)\s*$/, '').trim(); }
+
+async function importPrebuilt(list, getFn, SheetClass, dialogTitle) {
+  const options = list.map(e => `<option value="${e.id}">${e.label}</option>`).join('');
+  const id = await foundry.applications.api.DialogV2.prompt({
+    window: { title: dialogTitle },
+    content: `<label>${game.i18n.localize('SettlementBuilder.Settings.ImportPrebuilt.Hint')}
+      <select name="presetId" style="width:100%;margin-top:0.25em;">${options}</select>
+    </label>`,
+    ok: {
+      label:    game.i18n.localize('SettlementBuilder.Settings.ImportPrebuilt.ConfirmLabel'),
+      icon:     'fa-solid fa-file-import',
+      callback: (_e, _b, dlg) => dlg.element.querySelector('[name="presetId"]')?.value || '',
+    },
+    rejectClose: false,
+  }).catch(() => '');
+  if (!id) return;
+  const entry = getFn(id);
+  if (!entry) return;
+  const settlement = sanitizeSettlement(entry.data);
+  const journal = await JournalEntry.create({
+    name: prebuiltName(entry.label),
+    flags: { [FLAG_SCOPE]: { [FLAG_KEY]: settlement, createdBy: MODULE_ID } },
+  });
+  if (journal) new SheetClass(journal).render(true);
+}
+
+class ImportPrebuiltSettlementMenu {
+  render() {
+    importPrebuilt(
+      PREBUILT_SETTLEMENTS, getPrebuiltSettlement, SettlementSheet,
+      game.i18n.localize('SettlementBuilder.Settings.ImportPrebuiltSettlement.Name'),
+    );
+    return this;
+  }
+}
+
+class ImportPrebuiltNationMenu {
+  render() {
+    importPrebuilt(
+      PREBUILT_NATIONS, getPrebuiltNation, NationSheet,
+      game.i18n.localize('SettlementBuilder.Settings.ImportPrebuiltNation.Name'),
+    );
     return this;
   }
 }
@@ -205,6 +279,30 @@ Hooks.once('init', () => {
     type:       FixtureSheetMenu,
     restricted: true,
   });
+  game.settings.registerMenu(MODULE_ID, 'importPrebuiltSettlement', {
+    name:       'SettlementBuilder.Settings.ImportPrebuiltSettlement.Name',
+    label:      'SettlementBuilder.Settings.ImportPrebuiltSettlement.Label',
+    hint:       'SettlementBuilder.Settings.ImportPrebuiltSettlement.Hint',
+    icon:       'fa-solid fa-file-import',
+    type:       ImportPrebuiltSettlementMenu,
+    restricted: true,
+  });
+  game.settings.registerMenu(MODULE_ID, 'importPrebuiltNation', {
+    name:       'SettlementBuilder.Settings.ImportPrebuiltNation.Name',
+    label:      'SettlementBuilder.Settings.ImportPrebuiltNation.Label',
+    hint:       'SettlementBuilder.Settings.ImportPrebuiltNation.Hint',
+    icon:       'fa-solid fa-file-import',
+    type:       ImportPrebuiltNationMenu,
+    restricted: true,
+  });
+  game.settings.registerMenu(MODULE_ID, 'createArmy', {
+    name:       'SettlementBuilder.Settings.CreateArmy.Name',
+    label:      'SettlementBuilder.Settings.CreateArmy.Label',
+    hint:       'SettlementBuilder.Settings.CreateArmy.Hint',
+    icon:       'fa-solid fa-shield-halved',
+    type:       CreateArmyMenu,
+    restricted: true,
+  });
 });
 
 // Intercept JournalEntry.sheet rendering — when the journal carries a
@@ -218,8 +316,9 @@ Hooks.on('renderJournalSheet', (app, html) => {
     // Defer the swap so we don't recurse during render.
     app.close({ submit: false });
     queueMicrotask(() => {
-      if (s.kind === 'nation') new NationSheet(journal).render(true);
-      else                     new SettlementSheet(journal).render(true);
+      if (s.kind === 'nation')     new NationSheet(journal).render(true);
+      else if (s.kind === 'army')  new ArmySheet(journal).render(true);
+      else                         new SettlementSheet(journal).render(true);
     });
   } catch (err) {
     log('error', 'sheet swap failed', err);
@@ -268,6 +367,7 @@ const KIND_ICONS = {
   town:    'fa-shop',
   city:    'fa-city',
   nation:  'fa-flag',
+  army:    'fa-shield-halved',
 };
 
 function applySettlementDirectoryIcons(app, html) {
@@ -339,7 +439,7 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
     const journals = game.journal?.contents || [];
     for (const j of journals) {
       const s = getSettlement(j);
-      if (!s || s.kind === 'nation') continue;
+      if (!s || s.kind === 'nation' || s.kind === 'army') continue;
       await applyDailyTick(j, days, weekday);
     }
   } catch (err) {
@@ -429,6 +529,7 @@ Hooks.once('ready', () => {
     `modules/${MODULE_ID}/templates/builder.html`,
     `modules/${MODULE_ID}/templates/city-sheet.hbs`,
     `modules/${MODULE_ID}/templates/nation-sheet.hbs`,
+    `modules/${MODULE_ID}/templates/army-sheet.hbs`,
     `modules/${MODULE_ID}/templates/partials/statblock.hbs`,
     `modules/${MODULE_ID}/templates/partials/stores-tab.hbs`,
     `modules/${MODULE_ID}/templates/partials/guards-tab.hbs`,

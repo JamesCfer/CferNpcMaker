@@ -1,14 +1,16 @@
 /* ── Pf2e Settlement Sheet ─────────────────────────────────────────────── */
 
 .pf2e-settlement-sheet,
-.pf2e-nation-sheet {
+.pf2e-nation-sheet,
+.pf2e-army-sheet {
   font-family: "Signika", "Roboto", sans-serif;
   background: #f6efe1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><rect width="6" height="6" fill="%23f6efe1"/><circle cx="3" cy="3" r="0.3" fill="%23d8c89c"/></svg>');
   color: #2c1f10;
 }
 
 .pf2e-settlement,
-.pf2e-nation {
+.pf2e-nation,
+.pf2e-army {
   display: flex; flex-direction: column;
   padding: 0.75em 1em; gap: 0.75em; height: 100%;
 }
@@ -24,21 +26,25 @@
 }
 
 .pf2e-settlement-header,
-.pf2e-nation-header {
+.pf2e-nation-header,
+.pf2e-army-header {
   display: flex; align-items: center; justify-content: space-between;
   padding-bottom: 0.5em; border-bottom: 2px solid #9b6923;
   gap: 1em;
 }
 
 .pf2e-settlement-title,
-.pf2e-nation-header {
+.pf2e-nation-header,
+.pf2e-army-header {
   display: flex; align-items: center; gap: 0.5em;
 }
 .pf2e-settlement-title h2,
-.pf2e-nation-header h2 { margin: 0; color: #5a2f0a; font-weight: 700; }
+.pf2e-nation-header h2,
+.pf2e-army-header h2 { margin: 0; color: #5a2f0a; font-weight: 700; }
 
 .pf2e-settlement-title i,
-.pf2e-nation-header i { color: #9b6923; font-size: 1.4em; }
+.pf2e-nation-header i,
+.pf2e-army-header i { color: #9b6923; font-size: 1.4em; }
 
 .pf2e-settlement-kind-pill {
   text-transform: capitalize;
@@ -418,7 +424,8 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-hooks-list { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 0.5em; }
 
 /* ── nation sheet ────────────────────────────────────────── */
-.pf2e-nation-summary {
+.pf2e-nation-summary,
+.pf2e-army-summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5em;
   padding: 0.5em; background: rgba(155,105,35,0.07); border: 1px solid #d8b888; border-radius: 4px;
 }
@@ -440,16 +447,20 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 
 /* ── high-contrast theme (#125) ──────────────────────────── */
 .pf2e-high-contrast.pf2e-settlement-sheet,
-.pf2e-high-contrast.pf2e-nation-sheet {
+.pf2e-high-contrast.pf2e-nation-sheet,
+.pf2e-high-contrast.pf2e-army-sheet {
   background: #000 !important;
   color: #fff !important;
 }
 .pf2e-high-contrast .pf2e-settlement-header,
-.pf2e-high-contrast .pf2e-nation-header { border-bottom-color: #ffd54a !important; }
+.pf2e-high-contrast .pf2e-nation-header,
+.pf2e-high-contrast .pf2e-army-header { border-bottom-color: #ffd54a !important; }
 .pf2e-high-contrast .pf2e-settlement-title h2,
 .pf2e-high-contrast .pf2e-nation-header h2,
+.pf2e-high-contrast .pf2e-army-header h2,
 .pf2e-high-contrast .pf2e-settlement-title i,
 .pf2e-high-contrast .pf2e-nation-header i,
+.pf2e-high-contrast .pf2e-army-header i,
 .pf2e-high-contrast h4 { color: #ffd54a !important; }
 .pf2e-high-contrast .pf2e-settlement-tabs { border-right-color: #fff !important; }
 .pf2e-high-contrast .pf2e-settlement-tab { color: #fff !important; }
@@ -483,7 +494,8 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-statblock-demographics,
 .pf2e-high-contrast .pf2e-treasury-sparkline,
 .pf2e-high-contrast .pf2e-guards-summary,
-.pf2e-high-contrast .pf2e-nation-summary {
+.pf2e-high-contrast .pf2e-nation-summary,
+.pf2e-high-contrast .pf2e-army-summary {
   background: #111 !important; border-color: #fff !important;
 }
 .pf2e-high-contrast .pf2e-empty,

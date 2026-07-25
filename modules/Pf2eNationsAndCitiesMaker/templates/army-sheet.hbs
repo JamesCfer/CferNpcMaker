@@ -1,0 +1,72 @@
+<div class="pf2e-army">
+
+  <div class="pf2e-army-header">
+    <i class="fa-solid fa-shield-halved"></i>
+    <h2>{{doc.name}}</h2>
+    <span class="pf2e-settlement-kind-pill">Army</span>
+  </div>
+
+  <div class="pf2e-army-summary">
+    <div class="pf2e-nation-stat"><label>Total Units</label><span>{{totalUnits}}</span></div>
+    <div class="pf2e-nation-stat">
+      <label>Stationed At</label>
+      {{#if stationedAtName}}
+        <span><a href="#" data-action="openStationedAt">{{stationedAtName}}</a></span>
+      {{else}}
+        <span>&mdash;</span>
+      {{/if}}
+    </div>
+  </div>
+
+  <label>Stationed At
+    <select name="stationedAt" data-path="stationedAt" data-action="saveField" style="width:100%;margin-top:0.25em;">
+      <option value="">&mdash; none &mdash;</option>
+      {{#each availableJournals}}
+        <option value="{{id}}" {{#if (eqStr id ../army.stationedAt)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+  </label>
+
+  <h3><i class="fa-solid fa-people-group"></i> Unit Roster</h3>
+  {{#if army.units.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Type</th><th>Count</th><th></th></tr></thead>
+      <tbody>
+        {{#each army.units}}
+          <tr>
+            <td>
+              <select data-path="units.{{@index}}.type" data-action="saveField">
+                {{#each ../unitTypes}}
+                  <option value="{{this}}" {{#if (eqStr this ../type)}}selected{{/if}}>{{this}}</option>
+                {{/each}}
+              </select>
+            </td>
+            <td>
+              <input type="number" min="0" step="1" data-path="units.{{@index}}.count"
+                     data-action="saveField" value="{{count}}" style="width:5em;" />
+            </td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeUnit" data-unit-id="{{id}}" title="Remove unit">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No units recruited yet.</em>
+  {{/if}}
+
+  <button type="button" class="pf2e-settlement-btn" data-action="addUnit">
+    <i class="fa-solid fa-plus"></i> Add Unit
+  </button>
+
+  <h3><i class="fa-solid fa-scroll"></i> Notes</h3>
+  <textarea data-path="notes" rows="6">{{army.notes}}</textarea>
+  <button type="button" class="pf2e-settlement-btn" data-action="saveNotes">
+    <i class="fa-solid fa-floppy-disk"></i> Save notes
+  </button>
+
+</div>
