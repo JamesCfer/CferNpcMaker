@@ -143,7 +143,7 @@ item that has all its dependencies satisfied.
 - [x] 69. **Demographics breakdown** — race / ancestry / class mix as percentages on the Overview tab; editable so the GM can pin "elven port" vs "dwarven hold".
 
 ## E. Military & warfare (70–82)
-- [ ] 70. **Army document** — separate JournalEntry kind (`flags.…settlement.kind === 'army'`) with its own sheet, holding unit counts + a stationed-at link.
+- [x] 70. **Army document** — separate JournalEntry kind (`flags.…settlement.kind === 'army'`) with its own sheet, holding unit counts + a stationed-at link.
 - [ ] 71. **Unit roster** — `units: [{ type, count, level, equipment, morale }]` with PF2e-flavoured types (spearmen, archers, cavalry, mages, siege).
 - [ ] 72. **Recruitment dialog** — drains `population` and `treasury.gp` to add units of a chosen type; respects available pool.
 - [ ] 73. **Unit wages** — each unit type has a daily upkeep cost; the army's `stationedAt` settlement pays it on each `dayAdvanced`.
@@ -192,8 +192,8 @@ item that has all its dependencies satisfied.
 ## I. Cross-module integration (109–115)
 - [x] 109. **Auto-tag generated NPCs** — NPCs created through a settlement's bridge get `actor.setFlag(Pf2eNationsAndCitiesMaker, 'homeSettlementId', journalId)`.
 - [x] 110. **Reverse-link from actor sheet** — button on tagged actors: "Open home settlement".
-- [ ] 111. **Compendium of 10 prebuilt settlements** — ship a JSON compendium so users can drop a town in without AI credits.
-- [ ] 112. **Compendium of 5 prebuilt nations** — same, but at nation tier.
+- [x] 111. **Compendium of 10 prebuilt settlements** — ship a JSON compendium so users can drop a town in without AI credits.
+- [x] 112. **Compendium of 5 prebuilt nations** — same, but at nation tier.
 - [x] 113. **Simple Calendar adapter** — optional bridge: if `foundryvtt-simple-calendar` is active, drive our events off its date.
 - [x] 114. **Drop settlement onto scene to link** — drag a settlement journal onto a scene to set `sceneId` automatically.
 - [ ] 115. **Adventurer guild integration** — a special store type that lets the GM post "jobs" (custom payloads) and roll which adventurers (NPCs) take them.
