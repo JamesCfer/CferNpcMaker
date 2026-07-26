@@ -30,7 +30,7 @@
   <h3><i class="fa-solid fa-people-group"></i> Unit Roster</h3>
   {{#if army.units.length}}
     <table class="pf2e-nation-cities">
-      <thead><tr><th>Type</th><th>Count</th><th></th></tr></thead>
+      <thead><tr><th>Type</th><th>Count</th><th>Level</th><th>Equipment</th><th>Morale</th><th></th></tr></thead>
       <tbody>
         {{#each army.units}}
           <tr>
@@ -44,6 +44,18 @@
             <td>
               <input type="number" min="0" step="1" data-path="units.{{@index}}.count"
                      data-action="saveField" value="{{count}}" style="width:5em;" />
+            </td>
+            <td>
+              <input type="number" min="0" max="30" step="1" data-path="units.{{@index}}.level"
+                     data-action="saveField" value="{{level}}" style="width:4em;" />
+            </td>
+            <td>
+              <input type="text" data-path="units.{{@index}}.equipment"
+                     data-action="saveField" value="{{equipment}}" style="width:100%;" />
+            </td>
+            <td>
+              <input type="number" min="0" max="100" step="1" data-path="units.{{@index}}.morale"
+                     data-action="saveField" value="{{morale}}" style="width:4em;" />
             </td>
             <td>
               <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
@@ -61,6 +73,9 @@
 
   <button type="button" class="pf2e-settlement-btn" data-action="addUnit">
     <i class="fa-solid fa-plus"></i> Add Unit
+  </button>
+  <button type="button" class="pf2e-settlement-btn" data-action="recruitUnits">
+    <i class="fa-solid fa-coins"></i> Recruit Units
   </button>
 
   <h3><i class="fa-solid fa-scroll"></i> Notes</h3>

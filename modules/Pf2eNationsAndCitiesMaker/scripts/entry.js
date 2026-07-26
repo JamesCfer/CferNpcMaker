@@ -13,7 +13,7 @@ import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { ArmySheet }                  from './army-sheet.js';
-import { createArmy }                 from './army.js';
+import { createArmy, applyArmyWages } from './army.js';
 import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settlements.js';
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
@@ -439,7 +439,12 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
     const journals = game.journal?.contents || [];
     for (const j of journals) {
       const s = getSettlement(j);
-      if (!s || s.kind === 'nation' || s.kind === 'army') continue;
+      if (!s || s.kind === 'nation') continue;
+      if (s.kind === 'army') {
+        const stationedAt = s.stationedAt && game.journal?.get(s.stationedAt);
+        if (stationedAt) await applyArmyWages(j, stationedAt, days);
+        continue;
+      }
       await applyDailyTick(j, days, weekday);
     }
   } catch (err) {
