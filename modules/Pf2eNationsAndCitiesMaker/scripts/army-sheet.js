@@ -5,7 +5,7 @@
  */
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
-import { sanitizeArmy, totalUnitCount, UNIT_TYPES }        from './army.js';
+import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost } from './army.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -22,6 +22,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       addUnit:        function()   { this._onAddUnit(); },
       removeUnit:     function(ev) { this._onRemoveUnit(ev); },
       openStationedAt: function()  { this._onOpenStationedAt(); },
+      recruitUnits:   function()   { this._onRecruitUnits(); },
     },
   };
 
@@ -102,5 +103,66 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const journal = army.stationedAt && game.journal?.get(army.stationedAt);
     if (!journal) { ui.notifications?.warn?.('This army is not stationed at a settlement.'); return; }
     journal.sheet.render(true);
+  }
+
+  async _onRecruitUnits() {
+    const army = sanitizeArmy(getSettlement(this.document) || {});
+    const settlementDoc = army.stationedAt && game.journal?.get(army.stationedAt);
+    if (!settlementDoc) { ui.notifications?.warn?.('Station this army at a settlement before recruiting.'); return; }
+
+    const settlement = getSettlement(settlementDoc) || {};
+    const pop = Number(settlement.population) || 0;
+    const gp = Number(settlement.treasury?.gp) || 0;
+
+    const html = `
+      <p>Recruiting from <strong>${settlementDoc.name}</strong> — pool: ${pop.toLocaleString()} population,
+      ${gp.toLocaleString()} gp.</p>
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Unit type
+          <select name="type" style="width:100%;margin-top:0.25em;">
+            ${UNIT_TYPES.map(t => `<option value="${t}">${t} (${UNIT_COSTS[t].gp} gp, ${UNIT_COSTS[t].pop} pop each)</option>`).join('')}
+          </select>
+        </label>
+        <label>Count
+          <input type="number" name="count" value="1" min="1" step="1" style="width:100%;margin-top:0.25em;" />
+        </label>
+      </div>`;
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Recruit Units' },
+      content: html,
+      ok: {
+        label: 'Recruit',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            type: root.querySelector('[name="type"]')?.value || 'spearmen',
+            count: Math.max(1, Number(root.querySelector('[name="count"]')?.value) || 1),
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result) return;
+
+    const cost = recruitmentCost(result.type, result.count);
+    if (cost.pop > pop || cost.gp > gp) {
+      ui.notifications?.warn?.(`${settlementDoc.name} can't afford ${result.count} ${result.type} (needs ${cost.gp} gp, ${cost.pop} pop).`);
+      return;
+    }
+
+    const s = foundry.utils.deepClone(settlement);
+    s.population = pop - cost.pop;
+    s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+    s.treasury.gp = gp - cost.gp;
+    await settlementDoc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+
+    this._patch(a => {
+      a.units = a.units || [];
+      const existing = a.units.find(u => u.type === result.type && Number(u.level) === 1);
+      if (existing) existing.count = Number(existing.count || 0) + result.count;
+      else a.units.push({ type: result.type, count: result.count, level: 1, equipment: '', morale: 100 });
+    });
+
+    ui.notifications?.info?.(`Recruited ${result.count} ${result.type} for ${cost.gp} gp.`);
   }
 }

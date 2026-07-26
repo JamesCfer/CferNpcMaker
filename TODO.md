@@ -144,9 +144,9 @@ item that has all its dependencies satisfied.
 
 ## E. Military & warfare (70–82)
 - [x] 70. **Army document** — separate JournalEntry kind (`flags.…settlement.kind === 'army'`) with its own sheet, holding unit counts + a stationed-at link.
-- [ ] 71. **Unit roster** — `units: [{ type, count, level, equipment, morale }]` with PF2e-flavoured types (spearmen, archers, cavalry, mages, siege).
-- [ ] 72. **Recruitment dialog** — drains `population` and `treasury.gp` to add units of a chosen type; respects available pool.
-- [ ] 73. **Unit wages** — each unit type has a daily upkeep cost; the army's `stationedAt` settlement pays it on each `dayAdvanced`.
+- [x] 71. **Unit roster** — `units: [{ type, count, level, equipment, morale }]` with PF2e-flavoured types (spearmen, archers, cavalry, mages, siege).
+- [x] 72. **Recruitment dialog** — drains `population` and `treasury.gp` to add units of a chosen type; respects available pool.
+- [x] 73. **Unit wages** — each unit type has a daily upkeep cost; the army's `stationedAt` settlement pays it on each `dayAdvanced`.
 - [ ] 74. **Garrison vs field-army flag** — `mode: 'garrison'|'field'`; garrisons defend the settlement HP, field armies can move.
 - [ ] 75. **Army movement** — assign a destination settlement; arrival time computed from calendar + distance setting, firing `armyArrived` on completion.
 - [ ] 76. **Battle resolver** — modal dialog: pick attacker + defender army; rolls a deterministic mass-combat formula (numbers × level × morale × terrain) and writes casualties back.
