@@ -140,12 +140,15 @@
 
 /**
  * Army document shape (#70). Lives on its own JournalEntry, same flag path
- * as Settlement/Nation. `mode` (garrison/field, #74) and `commanderActorId`
- * bonuses (#78) are still unimplemented — the field exists so later cycles
- * don't need another schema migration.
+ * as Settlement/Nation. `commanderActorId` bonuses (#78) are still
+ * unimplemented — the field exists so later cycles don't need another
+ * schema migration.
  * @typedef {object} Army
  * @property {'army'} kind
  * @property {string|null} stationedAt    journal ID of the home settlement
+ * @property {'garrison'|'field'} mode    garrisons defend the settlement, field armies can march (#74)
+ * @property {string|null} destination    journal ID being marched to (#75); null when not moving
+ * @property {CalendarDate|null} arrivalDate  date the army reaches `destination` (#75)
  * @property {Array<{ id: string, type: string, count: number, level: number, equipment: string, morale: number }>} units
  * @property {string|null} commanderActorId
  * @property {string} notes

@@ -147,8 +147,8 @@ item that has all its dependencies satisfied.
 - [x] 71. **Unit roster** — `units: [{ type, count, level, equipment, morale }]` with PF2e-flavoured types (spearmen, archers, cavalry, mages, siege).
 - [x] 72. **Recruitment dialog** — drains `population` and `treasury.gp` to add units of a chosen type; respects available pool.
 - [x] 73. **Unit wages** — each unit type has a daily upkeep cost; the army's `stationedAt` settlement pays it on each `dayAdvanced`.
-- [ ] 74. **Garrison vs field-army flag** — `mode: 'garrison'|'field'`; garrisons defend the settlement HP, field armies can move.
-- [ ] 75. **Army movement** — assign a destination settlement; arrival time computed from calendar + distance setting, firing `armyArrived` on completion.
+- [x] 74. **Garrison vs field-army flag** — `mode: 'garrison'|'field'`; garrisons defend the settlement HP, field armies can move.
+- [x] 75. **Army movement** — assign a destination settlement; arrival time computed from calendar + distance setting, firing `armyArrived` on completion.
 - [ ] 76. **Battle resolver** — modal dialog: pick attacker + defender army; rolls a deterministic mass-combat formula (numbers × level × morale × terrain) and writes casualties back.
 - [ ] 77. **Siege mechanics** — attacking a settlement (not an army) drains settlement HP using `damageThreshold` + `hardness`; HP → 0 = occupied state.
 - [ ] 78. **Generals (commander Actor)** — set an Actor as army commander; their level adds a flat bonus to mass-combat rolls.
@@ -182,7 +182,7 @@ item that has all its dependencies satisfied.
 
 ## H. Map & visuals (102–108)
 - [x] 102. **Settlement banner image picker** — file picker on the header; falls back to AI-generated banner when set.
-- [ ] 103. **Procedural town SVG** — render a top-down layout: city wall, streets, shop dots sized by population; click a dot to scroll to that store card.
+- [x] 103. **Procedural town SVG** — render a top-down layout: city wall, streets, shop dots sized by population; click a dot to scroll to that store card.
 - [x] 104. **World-map scene pins** — when a settlement has `sceneId`, the scene note uses the module icon and tooltip shows kind + population.
 - [ ] 105. **Nation border overlay** — Nation sheet lets the GM draw a region on the world map; the region is rendered with the nation's colour.
 - [x] 106. **Scene-link button** — header button to set/clear `sceneId`; opens the linked scene when clicked.

@@ -50,13 +50,52 @@ export function sanitizeArmy(raw) {
     morale:    safeNum(u?.morale, 100, 0, 100),
   })) : [];
 
+  const arrivalDate = a.arrivalDate;
+  const validArrivalDate = arrivalDate && typeof arrivalDate === 'object'
+    && Number.isFinite(Number(arrivalDate.year))
+    && Number.isFinite(Number(arrivalDate.month))
+    && Number.isFinite(Number(arrivalDate.day));
+
   return {
     kind:        'army',
     stationedAt: (typeof a.stationedAt === 'string' && a.stationedAt) ? a.stationedAt : null,
+    mode:        ['garrison', 'field'].includes(a.mode) ? a.mode : 'garrison',
+    destination: (typeof a.destination === 'string' && a.destination) ? a.destination : null,
+    arrivalDate: validArrivalDate
+      ? { year: Number(arrivalDate.year), month: Number(arrivalDate.month), day: Number(arrivalDate.day) }
+      : null,
     units,
     commanderActorId: a.commanderActorId || null,
     notes:       safeString(a.notes, ''),
   };
+}
+
+/** Compare two { year, month, day } dates: returns -1/0/1. Mirrors Pf2eCalendarTimeline's scheduler.cmpDate. */
+export function cmpDate(a, b) {
+  if (a.year  !== b.year)  return a.year  < b.year  ? -1 : 1;
+  if (a.month !== b.month) return a.month < b.month ? -1 : 1;
+  if (a.day   !== b.day)   return a.day   < b.day   ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Compute the arrival date for an army sent on a `travelDays`-day march (#75).
+ * `calendarDef` is the Pf2eCalendarTimeline calendar shape ({ daysPerMonth[] });
+ * falls back to a flat 30-day month if the calendar module isn't available.
+ */
+export function computeArrivalDate(fromDate, travelDays, calendarDef) {
+  const daysPerMonth = calendarDef?.daysPerMonth?.length ? calendarDef.daysPerMonth : Array(12).fill(30);
+  const monthsPerYear = daysPerMonth.length;
+  let { year, month, day } = fromDate;
+  day += Math.max(1, Math.floor(Number(travelDays) || 1));
+  while (true) {
+    const dim = daysPerMonth[month - 1];
+    if (day <= dim) break;
+    day -= dim;
+    month += 1;
+    if (month > monthsPerYear) { month = 1; year += 1; }
+  }
+  return { year, month, day };
 }
 
 export function totalUnitCount(army) {

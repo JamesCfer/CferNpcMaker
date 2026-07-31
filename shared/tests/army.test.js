@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeArmy, totalUnitCount, recruitmentCost, totalDailyWage, applyArmyWages, UNIT_TYPES }
+import { sanitizeArmy, totalUnitCount, recruitmentCost, totalDailyWage, applyArmyWages, UNIT_TYPES,
+         cmpDate, computeArrivalDate }
   from '../../modules/Pf2eNationsAndCitiesMaker/scripts/army.js';
 
 describe('sanitizeArmy defaults', () => {
@@ -8,6 +9,24 @@ describe('sanitizeArmy defaults', () => {
     expect(a.kind).toBe('army');
     expect(a.units).toEqual([]);
     expect(a.stationedAt).toBeNull();
+    expect(a.mode).toBe('garrison');
+    expect(a.destination).toBeNull();
+    expect(a.arrivalDate).toBeNull();
+  });
+
+  it('accepts a field-army mode and rejects unknown modes', () => {
+    expect(sanitizeArmy({ mode: 'field' }).mode).toBe('field');
+    expect(sanitizeArmy({ mode: 'rampaging' }).mode).toBe('garrison');
+  });
+
+  it('keeps a well-formed destination and arrivalDate', () => {
+    const a = sanitizeArmy({ destination: 'journal1', arrivalDate: { year: 4710, month: 3, day: 12 } });
+    expect(a.destination).toBe('journal1');
+    expect(a.arrivalDate).toEqual({ year: 4710, month: 3, day: 12 });
+  });
+
+  it('discards a malformed arrivalDate', () => {
+    expect(sanitizeArmy({ arrivalDate: { year: 4710 } }).arrivalDate).toBeNull();
   });
 
   it('sanitizes unit fields with safe defaults', () => {
@@ -100,5 +119,29 @@ describe('applyArmyWages', () => {
 describe('UNIT_TYPES', () => {
   it('covers the five PF2e-flavoured unit types', () => {
     expect(UNIT_TYPES).toEqual(['spearmen', 'archers', 'cavalry', 'mages', 'siege']);
+  });
+});
+
+describe('cmpDate', () => {
+  it('orders by year, then month, then day', () => {
+    expect(cmpDate({ year: 1, month: 1, day: 1 }, { year: 2, month: 1, day: 1 })).toBe(-1);
+    expect(cmpDate({ year: 1, month: 2, day: 1 }, { year: 1, month: 1, day: 1 })).toBe(1);
+    expect(cmpDate({ year: 1, month: 1, day: 1 }, { year: 1, month: 1, day: 1 })).toBe(0);
+  });
+});
+
+describe('computeArrivalDate', () => {
+  it('adds travel days within the same month', () => {
+    const cal = { daysPerMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] };
+    expect(computeArrivalDate({ year: 4710, month: 1, day: 1 }, 7, cal)).toEqual({ year: 4710, month: 1, day: 8 });
+  });
+
+  it('rolls over into the next month and year', () => {
+    const cal = { daysPerMonth: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] };
+    expect(computeArrivalDate({ year: 4710, month: 12, day: 28 }, 7, cal)).toEqual({ year: 4711, month: 1, day: 4 });
+  });
+
+  it('falls back to a flat 30-day month with no calendarDef', () => {
+    expect(computeArrivalDate({ year: 1, month: 1, day: 25 }, 10, null)).toEqual({ year: 1, month: 2, day: 5 });
   });
 });

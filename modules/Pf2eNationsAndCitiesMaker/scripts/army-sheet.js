@@ -5,7 +5,12 @@
  */
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
-import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost } from './army.js';
+import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost, computeArrivalDate } from './army.js';
+
+function formatCalendarDate(date, cal) {
+  const m = cal?.monthNames?.[date.month - 1] || `M${date.month}`;
+  return `${m} ${date.day}, ${date.year}`;
+}
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -23,6 +28,8 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       removeUnit:     function(ev) { this._onRemoveUnit(ev); },
       openStationedAt: function()  { this._onOpenStationedAt(); },
       recruitUnits:   function()   { this._onRecruitUnits(); },
+      sendArmy:       function()   { this._onSendArmy(); },
+      cancelMarch:    function()   { this._onCancelMarch(); },
     },
   };
 
@@ -41,6 +48,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const army = sanitizeArmy(getSettlement(this.document) || {});
     const stationedAtDoc = army.stationedAt ? game.journal?.get(army.stationedAt) : null;
+    const destinationDoc = army.destination ? game.journal?.get(army.destination) : null;
 
     const availableJournals = (game.journal?.contents || [])
       .filter(j => {
@@ -49,12 +57,21 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .map(j => ({ id: j.id, name: j.name }));
 
+    let arrivalDateLabel = '';
+    if (army.destination && army.arrivalDate) {
+      let calendarDef = null;
+      try { calendarDef = game.settings.get('Pf2eCalendarTimeline', 'state')?.calendarDef; } catch (_) {}
+      arrivalDateLabel = formatCalendarDate(army.arrivalDate, calendarDef);
+    }
+
     return {
       doc: this.document,
       army,
       unitTypes: UNIT_TYPES,
       totalUnits: totalUnitCount(army),
       stationedAtName: stationedAtDoc?.name || '',
+      destinationName: destinationDoc?.name || '',
+      arrivalDateLabel,
       availableJournals,
     };
   }
@@ -164,5 +181,53 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     });
 
     ui.notifications?.info?.(`Recruited ${result.count} ${result.type} for ${cost.gp} gp.`);
+  }
+
+  async _onSendArmy() {
+    const army = sanitizeArmy(getSettlement(this.document) || {});
+    if (army.mode !== 'field') {
+      ui.notifications?.warn?.('Switch this army to Field mode before sending it on campaign.');
+      return;
+    }
+    if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
+      ui.notifications?.warn?.('Enable Pf2eCalendarTimeline to compute travel time.');
+      return;
+    }
+
+    const candidates = (game.journal?.contents || [])
+      .filter(j => {
+        const s = getSettlement(j);
+        return s && ['city', 'town', 'village'].includes(s.kind) && j.id !== army.stationedAt;
+      })
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!candidates.length) { ui.notifications?.warn?.('No other settlements to march to.'); return; }
+
+    const html = `
+      <label>Destination
+        <select name="destination" style="width:100%;margin-top:0.25em;">
+          ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+        </select>
+      </label>`;
+    const destination = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Send Army' },
+      content: html,
+      ok: {
+        label: 'March',
+        callback: (_e, _b, dlg) => dlg.element.querySelector('[name="destination"]')?.value || null,
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!destination) return;
+
+    const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
+    const travelDays = game.settings.get(MODULE_ID, 'armyTravelDays');
+    const arrivalDate = computeArrivalDate(calState.currentDate, travelDays, calState.calendarDef);
+
+    await this._patch(a => { a.destination = destination; a.arrivalDate = arrivalDate; });
+    ui.notifications?.info?.(`${this.document.name} is marching — arriving in ${travelDays} day(s).`);
+  }
+
+  _onCancelMarch() {
+    this._patch(a => { a.destination = null; a.arrivalDate = null; });
   }
 }
