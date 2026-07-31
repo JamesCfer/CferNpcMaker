@@ -59,6 +59,13 @@
         {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/statblock.hbs"
             settlement=settlement hpPct=hpPct moralePct=moralePct unrestPct=unrestPct
             sparklineSvg=sparklineSvg}}
+        {{#if townSvg}}
+          <div class="pf2e-town-map">
+            <h4><i class="fa-solid fa-map-location-dot"></i> Town Layout</h4>
+            <p class="pf2e-town-map-hint">Click a dot to jump to that store.</p>
+            {{{townSvg}}}
+          </div>
+        {{/if}}
       {{/if}}
 
       {{#if isStoresActive}}

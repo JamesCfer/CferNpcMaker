@@ -27,6 +27,33 @@
     </select>
   </label>
 
+  <label>Mode
+    <select name="mode" data-path="mode" data-action="saveField" style="width:100%;margin-top:0.25em;">
+      <option value="garrison" {{#if (eqStr army.mode "garrison")}}selected{{/if}}>Garrison (defends this settlement)</option>
+      <option value="field" {{#if (eqStr army.mode "field")}}selected{{/if}}>Field army (can march)</option>
+    </select>
+  </label>
+
+  <div class="pf2e-army-summary">
+    <div class="pf2e-nation-stat">
+      <label>March Status</label>
+      {{#if army.destination}}
+        <span>Marching to <strong>{{destinationName}}</strong> — arrives {{arrivalDateLabel}}</span>
+      {{else}}
+        <span>&mdash;</span>
+      {{/if}}
+    </div>
+  </div>
+
+  <button type="button" class="pf2e-settlement-btn" data-action="sendArmy">
+    <i class="fa-solid fa-route"></i> Send Army
+  </button>
+  {{#if army.destination}}
+    <button type="button" class="pf2e-settlement-btn" data-action="cancelMarch">
+      <i class="fa-solid fa-ban"></i> Cancel March
+    </button>
+  {{/if}}
+
   <h3><i class="fa-solid fa-people-group"></i> Unit Roster</h3>
   {{#if army.units.length}}
     <table class="pf2e-nation-cities">

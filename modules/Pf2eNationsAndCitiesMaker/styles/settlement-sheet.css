@@ -338,6 +338,20 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 }
 .pf2e-sparkline { display: block; }
 
+/* ── procedural town map (#103) ──────────────────────────── */
+.pf2e-town-map {
+  padding: 0.4em 0.5em; background: rgba(155,105,35,0.05);
+  border: 1px solid #d8b888; border-radius: 4px;
+  display: flex; flex-direction: column; gap: 0.2em;
+}
+.pf2e-town-map-hint { margin: 0; font-size: 0.75em; color: #876338; }
+.pf2e-town-svg { display: block; }
+.pf2e-town-wall { fill: none; stroke: #5b4632; stroke-width: 3; }
+.pf2e-town-street { stroke: #9b6923; stroke-width: 1; stroke-opacity: 0.35; }
+.pf2e-town-dot { fill: #b23c2e; stroke: #3a2010; stroke-width: 1; cursor: pointer; }
+.pf2e-town-dot:hover { fill: #d9503f; }
+.pf2e-town-dot--black-market { fill: #555; }
+
 /* ── trade routes (#58) ──────────────────────────────────── */
 .pf2e-trade-routes-table { width: 100%; border-collapse: collapse; margin-bottom: 0.3em; }
 .pf2e-trade-routes-table th,
@@ -493,6 +507,7 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-statblock-production,
 .pf2e-high-contrast .pf2e-statblock-demographics,
 .pf2e-high-contrast .pf2e-treasury-sparkline,
+.pf2e-high-contrast .pf2e-town-map,
 .pf2e-high-contrast .pf2e-guards-summary,
 .pf2e-high-contrast .pf2e-nation-summary,
 .pf2e-high-contrast .pf2e-army-summary {
@@ -525,6 +540,9 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-meter,
 .pf2e-high-contrast .pf2e-demographic-bar-wrap { background: #333 !important; border-color: #fff !important; }
 .pf2e-high-contrast .pf2e-hp-fill { background: #ff5252 !important; }
+.pf2e-high-contrast .pf2e-town-wall { stroke: #ffd54a !important; }
+.pf2e-high-contrast .pf2e-town-street { stroke: #fff !important; }
+.pf2e-high-contrast .pf2e-town-dot { fill: #ff5252 !important; stroke: #ffd54a !important; }
 .pf2e-high-contrast .pf2e-meter--good div,
 .pf2e-high-contrast .pf2e-demographic-bar { background: #69f0ae !important; }
 .pf2e-high-contrast .pf2e-meter--bad div { background: #ff5252 !important; }

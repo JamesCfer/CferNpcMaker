@@ -13,7 +13,7 @@ import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { ArmySheet }                  from './army-sheet.js';
-import { createArmy, applyArmyWages } from './army.js';
+import { createArmy, applyArmyWages, cmpDate } from './army.js';
 import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settlements.js';
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
@@ -241,6 +241,13 @@ Hooks.once('init', () => {
     range: { min: 0, max: 50, step: 1 },
     default: 15,
   });
+  game.settings.register(MODULE_ID, 'armyTravelDays', {
+    name: 'SettlementBuilder.Settings.ArmyTravelDays.Name',
+    hint: 'SettlementBuilder.Settings.ArmyTravelDays.Hint',
+    scope: 'world', config: true, type: Number,
+    range: { min: 1, max: 60, step: 1 },
+    default: 7,
+  });
   game.settings.register(MODULE_ID, 'highContrastTheme', {
     name: 'SettlementBuilder.Settings.HighContrast.Name',
     hint: 'SettlementBuilder.Settings.HighContrast.Hint',
@@ -433,7 +440,7 @@ function getCurrentWeekday() {
 }
 
 // Calendar integration — listen for events fired by Pf2eCalendarTimeline.
-Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
+Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = {}) => {
   try {
     const weekday = getCurrentWeekday();
     const journals = game.journal?.contents || [];
@@ -443,6 +450,12 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1 } = {}) => {
       if (s.kind === 'army') {
         const stationedAt = s.stationedAt && game.journal?.get(s.stationedAt);
         if (stationedAt) await applyArmyWages(j, stationedAt, days);
+        if (s.destination && s.arrivalDate && currentDate && cmpDate(currentDate, s.arrivalDate) >= 0) {
+          const dest = game.journal?.get(s.destination);
+          await setSettlement(j, { ...s, stationedAt: s.destination, destination: null, arrivalDate: null });
+          Hooks.callAll('Pf2eNationsAndCitiesMaker.armyArrived', { armyId: j.id, settlementId: s.destination });
+          if (dest) ui.notifications?.info?.(`${j.name} has arrived at ${dest.name}.`);
+        }
         continue;
       }
       await applyDailyTick(j, days, weekday);

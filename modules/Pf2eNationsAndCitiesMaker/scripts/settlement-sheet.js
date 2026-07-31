@@ -18,6 +18,7 @@ import { escapeHtml }                                                           
 import { Storage }                                                                      from './core/storage.js';
 import { isDevMode }                                                                    from './core/n8n.js';
 import { generateImage, IMAGE_COST }                                                    from './core/image-gen.js';
+import { rngFromSeed }                                                                  from './templates.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -49,6 +50,49 @@ function buildSparklineSvg(history) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="pf2e-sparkline">` +
     `<polygon points="${area}" fill="rgba(155,105,35,0.15)" />` +
     `<polyline points="${pts}" fill="none" stroke="#9b6923" stroke-width="1.5" stroke-linejoin="round" />` +
+    `</svg>`;
+}
+
+/**
+ * Procedural top-down town layout (#103) — a hand-rolled SVG (no chart
+ * library): a city-wall ring sized by population, a few radial streets, and
+ * one dot per open store. Layout is seeded by the journal id so re-renders
+ * don't jitter the dots around.
+ */
+function buildTownSvg(settlement, seedKey) {
+  const stores = (settlement.stores || []).filter(s => !s.closed);
+  if (!stores.length) return '';
+
+  const W = 320, H = 220;
+  const cx = W / 2, cy = H / 2;
+  const pop = Math.max(0, Number(settlement.population) || 0);
+  const wallRadius = Math.min(96, 28 + Math.sqrt(pop) * 0.9);
+  const rng = rngFromSeed(`town-svg|${seedKey}`);
+
+  const streetCount = 4 + Math.floor(rng() * 3);
+  let streets = '';
+  for (let i = 0; i < streetCount; i++) {
+    const angle = (i / streetCount) * Math.PI * 2 + rng() * 0.3;
+    const x2 = cx + Math.cos(angle) * wallRadius;
+    const y2 = cy + Math.sin(angle) * wallRadius;
+    streets += `<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="pf2e-town-street" />`;
+  }
+
+  let dots = '';
+  for (const store of stores) {
+    const angle = rng() * Math.PI * 2;
+    const radius = 10 + rng() * Math.max(1, wallRadius - 16);
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    const cls = `pf2e-town-dot${store.isBlackMarket ? ' pf2e-town-dot--black-market' : ''}`;
+    const label = escapeHtml(store.name || storeTypeLabel(store.type));
+    dots += `<circle class="${cls}" data-action="jumpToStore" data-store-id="${store.id}" ` +
+      `cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5"><title>${label}</title></circle>`;
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" class="pf2e-town-svg">` +
+    `<circle cx="${cx}" cy="${cy}" r="${wallRadius.toFixed(1)}" class="pf2e-town-wall" />` +
+    streets + dots +
     `</svg>`;
 }
 
@@ -104,6 +148,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       editBanner:          function()   { this._onEditBanner(); },
       generateBanner:      function()   { this._onGenerateBanner(); },
       removeBanner:        function()   { this._onRemoveBanner(); },
+      jumpToStore:         function(ev) { this._onJumpToStore(ev); },
     },
   };
 
@@ -121,6 +166,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.districtFilter = null;
     this.collapsedStoreIds = new Set();
     this._focusTabKey = null;
+    this._pendingScrollToStoreId = null;
   }
 
   get title() { return `${this.document?.name || 'Settlement'} — Settlement Sheet`; }
@@ -207,6 +253,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const sceneName = settlement.sceneId ? (game.scenes?.get(settlement.sceneId)?.name || 'Unknown Scene') : null;
 
     const sparklineSvg = buildSparklineSvg(raw.treasuryHistory);
+    const townSvg = buildTownSvg(settlement, this.document.id);
     const settlementJournals = (game.journal?.contents || [])
       .filter(j => j.id !== this.document.id && getSettlement(j))
       .map(j => ({ id: j.id, name: j.name }))
@@ -265,6 +312,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       tradeGoods,
       priceMultiplier: settlement.priceMultiplier,
       sparklineSvg,
+      townSvg,
       settlementJournals,
       isGM,
       showTreasury,
@@ -338,6 +386,11 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       if (region) region.textContent = this._pendingAnnouncement;
       this._pendingAnnouncement = null;
     }
+    if (this._pendingScrollToStoreId) {
+      const id = this._pendingScrollToStoreId;
+      this._pendingScrollToStoreId = null;
+      this.element.querySelector(`[data-store-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 
     // Esc closes the sheet (#126)
     this.element.addEventListener('keydown', (ev) => {
@@ -396,6 +449,17 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const key = ev.currentTarget?.dataset?.storeTab;
     if (!key) return;
     this.activeStoreTab = key;
+    this.render(false);
+  }
+
+  _onJumpToStore(ev) {
+    const storeId = ev.currentTarget?.dataset?.storeId;
+    const store = storeId && (getSettlement(this.document)?.stores || []).find(s => s.id === storeId);
+    if (!store) return;
+    this.activeTab = 'stores';
+    this.activeStoreTab = store.type || 'other';
+    this.districtFilter = null;
+    this._pendingScrollToStoreId = storeId;
     this.render(false);
   }
 
