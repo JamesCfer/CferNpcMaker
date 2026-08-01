@@ -214,10 +214,12 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
   display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em;
 }
 .pf2e-store-inventory { grid-column: span 2; }
+.pf2e-store-jobs { grid-column: span 2; }
 
 .pf2e-store-info,
 .pf2e-store-staff,
-.pf2e-store-inventory { display: flex; flex-direction: column; gap: 0.3em; }
+.pf2e-store-inventory,
+.pf2e-store-jobs { display: flex; flex-direction: column; gap: 0.3em; }
 
 .pf2e-store-info > div { display: flex; flex-direction: column; gap: 0.15em; }
 .pf2e-store-info label { font-size: 0.75em; text-transform: uppercase; color: #6a4520; font-weight: 700; }
@@ -232,9 +234,11 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-store-owner-row input { flex: 1; min-width: 6em; }
 
 .pf2e-store-staff header,
-.pf2e-store-inventory header { display: flex; align-items: center; justify-content: space-between; }
+.pf2e-store-inventory header,
+.pf2e-store-jobs header { display: flex; align-items: center; justify-content: space-between; }
 .pf2e-store-staff h4,
-.pf2e-store-inventory h4 { margin: 0; font-size: 0.9em; color: #5a2f0a; }
+.pf2e-store-inventory h4,
+.pf2e-store-jobs h4 { margin: 0; font-size: 0.9em; color: #5a2f0a; }
 
 .pf2e-staff-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.2em; }
 .pf2e-staff-row { display: flex; gap: 0.25em; align-items: center; }
@@ -255,6 +259,23 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-inventory-table th,
 .pf2e-inventory-table td { padding: 0.25em; border-bottom: 1px solid #e0cf9c; font-size: 0.85em; text-align: left; }
 .pf2e-inventory-table input { width: 100%; padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+
+.pf2e-jobs-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4em; }
+.pf2e-job-row { border: 1px solid #d8b888; border-radius: 4px; padding: 0.4em; background: rgba(155,105,35,0.05); }
+.pf2e-job-row-main { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; }
+.pf2e-job-title { font-weight: 700; flex: 1; min-width: 6em; }
+.pf2e-job-reward { font-size: 0.85em; font-weight: 600; color: #5a2f0a; white-space: nowrap; }
+.pf2e-job-description { margin: 0.3em 0 0; font-size: 0.85em; color: #6a4520; }
+.pf2e-job-row-actions { display: flex; align-items: center; gap: 0.4em; margin-top: 0.35em; }
+.pf2e-job-status-select { padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; font-size: 0.82em; }
+.pf2e-job-status-pill {
+  padding: 0.1em 0.45em; border-radius: 999px; font-size: 0.75em; font-weight: 700;
+  white-space: nowrap; text-transform: capitalize;
+}
+.pf2e-job-status--open      { background: #d4edda; color: #155724; border: 1px solid #b8dacc; }
+.pf2e-job-status--claimed   { background: #fff3cd; color: #856404; border: 1px solid #e0c870; }
+.pf2e-job-status--completed { background: #e8d8b0; color: #5a3d18; border: 1px solid #c2a070; }
+.pf2e-job-status--failed    { background: #f8d7da; color: #721c24; border: 1px solid #e0a8ad; }
 
 .pf2e-icon-btn {
   width: 26px; height: 26px; border: 1px solid #b08a5a; background: #fffbef;
@@ -533,9 +554,14 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-production-tag,
 .pf2e-high-contrast .pf2e-npc-chip-level,
 .pf2e-high-contrast .pf2e-closed-badge,
+.pf2e-high-contrast .pf2e-job-status-pill,
 .pf2e-high-contrast .pf2e-tag--ok {
   background: #000 !important; color: #ffd54a !important; border: 1px solid #ffd54a !important;
 }
+.pf2e-high-contrast .pf2e-job-row { background: #111 !important; border-color: #fff !important; }
+.pf2e-high-contrast .pf2e-job-title,
+.pf2e-high-contrast .pf2e-job-reward,
+.pf2e-high-contrast .pf2e-job-description { color: #fff !important; }
 .pf2e-high-contrast .pf2e-hp-bar,
 .pf2e-high-contrast .pf2e-meter,
 .pf2e-high-contrast .pf2e-demographic-bar-wrap { background: #333 !important; border-color: #fff !important; }

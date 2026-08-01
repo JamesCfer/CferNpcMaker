@@ -6,6 +6,7 @@
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost, computeArrivalDate } from './army.js';
+import { resolveBattle, applyBattleResult, postBattleChatCard, TERRAIN_TYPES } from './battle.js';
 
 function formatCalendarDate(date, cal) {
   const m = cal?.monthNames?.[date.month - 1] || `M${date.month}`;
@@ -30,6 +31,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       recruitUnits:   function()   { this._onRecruitUnits(); },
       sendArmy:       function()   { this._onSendArmy(); },
       cancelMarch:    function()   { this._onCancelMarch(); },
+      resolveBattle:  function()   { this._onResolveBattle(); },
     },
   };
 
@@ -229,5 +231,58 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onCancelMarch() {
     this._patch(a => { a.destination = null; a.arrivalDate = null; });
+  }
+
+  async _onResolveBattle() {
+    const attackerArmy = sanitizeArmy(getSettlement(this.document) || {});
+    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.('This army has no units to fight with.'); return; }
+
+    const candidates = (game.journal?.contents || [])
+      .filter(j => { const s = getSettlement(j); return s?.kind === 'army' && j.id !== this.document.id; })
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!candidates.length) { ui.notifications?.warn?.('No other armies to battle.'); return; }
+
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Defending army
+          <select name="defenderId" style="width:100%;margin-top:0.25em;">
+            ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </label>
+        <label>Terrain
+          <select name="terrain" style="width:100%;margin-top:0.25em;">
+            ${TERRAIN_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+          </select>
+        </label>
+      </div>`;
+    const picked = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Resolve Battle' },
+      content: html,
+      ok: {
+        label: 'Resolve',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            defenderId: root.querySelector('[name="defenderId"]')?.value || null,
+            terrain: root.querySelector('[name="terrain"]')?.value || 'plains',
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked?.defenderId) return;
+
+    const defenderDoc = game.journal?.get(picked.defenderId);
+    if (!defenderDoc) return;
+    const defenderArmy = sanitizeArmy(getSettlement(defenderDoc) || {});
+    if (!totalUnitCount(defenderArmy)) { ui.notifications?.warn?.('The defending army has no units.'); return; }
+
+    const result = resolveBattle(attackerArmy, defenderArmy, picked.terrain);
+    await applyBattleResult(this.document, defenderDoc, result);
+    postBattleChatCard(this.document, defenderDoc, result);
+
+    const winnerName = result.winner === 'draw' ? 'Neither side' : (result.winner === 'attacker' ? this.document.name : defenderDoc.name);
+    ui.notifications?.info?.(`Battle resolved — ${result.winner === 'draw' ? 'a stalemate' : `${winnerName} prevailed`}.`);
+    this.render(false);
   }
 }

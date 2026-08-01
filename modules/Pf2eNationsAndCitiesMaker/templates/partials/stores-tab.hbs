@@ -351,6 +351,62 @@
                   {{/if}}
                 </section>
 
+                {{#if (eqStr type "guild")}}
+                  <section class="pf2e-store-jobs">
+                    <header>
+                      <h4>Job Board</h4>
+                      <button type="button" class="pf2e-icon-btn"
+                              data-action="postJob" data-store-id="{{id}}" title="Post a job">
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                    </header>
+                    {{#if jobs.length}}
+                      <ul class="pf2e-jobs-list">
+                        {{#each jobs}}
+                          <li class="pf2e-job-row">
+                            <div class="pf2e-job-row-main">
+                              <span class="pf2e-job-title">{{title}}</span>
+                              <span class="pf2e-job-status-pill pf2e-job-status--{{status}}">{{status}}</span>
+                              <span class="pf2e-job-reward"><i class="fa-solid fa-coins"></i> {{reward}} gp</span>
+                            </div>
+                            {{#if description}}
+                              <p class="pf2e-job-description">{{description}}</p>
+                            {{/if}}
+                            <div class="pf2e-job-row-actions">
+                              <select data-settlement-path="stores.{{../_globalIndex}}.jobs.{{@index}}.status"
+                                      class="pf2e-job-status-select">
+                                {{#each ../../../jobStatusOptions}}
+                                  <option value="{{value}}" {{#if (eqStr value ../status)}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                              </select>
+                              {{#if assignedActor}}
+                                <div class="pf2e-npc-chip pf2e-npc-chip--inline">
+                                  {{#if assignedActor.portrait}}
+                                    <img src="{{assignedActor.portrait}}" class="pf2e-npc-chip-portrait" alt="{{assignedActor.name}}" />
+                                  {{/if}}
+                                  <span>{{assignedActor.name}}</span>
+                                </div>
+                              {{else}}
+                                <button type="button" class="pf2e-icon-btn"
+                                        data-action="rollForJob" data-store-id="{{../id}}" data-job-id="{{id}}"
+                                        title="Roll which adventurer takes this job">
+                                  <i class="fa-solid fa-dice"></i> Roll
+                                </button>
+                              {{/if}}
+                              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                                      data-action="removeJob" data-store-id="{{../id}}" data-job-id="{{id}}" title="Remove job">
+                                <i class="fa-solid fa-xmark"></i>
+                              </button>
+                            </div>
+                          </li>
+                        {{/each}}
+                      </ul>
+                    {{else}}
+                      <em class="pf2e-empty">No jobs posted — click + above.</em>
+                    {{/if}}
+                  </section>
+                {{/if}}
+
               </div>
 
             </article>

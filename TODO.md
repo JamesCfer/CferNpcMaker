@@ -149,7 +149,7 @@ item that has all its dependencies satisfied.
 - [x] 73. **Unit wages** — each unit type has a daily upkeep cost; the army's `stationedAt` settlement pays it on each `dayAdvanced`.
 - [x] 74. **Garrison vs field-army flag** — `mode: 'garrison'|'field'`; garrisons defend the settlement HP, field armies can move.
 - [x] 75. **Army movement** — assign a destination settlement; arrival time computed from calendar + distance setting, firing `armyArrived` on completion.
-- [ ] 76. **Battle resolver** — modal dialog: pick attacker + defender army; rolls a deterministic mass-combat formula (numbers × level × morale × terrain) and writes casualties back.
+- [x] 76. **Battle resolver** — modal dialog: pick attacker + defender army; rolls a deterministic mass-combat formula (numbers × level × morale × terrain) and writes casualties back.
 - [ ] 77. **Siege mechanics** — attacking a settlement (not an army) drains settlement HP using `damageThreshold` + `hardness`; HP → 0 = occupied state.
 - [ ] 78. **Generals (commander Actor)** — set an Actor as army commander; their level adds a flat bonus to mass-combat rolls.
 - [ ] 79. **Supply chain** — armies drain food from their origin settlement per day; cut supply → morale drops until starvation.
@@ -196,7 +196,7 @@ item that has all its dependencies satisfied.
 - [x] 112. **Compendium of 5 prebuilt nations** — same, but at nation tier.
 - [x] 113. **Simple Calendar adapter** — optional bridge: if `foundryvtt-simple-calendar` is active, drive our events off its date.
 - [x] 114. **Drop settlement onto scene to link** — drag a settlement journal onto a scene to set `sceneId` automatically.
-- [ ] 115. **Adventurer guild integration** — a special store type that lets the GM post "jobs" (custom payloads) and roll which adventurers (NPCs) take them.
+- [x] 115. **Adventurer guild integration** — a special store type that lets the GM post "jobs" (custom payloads) and roll which adventurers (NPCs) take them.
 
 ## J. Performance, DX & migrations (116–122)
 - [x] 116. **Schema versioning** — stamp settlements with `_schemaVersion`; add `migrations.js` that upgrades old shapes forward on every read.
