@@ -30,6 +30,17 @@
  */
 
 /**
+ * Adventurer guild job posting (#115) — lives on a store of type 'guild'.
+ * @typedef {object} Job
+ * @property {string}      id
+ * @property {string}      title
+ * @property {string}      description
+ * @property {number}      reward           gp offered on completion
+ * @property {'open'|'claimed'|'completed'|'failed'} status
+ * @property {string|null} assignedActorId  NPC rolled to take the job
+ */
+
+/**
  * @typedef {object} Store
  * @property {string}        id
  * @property {string}        name
@@ -43,6 +54,7 @@
  * @property {{ open: string, close: string, daysClosed: string[] }} hours
  * @property {InventoryItem[]} inventory
  * @property {StoreIncome}   income
+ * @property {Job[]}         jobs           adventurer guild job board (#115); type:'guild' stores only
  */
 
 /**
@@ -152,6 +164,20 @@
  * @property {Array<{ id: string, type: string, count: number, level: number, equipment: string, morale: number }>} units
  * @property {string|null} commanderActorId
  * @property {string} notes
+ */
+
+/**
+ * Battle resolution result (#76) — deterministic, computed from two Army
+ * unit rosters and a terrain. Casualties are written back onto both armies.
+ * @typedef {object} BattleResult
+ * @property {string} terrain
+ * @property {number} attackerPower
+ * @property {number} defenderPower
+ * @property {'attacker'|'defender'|'draw'} winner
+ * @property {number} attackerCasualtyPct
+ * @property {number} defenderCasualtyPct
+ * @property {Array<{ id: string, type: string, lost: number, remaining: number }>} attackerCasualties
+ * @property {Array<{ id: string, type: string, lost: number, remaining: number }>} defenderCasualties
  */
 
 /**

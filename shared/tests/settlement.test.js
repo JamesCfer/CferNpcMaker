@@ -55,6 +55,24 @@ describe('sanitizeSettlement defaults', () => {
   it('preserves a valid bannerImage path', () => {
     expect(sanitizeSettlement({ bannerImage: 'worlds/foo/banner.webp' }).bannerImage).toBe('worlds/foo/banner.webp');
   });
+
+  it('defaults a store jobs list to empty', () => {
+    expect(sanitizeSettlement({ stores: [{}] }).stores[0].jobs).toEqual([]);
+  });
+
+  it('sanitizes job fields with safe defaults', () => {
+    const s = sanitizeSettlement({ stores: [{ type: 'guild', jobs: [{ title: 'Clear the cellar', reward: '25' }] }] });
+    const job = s.stores[0].jobs[0];
+    expect(job.title).toBe('Clear the cellar');
+    expect(job.reward).toBe(25);
+    expect(job.status).toBe('open');
+    expect(job.assignedActorId).toBeNull();
+  });
+
+  it('rejects an unknown job status and falls back to open', () => {
+    const s = sanitizeSettlement({ stores: [{ jobs: [{ status: 'rampaging' }] }] });
+    expect(s.stores[0].jobs[0].status).toBe('open');
+  });
 });
 
 describe('computeNext', () => {
@@ -330,6 +348,12 @@ describe('migrateSettlement', () => {
   it('leaves an existing bannerImage untouched', () => {
     const migrated = migrateSettlement({ _schemaVersion: 4, bannerImage: 'foo.webp' });
     expect(migrated.bannerImage).toBe('foo.webp');
+  });
+
+  it('adds an empty jobs list to every store when upgrading from schema 5', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 5, stores: [{ name: 'The Iron Anvil' }] });
+    expect(migrated._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.stores[0].jobs).toEqual([]);
   });
 });
 

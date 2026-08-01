@@ -149,6 +149,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       generateBanner:      function()   { this._onGenerateBanner(); },
       removeBanner:        function()   { this._onRemoveBanner(); },
       jumpToStore:         function(ev) { this._onJumpToStore(ev); },
+      postJob:             function(ev) { this._onPostJob(ev); },
+      rollForJob:          function(ev) { this._onRollForJob(ev); },
+      removeJob:           function(ev) { this._onRemoveJob(ev); },
     },
   };
 
@@ -220,6 +223,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         collapsed: this.collapsedStoreIds.has(store.id),
         ownerActor: resolveActor(store.owner?.actorId),
         staff: (store.staff || []).map(p => ({ ...p, resolvedActor: resolveActor(p.actorId) })),
+        jobs: (store.jobs || []).map(j => ({ ...j, assignedActor: resolveActor(j.assignedActorId) })),
         hours: {
           ...store.hours,
           schedule: (store.hours?.schedule || []).map(entry => ({
@@ -308,6 +312,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: 'evening',   label: 'Evening' },
         { value: 'night',     label: 'Night' },
         { value: 'graveyard', label: 'Graveyard' },
+      ],
+      jobStatusOptions: [
+        { value: 'open',      label: 'Open' },
+        { value: 'claimed',   label: 'Claimed' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'failed',    label: 'Failed' },
       ],
       tradeGoods,
       priceMultiplier: settlement.priceMultiplier,
@@ -616,6 +626,79 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       storeId,
       itemType: itemType || 'equipment',
       onCreate: () => this.render(false),
+    });
+  }
+
+  /* ── adventurer guild job board (#115) ────────────────── */
+
+  async _onPostJob(ev) {
+    const storeId = ev.currentTarget?.dataset?.storeId;
+    if (!storeId) return;
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Title
+          <input type="text" name="title" value="" style="width:100%;margin-top:0.25em;" />
+        </label>
+        <label>Description
+          <textarea name="description" rows="3" style="width:100%;margin-top:0.25em;"></textarea>
+        </label>
+        <label>Reward (gp)
+          <input type="number" name="reward" value="50" min="0" step="1" style="width:100%;margin-top:0.25em;" />
+        </label>
+      </div>`;
+    const result = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Post Job' },
+      content: html,
+      ok: {
+        label: 'Post',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            title:       root.querySelector('[name="title"]')?.value || 'Untitled Job',
+            description: root.querySelector('[name="description"]')?.value || '',
+            reward:      Math.max(0, Number(root.querySelector('[name="reward"]')?.value) || 0),
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result) return;
+
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      store.jobs = store.jobs || [];
+      store.jobs.push({
+        id: `job-${Math.random().toString(36).slice(2, 10)}`,
+        title: result.title, description: result.description, reward: result.reward,
+        status: 'open', assignedActorId: null,
+      });
+    });
+  }
+
+  _onRollForJob(ev) {
+    const { storeId, jobId } = ev.currentTarget?.dataset || {};
+    if (!storeId || !jobId) return;
+    const pool = (game.actors?.contents || []).filter(a => a.type === 'npc' || a.type === 'character');
+    if (!pool.length) { ui.notifications?.warn?.('No actors available to roll for this job.'); return; }
+    const winner = pool[Math.floor(Math.random() * pool.length)];
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      const job = store?.jobs?.find(j => j.id === jobId);
+      if (!job) return;
+      job.assignedActorId = winner.id;
+      job.status = 'claimed';
+    });
+    ui.notifications?.info?.(`${winner.name} takes the job.`);
+  }
+
+  _onRemoveJob(ev) {
+    const { storeId, jobId } = ev.currentTarget?.dataset || {};
+    if (!storeId || !jobId) return;
+    this._patch(s => {
+      const store = this._findStore(s, storeId);
+      if (!store) return;
+      store.jobs = (store.jobs || []).filter(j => j.id !== jobId);
     });
   }
 

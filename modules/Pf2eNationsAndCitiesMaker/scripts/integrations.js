@@ -154,7 +154,8 @@ function stubStoreForType(type) {
     tailor:     'Needle & Thread',    jeweler: 'The Gilded Gem',
     temple:     'The Sacred Flame',   magic: 'The Arcane Corner',
     stable:     'Ironhoof Stables',   apothecary: 'The Healing Touch',
-    bookbinder: 'Scrolls & Tomes',   other: 'Miscellany',
+    bookbinder: 'Scrolls & Tomes',   guild: "The Wanderer's Charter",
+    other:      'Miscellany',
   };
   return {
     name: names[type] || 'New Shop', type,

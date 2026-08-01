@@ -18,7 +18,7 @@ export const STORE_TYPES = [
   'blacksmith', 'armorer', 'weapons', 'alchemist',
   'tavern', 'inn', 'general', 'grocer',
   'tailor', 'jeweler', 'temple', 'magic',
-  'stable', 'apothecary', 'bookbinder', 'other',
+  'stable', 'apothecary', 'bookbinder', 'guild', 'other',
 ];
 
 export function storeTypeLabel(t) {
