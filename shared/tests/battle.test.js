@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeArmy } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/army.js';
-import { armyPower, resolveBattle, applyBattleResult, TERRAIN_TYPES }
+import { sanitizeSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
+import { armyPower, resolveBattle, applyBattleResult, resolveSiege, applySiegeResult, TERRAIN_TYPES }
   from '../../modules/Pf2eNationsAndCitiesMaker/scripts/battle.js';
 
 describe('TERRAIN_TYPES', () => {
@@ -32,6 +33,17 @@ describe('armyPower', () => {
       { type: 'archers', count: 5, level: 1, morale: 100 },
     ] });
     expect(armyPower(army, 'plains')).toBe(15);
+  });
+
+  it('adds a flat bonus per commander level (#78)', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 10, level: 1, morale: 100 }] });
+    expect(armyPower(army, 'plains')).toBe(10);
+    expect(armyPower(army, 'plains', 5)).toBe(60);
+  });
+
+  it('ignores a negative commander level', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 10, level: 1, morale: 100 }] });
+    expect(armyPower(army, 'plains', -5)).toBe(10);
   });
 });
 
@@ -77,6 +89,13 @@ describe('resolveBattle', () => {
     expect(result.attackerCasualtyPct).toBe(0);
     expect(result.defenderCasualtyPct).toBe(0);
   });
+
+  it('lets a high-level commander swing an otherwise-even fight (#78)', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'spearmen', count: 100, level: 1, morale: 100 }] });
+    const defender = sanitizeArmy({ units: [{ type: 'spearmen', count: 100, level: 1, morale: 100 }] });
+    const result = resolveBattle(attacker, defender, 'plains', 20, 0);
+    expect(result.winner).toBe('attacker');
+  });
 });
 
 describe('applyBattleResult', () => {
@@ -101,5 +120,71 @@ describe('applyBattleResult', () => {
 
     expect(attackerDoc.getStored().units[0].count).toBe(result.attackerCasualties[0].remaining);
     expect(defenderDoc.getStored().units[0].count).toBe(result.defenderCasualties[0].remaining);
+  });
+});
+
+describe('resolveSiege', () => {
+  it('deals hardness-reduced damage and does not occupy an unbroken settlement', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'spearmen', count: 10, level: 5, morale: 100 }] });
+    const settlement = sanitizeSettlement({ stats: { hp: 500, maxHp: 500, hardness: 10, damageThreshold: 5 } });
+    const result = resolveSiege(attacker, settlement, 'urban');
+    expect(result.damage).toBeGreaterThan(0);
+    expect(result.hpAfter).toBe(result.hpBefore - result.damage);
+    expect(result.occupied).toBe(false);
+  });
+
+  it('deals no damage when it fails to clear the damage threshold', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'spearmen', count: 1, level: 1, morale: 100 }] });
+    const settlement = sanitizeSettlement({ stats: { hp: 500, maxHp: 500, hardness: 50, damageThreshold: 999 } });
+    const result = resolveSiege(attacker, settlement, 'plains');
+    expect(result.damage).toBe(0);
+    expect(result.hpAfter).toBe(result.hpBefore);
+  });
+
+  it('occupies the settlement once hp reaches 0', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'siege', count: 50, level: 10, morale: 100 }] });
+    const settlement = sanitizeSettlement({ stats: { hp: 10, maxHp: 500, hardness: 0, damageThreshold: 0 } });
+    const result = resolveSiege(attacker, settlement, 'urban');
+    expect(result.hpAfter).toBe(0);
+    expect(result.occupied).toBe(true);
+  });
+
+  it('never drops hp below 0', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'siege', count: 999, level: 20, morale: 100 }] });
+    const settlement = sanitizeSettlement({ stats: { hp: 5, maxHp: 500, hardness: 0, damageThreshold: 0 } });
+    const result = resolveSiege(attacker, settlement, 'urban');
+    expect(result.hpAfter).toBe(0);
+  });
+
+  it('folds in a commander bonus (#78)', () => {
+    const attacker = sanitizeArmy({ units: [{ type: 'spearmen', count: 1, level: 1, morale: 100 }] });
+    const settlement = sanitizeSettlement({ stats: { hp: 500, maxHp: 500, hardness: 5, damageThreshold: 1 } });
+    const withoutCommander = resolveSiege(attacker, settlement, 'plains', 0);
+    const withCommander = resolveSiege(attacker, settlement, 'plains', 10);
+    expect(withCommander.damage).toBeGreaterThan(withoutCommander.damage);
+  });
+});
+
+describe('applySiegeResult', () => {
+  function makeSettlementDoc(stats) {
+    let stored = sanitizeSettlement({ stats });
+    return {
+      name: 'Test City',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('writes hp and occupied back onto the settlement document', async () => {
+    const settlementDoc = makeSettlementDoc({ hp: 10, maxHp: 500, hardness: 0, damageThreshold: 0 });
+    const attacker = sanitizeArmy({ units: [{ type: 'siege', count: 50, level: 10, morale: 100 }] });
+    const settlement = sanitizeSettlement(settlementDoc.getFlag());
+    const result = resolveSiege(attacker, settlement, 'urban');
+
+    await applySiegeResult(settlementDoc, result);
+
+    expect(settlementDoc.getStored().stats.hp).toBe(0);
+    expect(settlementDoc.getStored().stats.occupied).toBe(true);
   });
 });

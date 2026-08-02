@@ -29,6 +29,11 @@ describe('sanitizeSettlement defaults', () => {
     expect(s.stats.hp).toBeGreaterThanOrEqual(1);
   });
 
+  it('defaults occupied to false and preserves a truthy value (#77)', () => {
+    expect(sanitizeSettlement({}).stats.occupied).toBe(false);
+    expect(sanitizeSettlement({ stats: { occupied: true } }).stats.occupied).toBe(true);
+  });
+
   it('defaults treasury to zero coins', () => {
     const { treasury } = sanitizeSettlement({});
     expect(treasury).toEqual({ cp: 0, sp: 0, gp: 0, pp: 0 });

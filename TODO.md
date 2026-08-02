@@ -150,12 +150,12 @@ item that has all its dependencies satisfied.
 - [x] 74. **Garrison vs field-army flag** — `mode: 'garrison'|'field'`; garrisons defend the settlement HP, field armies can move.
 - [x] 75. **Army movement** — assign a destination settlement; arrival time computed from calendar + distance setting, firing `armyArrived` on completion.
 - [x] 76. **Battle resolver** — modal dialog: pick attacker + defender army; rolls a deterministic mass-combat formula (numbers × level × morale × terrain) and writes casualties back.
-- [ ] 77. **Siege mechanics** — attacking a settlement (not an army) drains settlement HP using `damageThreshold` + `hardness`; HP → 0 = occupied state.
-- [ ] 78. **Generals (commander Actor)** — set an Actor as army commander; their level adds a flat bonus to mass-combat rolls.
+- [x] 77. **Siege mechanics** — attacking a settlement (not an army) drains settlement HP using `damageThreshold` + `hardness`; HP → 0 = occupied state. (#106)
+- [x] 78. **Generals (commander Actor)** — set an Actor as army commander; their level adds a flat bonus to mass-combat rolls. (#106)
 - [ ] 79. **Supply chain** — armies drain food from their origin settlement per day; cut supply → morale drops until starvation.
 - [ ] 80. **Surrender / occupation flag** — defeated settlements get `occupiedBy: <nationId>`; the occupier's nation gains gp drain rights.
 - [ ] 81. **Mercenary companies** — buyable temporary armies tied to a contract length; auto-disband on contract end.
-- [ ] 82. **War chat-cards** — every battle / siege resolution posts a styled chat card with casualty totals and a "Details" expander.
+- [x] 82. **War chat-cards** — every battle / siege resolution posts a styled chat card with casualty totals and a "Details" expander. (#106)
 
 ## F. Diplomacy & nations (83–92)
 - [ ] 83. **Relations matrix** — Nation sheet gains a grid: every other Nation → `relation: 'ally|friendly|neutral|cold|hostile'` + numeric score (-100..100).
