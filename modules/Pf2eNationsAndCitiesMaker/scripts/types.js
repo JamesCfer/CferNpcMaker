@@ -85,6 +85,7 @@
  * @property {number} will
  * @property {number} morale
  * @property {number} unrest
+ * @property {boolean} occupied  true once hp has been sieged to 0 (#77)
  */
 
 /**
@@ -152,9 +153,8 @@
 
 /**
  * Army document shape (#70). Lives on its own JournalEntry, same flag path
- * as Settlement/Nation. `commanderActorId` bonuses (#78) are still
- * unimplemented — the field exists so later cycles don't need another
- * schema migration.
+ * as Settlement/Nation. `commanderActorId` gives a flat power bonus in
+ * battles and sieges equal to the linked Actor's level (#78).
  * @typedef {object} Army
  * @property {'army'} kind
  * @property {string|null} stationedAt    journal ID of the home settlement
@@ -178,6 +178,18 @@
  * @property {number} defenderCasualtyPct
  * @property {Array<{ id: string, type: string, lost: number, remaining: number }>} attackerCasualties
  * @property {Array<{ id: string, type: string, lost: number, remaining: number }>} defenderCasualties
+ */
+
+/**
+ * Siege resolution result (#77) — an attacking Army versus a Settlement's
+ * HP, hardness and damageThreshold. HP reaching 0 flips `occupied`.
+ * @typedef {object} SiegeResult
+ * @property {string} terrain
+ * @property {number} attackerPower
+ * @property {number} damage
+ * @property {number} hpBefore
+ * @property {number} hpAfter
+ * @property {boolean} occupied
  */
 
 /**

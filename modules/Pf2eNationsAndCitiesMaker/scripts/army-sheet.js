@@ -6,11 +6,27 @@
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost, computeArrivalDate } from './army.js';
-import { resolveBattle, applyBattleResult, postBattleChatCard, TERRAIN_TYPES } from './battle.js';
+import { resolveBattle, applyBattleResult, postBattleChatCard,
+         resolveSiege, applySiegeResult, postSiegeChatCard, TERRAIN_TYPES } from './battle.js';
 
 function formatCalendarDate(date, cal) {
   const m = cal?.monthNames?.[date.month - 1] || `M${date.month}`;
   return `${m} ${date.day}, ${date.year}`;
+}
+
+function resolveActor(actorId) {
+  if (!actorId) return null;
+  const actor = game.actors?.get(actorId);
+  if (!actor) return null;
+  return {
+    portrait: actor.img || '',
+    level:    actor.system?.details?.level?.value ?? actor.system?.details?.cr ?? null,
+    name:     actor.name,
+  };
+}
+
+function commanderLevel(actorId) {
+  return Number(resolveActor(actorId)?.level) || 0;
 }
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
@@ -32,6 +48,9 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       sendArmy:       function()   { this._onSendArmy(); },
       cancelMarch:    function()   { this._onCancelMarch(); },
       resolveBattle:  function()   { this._onResolveBattle(); },
+      siegeSettlement: function()  { this._onSiegeSettlement(); },
+      openCommander:  function()   { this._onOpenCommander(); },
+      clearCommander: function()   { this._onClearCommander(); },
     },
   };
 
@@ -75,11 +94,19 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       destinationName: destinationDoc?.name || '',
       arrivalDateLabel,
       availableJournals,
+      commanderActor: resolveActor(army.commanderActorId),
     };
   }
 
   _onRender() {
     this.element.classList.toggle('pf2e-high-contrast', !!game.settings.get(MODULE_ID, 'highContrastTheme'));
+
+    const commanderZone = this.element.querySelector('[data-commander-drop]');
+    if (commanderZone) {
+      commanderZone.addEventListener('dragover',  (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'link'; commanderZone.classList.add('drag-over'); });
+      commanderZone.addEventListener('dragleave', ()   => commanderZone.classList.remove('drag-over'));
+      commanderZone.addEventListener('drop',      (ev) => { commanderZone.classList.remove('drag-over'); this._onDropCommander(ev); });
+    }
   }
 
   async _patch(mutator) {
@@ -233,6 +260,25 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this._patch(a => { a.destination = null; a.arrivalDate = null; });
   }
 
+  async _onDropCommander(ev) {
+    ev.preventDefault();
+    let data;
+    try { data = JSON.parse(ev.dataTransfer.getData('text/plain')); } catch { return; }
+    if (data.type !== 'Actor') return;
+    const actor = await fromUuid(data.uuid).catch(() => null);
+    if (!actor) return;
+    this._patch(a => { a.commanderActorId = actor.id; });
+  }
+
+  _onOpenCommander() {
+    const army = sanitizeArmy(getSettlement(this.document) || {});
+    game.actors?.get(army.commanderActorId)?.sheet?.render(true);
+  }
+
+  _onClearCommander() {
+    this._patch(a => { a.commanderActorId = null; });
+  }
+
   async _onResolveBattle() {
     const attackerArmy = sanitizeArmy(getSettlement(this.document) || {});
     if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.('This army has no units to fight with.'); return; }
@@ -277,12 +323,68 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const defenderArmy = sanitizeArmy(getSettlement(defenderDoc) || {});
     if (!totalUnitCount(defenderArmy)) { ui.notifications?.warn?.('The defending army has no units.'); return; }
 
-    const result = resolveBattle(attackerArmy, defenderArmy, picked.terrain);
+    const result = resolveBattle(
+      attackerArmy, defenderArmy, picked.terrain,
+      commanderLevel(attackerArmy.commanderActorId), commanderLevel(defenderArmy.commanderActorId),
+    );
     await applyBattleResult(this.document, defenderDoc, result);
     postBattleChatCard(this.document, defenderDoc, result);
 
     const winnerName = result.winner === 'draw' ? 'Neither side' : (result.winner === 'attacker' ? this.document.name : defenderDoc.name);
     ui.notifications?.info?.(`Battle resolved — ${result.winner === 'draw' ? 'a stalemate' : `${winnerName} prevailed`}.`);
+    this.render(false);
+  }
+
+  async _onSiegeSettlement() {
+    const attackerArmy = sanitizeArmy(getSettlement(this.document) || {});
+    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.('This army has no units to besiege with.'); return; }
+
+    const candidates = (game.journal?.contents || [])
+      .filter(j => { const s = getSettlement(j); return s && ['city', 'town', 'village'].includes(s.kind); })
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!candidates.length) { ui.notifications?.warn?.('No settlements to besiege.'); return; }
+
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Target settlement
+          <select name="targetId" style="width:100%;margin-top:0.25em;">
+            ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </label>
+        <label>Terrain
+          <select name="terrain" style="width:100%;margin-top:0.25em;">
+            ${TERRAIN_TYPES.map(t => `<option value="${t}" ${t === 'urban' ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </label>
+      </div>`;
+    const picked = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Siege Settlement' },
+      content: html,
+      ok: {
+        label: 'Attack',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            targetId: root.querySelector('[name="targetId"]')?.value || null,
+            terrain: root.querySelector('[name="terrain"]')?.value || 'urban',
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked?.targetId) return;
+
+    const targetDoc = game.journal?.get(picked.targetId);
+    if (!targetDoc) return;
+    const settlement = getSettlement(targetDoc) || {};
+
+    const result = resolveSiege(attackerArmy, settlement, picked.terrain, commanderLevel(attackerArmy.commanderActorId));
+    await applySiegeResult(targetDoc, result);
+    postSiegeChatCard(this.document, targetDoc, result);
+
+    ui.notifications?.info?.(result.occupied
+      ? `${targetDoc.name} has fallen! ${result.damage} damage dealt.`
+      : `Siege dealt ${result.damage} damage to ${targetDoc.name} (${result.hpAfter}/${settlement.stats?.maxHp ?? '?'} HP left).`);
     this.render(false);
   }
 }

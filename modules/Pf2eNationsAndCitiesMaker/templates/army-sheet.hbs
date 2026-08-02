@@ -34,6 +34,25 @@
     </select>
   </label>
 
+  <h3><i class="fa-solid fa-user-tie"></i> Commander</h3>
+  <div class="pf2e-army-commander-drop" data-commander-drop>
+    {{#if commanderActor}}
+      <div class="pf2e-npc-chip pf2e-npc-chip--inline">
+        <img src="{{commanderActor.portrait}}" class="pf2e-npc-chip-portrait" alt="{{commanderActor.name}}" />
+        <span>{{commanderActor.name}}</span>
+        <span class="pf2e-npc-chip-level">Lv {{commanderActor.level}}</span>
+        <button type="button" class="pf2e-icon-btn" data-action="openCommander" title="Open commander">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </button>
+        <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger" data-action="clearCommander" title="Remove commander">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    {{else}}
+      <em class="pf2e-empty">Drop an Actor here to set a commander — their level adds a flat power bonus in battles and sieges.</em>
+    {{/if}}
+  </div>
+
   <div class="pf2e-army-summary">
     <div class="pf2e-nation-stat">
       <label>March Status</label>
@@ -106,6 +125,9 @@
   </button>
   <button type="button" class="pf2e-settlement-btn" data-action="resolveBattle">
     <i class="fa-solid fa-shield-halved"></i> Resolve Battle
+  </button>
+  <button type="button" class="pf2e-settlement-btn" data-action="siegeSettlement">
+    <i class="fa-solid fa-chess-rook"></i> Siege Settlement
   </button>
 
   <h3><i class="fa-solid fa-scroll"></i> Notes</h3>

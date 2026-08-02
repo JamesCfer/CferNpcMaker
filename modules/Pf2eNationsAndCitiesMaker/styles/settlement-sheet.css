@@ -70,6 +70,7 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 
 .pf2e-tag { padding: 0.2em 0.55em; border-radius: 4px; font-size: 0.78em; }
 .pf2e-tag--ok { background: #d9efd9; color: #25602a; border: 1px solid #6a9e60; }
+.pf2e-tag--danger { background: #f6dcd0; color: #6a2218; border: 1px solid #b6512b; }
 
 .pf2e-settlement-body {
   display: flex; gap: 0.75em; flex: 1; min-height: 0;
@@ -458,6 +459,14 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 /* ── adventure hooks (#68) ───────────────────────────────── */
 .pf2e-hooks-list { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 0.5em; }
 
+/* ── army commander drop zone (#78) ──────────────────────── */
+.pf2e-army-commander-drop {
+  border: 1px dashed #d8b888; border-radius: 4px; padding: 0.5em; transition: background 0.15s;
+}
+.pf2e-army-commander-drop.drag-over {
+  background: rgba(155, 105, 35, 0.12); outline: 2px dashed #9b6923;
+}
+
 /* ── nation sheet ────────────────────────────────────────── */
 .pf2e-nation-summary,
 .pf2e-army-summary {
@@ -555,9 +564,11 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-npc-chip-level,
 .pf2e-high-contrast .pf2e-closed-badge,
 .pf2e-high-contrast .pf2e-job-status-pill,
-.pf2e-high-contrast .pf2e-tag--ok {
+.pf2e-high-contrast .pf2e-tag--ok,
+.pf2e-high-contrast .pf2e-tag--danger {
   background: #000 !important; color: #ffd54a !important; border: 1px solid #ffd54a !important;
 }
+.pf2e-high-contrast .pf2e-army-commander-drop { border-color: #fff !important; }
 .pf2e-high-contrast .pf2e-job-row { background: #111 !important; border-color: #fff !important; }
 .pf2e-high-contrast .pf2e-job-title,
 .pf2e-high-contrast .pf2e-job-reward,

@@ -11,6 +11,9 @@
       <i class="fa-solid fa-city"></i>
       <h2>{{doc.name}}</h2>
       <span class="pf2e-settlement-kind-pill">{{settlement.kind}} · {{settlement.size}}</span>
+      {{#if settlement.stats.occupied}}
+        <span class="pf2e-tag pf2e-tag--danger"><i class="fa-solid fa-flag"></i> Occupied</span>
+      {{/if}}
     </div>
     <div class="pf2e-settlement-header-actions">
       {{#if calendarActive}}
