@@ -255,6 +255,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const calendarActive = !!game.modules?.get('Pf2eCalendarTimeline')?.active;
     const sceneName = settlement.sceneId ? (game.scenes?.get(settlement.sceneId)?.name || 'Unknown Scene') : null;
+    const occupierName = settlement.stats.occupiedBy
+      ? (game.journal?.get(settlement.stats.occupiedBy)?.name || 'Unknown Nation')
+      : null;
 
     const sparklineSvg = buildSparklineSvg(raw.treasuryHistory);
     const townSvg = buildTownSvg(settlement, this.document.id);
@@ -293,6 +296,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       unrestPct: settlement.stats.unrest,
       calendarActive,
       sceneName,
+      occupierName,
       canGenerateNpc:   canGenerateNpc(),
       canGenerateItem:  canGenerateItem(),
       showClosed,

@@ -48,6 +48,7 @@ export function sanitizeSettlement(raw, formData = {}) {
       morale:    safeNum(stats.morale,    60, 0, 100),
       unrest:    safeNum(stats.unrest,     5, 0, 100),
       occupied:  !!stats.occupied,
+      occupiedBy: (typeof stats.occupiedBy === 'string' && stats.occupiedBy) ? stats.occupiedBy : null,
     },
     treasury: {
       cp: safeNum(treasury.cp, 0, 0, 9_999_999),

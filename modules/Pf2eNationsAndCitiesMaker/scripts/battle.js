@@ -155,23 +155,30 @@ export function resolveSiege(attacker, settlement, terrain = 'urban', commanderL
   };
 }
 
-/** Write a resolveSiege() result's HP and occupied state back onto the settlement document. */
-export async function applySiegeResult(settlementDoc, result) {
+/**
+ * Write a resolveSiege() result's HP and occupied state back onto the settlement
+ * document. Once a settlement falls, `occupiedBy` records the occupying nation
+ * (#80) so the daily economy tick can drain gp to it; it's left untouched on
+ * subsequent sieges of an already-fallen settlement.
+ */
+export async function applySiegeResult(settlementDoc, result, occupierNationId = null) {
   if (!settlementDoc) return;
   const cur = sanitizeSettlement(getSettlement(settlementDoc) || {});
   cur.stats.hp = result.hpAfter;
   cur.stats.occupied = result.occupied;
+  if (result.occupied && !cur.stats.occupiedBy) cur.stats.occupiedBy = occupierNationId || null;
   await settlementDoc.setFlag(FLAG_SCOPE, FLAG_KEY, cur);
 }
 
 /** Post a GM-whispered chat card summarizing a resolved siege (#82). */
-export function postSiegeChatCard(attackerDoc, settlementDoc, result) {
+export function postSiegeChatCard(attackerDoc, settlementDoc, result, occupierNationName = null) {
   ChatMessage.create({
     content: `<h3><i class="fa-solid fa-chess-rook"></i> Siege: ${attackerDoc.name} vs ${settlementDoc.name}</h3>
       <p>Terrain: ${result.terrain}. ${result.occupied ? `<strong>${settlementDoc.name} has fallen.</strong>` : `${settlementDoc.name} holds.`}</p>
       <details>
         <summary>Damage</summary>
         <p>${result.damage} damage dealt. HP: ${result.hpBefore} → ${result.hpAfter}.</p>
+        ${result.occupied && occupierNationName ? `<p><strong>${occupierNationName}</strong> now occupies ${settlementDoc.name} and drains its treasury daily.</p>` : ''}
       </details>`,
     whisper: gmWhisper(),
   }).catch(() => {});

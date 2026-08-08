@@ -5,7 +5,9 @@
  */
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
-import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost, computeArrivalDate } from './army.js';
+import { sanitizeArmy, totalUnitCount, UNIT_TYPES, UNIT_COSTS, recruitmentCost, computeArrivalDate,
+         totalDailyFoodNeed, settlementFoodCapacity, isSupplied } from './army.js';
+import { sanitizeSettlement } from './sanitizer.js';
 import { resolveBattle, applyBattleResult, postBattleChatCard,
          resolveSiege, applySiegeResult, postSiegeChatCard, TERRAIN_TYPES } from './battle.js';
 
@@ -78,6 +80,22 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .map(j => ({ id: j.id, name: j.name }));
 
+    const availableNations = (game.journal?.contents || [])
+      .filter(j => getSettlement(j)?.kind === 'nation')
+      .map(j => ({ id: j.id, name: j.name }));
+
+    let supplyStatus = null;
+    if (army.supplySource) {
+      const sourceDoc = game.journal?.get(army.supplySource);
+      const sourceSettlement = sourceDoc ? sanitizeSettlement(getSettlement(sourceDoc) || {}) : null;
+      supplyStatus = {
+        sourceName: sourceDoc?.name || 'Unknown',
+        need:     totalDailyFoodNeed(army),
+        capacity: sourceSettlement ? settlementFoodCapacity(sourceSettlement) : 0,
+        supplied: isSupplied(army, sourceSettlement),
+      };
+    }
+
     let arrivalDateLabel = '';
     if (army.destination && army.arrivalDate) {
       let calendarDef = null;
@@ -94,6 +112,8 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       destinationName: destinationDoc?.name || '',
       arrivalDateLabel,
       availableJournals,
+      availableNations,
+      supplyStatus,
       commanderActor: resolveActor(army.commanderActorId),
     };
   }
@@ -379,8 +399,9 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const settlement = getSettlement(targetDoc) || {};
 
     const result = resolveSiege(attackerArmy, settlement, picked.terrain, commanderLevel(attackerArmy.commanderActorId));
-    await applySiegeResult(targetDoc, result);
-    postSiegeChatCard(this.document, targetDoc, result);
+    await applySiegeResult(targetDoc, result, attackerArmy.ownerNationId);
+    const occupierNationName = attackerArmy.ownerNationId ? game.journal?.get(attackerArmy.ownerNationId)?.name : null;
+    postSiegeChatCard(this.document, targetDoc, result, occupierNationName);
 
     ui.notifications?.info?.(result.occupied
       ? `${targetDoc.name} has fallen! ${result.damage} damage dealt.`

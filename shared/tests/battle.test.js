@@ -187,4 +187,38 @@ describe('applySiegeResult', () => {
     expect(settlementDoc.getStored().stats.hp).toBe(0);
     expect(settlementDoc.getStored().stats.occupied).toBe(true);
   });
+
+  it('records the occupier nation once a settlement falls (#80)', async () => {
+    const settlementDoc = makeSettlementDoc({ hp: 10, maxHp: 500, hardness: 0, damageThreshold: 0 });
+    const attacker = sanitizeArmy({ units: [{ type: 'siege', count: 50, level: 10, morale: 100 }] });
+    const settlement = sanitizeSettlement(settlementDoc.getFlag());
+    const result = resolveSiege(attacker, settlement, 'urban');
+
+    await applySiegeResult(settlementDoc, result, 'nation1');
+
+    expect(settlementDoc.getStored().stats.occupiedBy).toBe('nation1');
+  });
+
+  it('leaves occupiedBy null when a siege deals no damage', async () => {
+    const settlementDoc = makeSettlementDoc({ hp: 500, maxHp: 500, hardness: 50, damageThreshold: 999 });
+    const attacker = sanitizeArmy({ units: [{ type: 'spearmen', count: 1, level: 1, morale: 100 }] });
+    const settlement = sanitizeSettlement(settlementDoc.getFlag());
+    const result = resolveSiege(attacker, settlement, 'plains');
+
+    await applySiegeResult(settlementDoc, result, 'nation1');
+
+    expect(settlementDoc.getStored().stats.occupiedBy).toBeNull();
+  });
+
+  it('keeps the original occupier on a second siege of an already-fallen settlement', async () => {
+    const settlementDoc = makeSettlementDoc({ hp: 10, maxHp: 500, hardness: 0, damageThreshold: 0 });
+    const attacker = sanitizeArmy({ units: [{ type: 'siege', count: 50, level: 10, morale: 100 }] });
+    let settlement = sanitizeSettlement(settlementDoc.getFlag());
+    await applySiegeResult(settlementDoc, resolveSiege(attacker, settlement, 'urban'), 'nation1');
+
+    settlement = sanitizeSettlement(settlementDoc.getFlag());
+    await applySiegeResult(settlementDoc, resolveSiege(attacker, settlement, 'urban'), 'nation2');
+
+    expect(settlementDoc.getStored().stats.occupiedBy).toBe('nation1');
+  });
 });
