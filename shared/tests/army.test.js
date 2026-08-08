@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeArmy, totalUnitCount, recruitmentCost, totalDailyWage, applyArmyWages, UNIT_TYPES,
-         cmpDate, computeArrivalDate }
+         cmpDate, computeArrivalDate, totalDailyFoodNeed, settlementFoodCapacity, isSupplied, applyArmySupply }
   from '../../modules/Pf2eNationsAndCitiesMaker/scripts/army.js';
+import { sanitizeSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
 
 describe('sanitizeArmy defaults', () => {
   it('defaults to an empty roster with kind army', () => {
@@ -12,6 +13,8 @@ describe('sanitizeArmy defaults', () => {
     expect(a.mode).toBe('garrison');
     expect(a.destination).toBeNull();
     expect(a.arrivalDate).toBeNull();
+    expect(a.ownerNationId).toBeNull();
+    expect(a.supplySource).toBeNull();
   });
 
   it('accepts a field-army mode and rejects unknown modes', () => {
@@ -143,5 +146,100 @@ describe('computeArrivalDate', () => {
 
   it('falls back to a flat 30-day month with no calendarDef', () => {
     expect(computeArrivalDate({ year: 1, month: 1, day: 25 }, 10, null)).toEqual({ year: 1, month: 2, day: 5 });
+  });
+});
+
+describe('totalDailyFoodNeed', () => {
+  it('scales with total unit count', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 100 }, { type: 'archers', count: 100 }] });
+    expect(totalDailyFoodNeed(army)).toBeCloseTo(200 * 0.05);
+  });
+});
+
+describe('settlementFoodCapacity', () => {
+  it('scales with population', () => {
+    expect(settlementFoodCapacity(sanitizeSettlement({ population: 2000 }))).toBe(10);
+  });
+
+  it('handles a missing settlement', () => {
+    expect(settlementFoodCapacity(null)).toBe(0);
+  });
+});
+
+describe('isSupplied', () => {
+  it('is true when the source can spare enough food', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 100 }] });
+    const source = sanitizeSettlement({ population: 2000 });
+    expect(isSupplied(army, source)).toBe(true);
+  });
+
+  it('is false when the source is undersupplied', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 100000 }] });
+    const source = sanitizeSettlement({ population: 2000 });
+    expect(isSupplied(army, source)).toBe(false);
+  });
+
+  it('is false when the source settlement is occupied', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 1 }] });
+    const source = sanitizeSettlement({ population: 2000, stats: { occupied: true } });
+    expect(isSupplied(army, source)).toBe(false);
+  });
+
+  it('is false with no source settlement', () => {
+    const army = sanitizeArmy({ units: [{ type: 'spearmen', count: 1 }] });
+    expect(isSupplied(army, null)).toBe(false);
+  });
+});
+
+describe('applyArmySupply', () => {
+  function makeArmyDoc(units, supplySource = 's1') {
+    let stored = { kind: 'army', supplySource, units };
+    return { getFlag: () => stored, setFlag: async (_scope, _key, data) => { stored = data; }, getStored: () => stored };
+  }
+
+  function makeSourceDoc(population, occupied = false) {
+    const stored = { population, stats: { occupied } };
+    return { getFlag: () => stored };
+  }
+
+  it('does nothing without a supply source', async () => {
+    const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 50 }], null);
+    expect(await applyArmySupply(armyDoc, makeSourceDoc(2000), 1)).toBeNull();
+    expect(armyDoc.getStored().units[0].morale).toBe(50);
+  });
+
+  it('does nothing for an army with no units', async () => {
+    const armyDoc = makeArmyDoc([]);
+    expect(await applyArmySupply(armyDoc, makeSourceDoc(2000), 1)).toBeNull();
+  });
+
+  it('restores morale when supplied', async () => {
+    const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 50 }]);
+    const result = await applyArmySupply(armyDoc, makeSourceDoc(2000), 1);
+    expect(result.supplied).toBe(true);
+    expect(armyDoc.getStored().units[0].morale).toBe(55);
+  });
+
+  it('drains morale when cut off and does not lose troops above 0 morale', async () => {
+    const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 50 }]);
+    const result = await applyArmySupply(armyDoc, makeSourceDoc(2000, true), 1);
+    expect(result.supplied).toBe(false);
+    expect(result.starved).toBe(false);
+    expect(armyDoc.getStored().units[0].morale).toBe(40);
+    expect(armyDoc.getStored().units[0].count).toBe(10);
+  });
+
+  it('starves troops once morale bottoms out at 0', async () => {
+    const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 5 }]);
+    const result = await applyArmySupply(armyDoc, makeSourceDoc(2000, true), 1);
+    expect(result.starved).toBe(true);
+    expect(armyDoc.getStored().units[0].morale).toBe(0);
+    expect(armyDoc.getStored().units[0].count).toBeLessThan(10);
+  });
+
+  it('treats a missing source settlement as cut off', async () => {
+    const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 50 }]);
+    const result = await applyArmySupply(armyDoc, null, 1);
+    expect(result.supplied).toBe(false);
   });
 });

@@ -34,6 +34,33 @@
     </select>
   </label>
 
+  <label>Owner Nation
+    <select name="ownerNationId" data-path="ownerNationId" data-action="saveField" style="width:100%;margin-top:0.25em;">
+      <option value="">&mdash; none &mdash;</option>
+      {{#each availableNations}}
+        <option value="{{id}}" {{#if (eqStr id ../army.ownerNationId)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+  </label>
+
+  <label>Supply Source
+    <select name="supplySource" data-path="supplySource" data-action="saveField" style="width:100%;margin-top:0.25em;">
+      <option value="">&mdash; none (unsupplied) &mdash;</option>
+      {{#each availableJournals}}
+        <option value="{{id}}" {{#if (eqStr id ../army.supplySource)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+  </label>
+  {{#if supplyStatus}}
+    <p class="pf2e-empty">
+      {{#if supplyStatus.supplied}}
+        <i class="fa-solid fa-wheat-awn"></i> Supplied by {{supplyStatus.sourceName}} ({{supplyStatus.need}} needed / {{supplyStatus.capacity}} available).
+      {{else}}
+        <i class="fa-solid fa-triangle-exclamation"></i> Cut off from {{supplyStatus.sourceName}} ({{supplyStatus.need}} needed / {{supplyStatus.capacity}} available) — morale is dropping.
+      {{/if}}
+    </p>
+  {{/if}}
+
   <h3><i class="fa-solid fa-user-tie"></i> Commander</h3>
   <div class="pf2e-army-commander-drop" data-commander-drop>
     {{#if commanderActor}}

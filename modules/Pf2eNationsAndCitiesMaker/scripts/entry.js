@@ -13,7 +13,7 @@ import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { ArmySheet }                  from './army-sheet.js';
-import { createArmy, applyArmyWages, cmpDate } from './army.js';
+import { createArmy, applyArmyWages, applyArmySupply, cmpDate } from './army.js';
 import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settlements.js';
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
@@ -450,6 +450,10 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = 
       if (s.kind === 'army') {
         const stationedAt = s.stationedAt && game.journal?.get(s.stationedAt);
         if (stationedAt) await applyArmyWages(j, stationedAt, days);
+        if (s.supplySource) {
+          const supplyResult = await applyArmySupply(j, game.journal?.get(s.supplySource), days);
+          if (supplyResult?.starved) ui.notifications?.warn?.(`${j.name} is starving — cut off from supply.`);
+        }
         if (s.destination && s.arrivalDate && currentDate && cmpDate(currentDate, s.arrivalDate) >= 0) {
           const dest = game.journal?.get(s.destination);
           await setSettlement(j, { ...s, stationedAt: s.destination, destination: null, arrivalDate: null });

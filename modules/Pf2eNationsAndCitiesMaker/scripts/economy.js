@@ -7,6 +7,7 @@ import { FLAG_SCOPE, FLAG_KEY, MODULE_ID, getSettlement } from './constants.js';
 import { syncSettlementNotes } from './scene-notes.js';
 
 const THIRTY_GAME_DAYS = 30;
+const OCCUPATION_DRAIN_PCT = 0.05;
 
 function getJitterFactor() {
   try { return Math.min(1, Math.max(0, Number(game.settings?.get(MODULE_ID, 'incomeJitterPct') ?? 15))) / 100; }
@@ -30,6 +31,7 @@ function gmWhisper() {
  * - credits the treasury from production (#52)
  * - doubles income on a store's designated market weekday (#59)
  * - bumps settlement unrest for each active black market store (#60)
+ * - drains gp to the occupier's nation while the settlement is occupied (#80)
  */
 export async function applyDailyTick(doc, days = 1, weekday = null) {
   if (!doc) return;
@@ -168,6 +170,22 @@ export async function applyDailyTick(doc, days = 1, weekday = null) {
   const growthRate = Number(s.growthRate ?? 0.001);
   const growthGain = famineActive ? 0 : Math.round((Number(s.population) || 0) * growthRate * (1 - Math.min(100, unrest) / 100) * days);
   if (growthGain > 0) s.population = Math.max(1, (Number(s.population) || 0) + growthGain);
+
+  // Occupation drain (#80) — an occupied settlement bleeds treasury gp to its occupier's nation daily
+  if (s.stats?.occupied && s.stats?.occupiedBy) {
+    const gp = Number(s.treasury?.gp) || 0;
+    const drained = gp > 0 ? Math.round(gp * OCCUPATION_DRAIN_PCT * days) : 0;
+    if (drained > 0) {
+      s.treasury.gp = Math.max(0, gp - drained);
+      const nationDoc = game.journal?.get(s.stats.occupiedBy);
+      if (nationDoc) {
+        const ns = foundry.utils.deepClone(getSettlement(nationDoc) || {});
+        ns.treasury = ns.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+        ns.treasury.gp = (ns.treasury.gp || 0) + drained;
+        nationDoc.setFlag(FLAG_SCOPE, FLAG_KEY, ns).catch(() => {});
+      }
+    }
+  }
 
   // Treasury history snapshot (#61) — append after all mutations, keep last 30
   s.treasuryHistory = Array.isArray(s.treasuryHistory) ? s.treasuryHistory : [];

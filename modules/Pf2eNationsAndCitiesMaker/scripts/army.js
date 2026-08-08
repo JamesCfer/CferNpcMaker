@@ -6,6 +6,7 @@
  */
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
+import { sanitizeSettlement } from './sanitizer.js';
 
 export const UNIT_TYPES = ['spearmen', 'archers', 'cavalry', 'mages', 'siege'];
 
@@ -66,6 +67,8 @@ export function sanitizeArmy(raw) {
       : null,
     units,
     commanderActorId: a.commanderActorId || null,
+    ownerNationId: (typeof a.ownerNationId === 'string' && a.ownerNationId) ? a.ownerNationId : null,
+    supplySource: (typeof a.supplySource === 'string' && a.supplySource) ? a.supplySource : null,
     notes:       safeString(a.notes, ''),
   };
 }
@@ -131,6 +134,62 @@ export async function applyArmyWages(armyDoc, settlementDoc, days = 1) {
   s.treasury.gp = Math.max(-9_999_999, Math.round((s.treasury.gp || 0) - wage));
   await settlementDoc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
   return wage;
+}
+
+/** Food consumed per unit per day (#79) — abstracted; settlements have no literal food stockpile. */
+const FOOD_PER_UNIT = 0.05;
+const SUPPLY_CUT_MORALE_LOSS = 10;
+const SUPPLY_RESTORED_MORALE_GAIN = 5;
+const STARVATION_ATTRITION_PCT = 0.05;
+
+/** Total daily food an army's full roster needs (#79). */
+export function totalDailyFoodNeed(army) {
+  return totalUnitCount(army) * FOOD_PER_UNIT;
+}
+
+/** Food a settlement's population can spare per day, standing in for agricultural capacity (#79). */
+export function settlementFoodCapacity(settlement) {
+  return Math.floor((Number(settlement?.population) || 0) / 200);
+}
+
+/** Whether `sourceSettlement` can currently feed `army` (#79) — false if occupied or undersupplied. */
+export function isSupplied(army, sourceSettlement) {
+  if (!sourceSettlement || sourceSettlement.stats?.occupied) return false;
+  return settlementFoodCapacity(sourceSettlement) >= totalDailyFoodNeed(army);
+}
+
+/**
+ * Apply a day's supply chain (#79): an army with a `supplySource` fed by that
+ * settlement recovers morale; cut off (no source, source occupied, or source
+ * can't spare enough food), it loses morale each day, and once morale bottoms
+ * out at 0 it starts losing troops to starvation attrition.
+ * No-op for armies with no units or no assigned supply source.
+ */
+export async function applyArmySupply(armyDoc, sourceDoc, days = 1) {
+  const army = sanitizeArmy(getSettlement(armyDoc) || {});
+  if (!army.supplySource || !totalUnitCount(army)) return null;
+
+  const sourceSettlement = sourceDoc ? sanitizeSettlement(getSettlement(sourceDoc) || {}) : null;
+  const supplied = isSupplied(army, sourceSettlement);
+
+  let starved = false;
+  const units = army.units.map(u => {
+    const count = Math.max(0, Number(u.count) || 0);
+    let morale = Math.max(0, Math.min(100, Number(u.morale) || 0));
+    if (supplied) {
+      return { ...u, morale: Math.min(100, morale + SUPPLY_RESTORED_MORALE_GAIN * days) };
+    }
+    morale = Math.max(0, morale - SUPPLY_CUT_MORALE_LOSS * days);
+    let nextCount = count;
+    if (morale <= 0 && count > 0) {
+      nextCount = Math.max(0, count - Math.ceil(count * STARVATION_ATTRITION_PCT * days));
+      if (nextCount < count) starved = true;
+    }
+    return { ...u, morale, count: nextCount };
+  });
+
+  await armyDoc.setFlag(FLAG_SCOPE, FLAG_KEY, sanitizeArmy({ ...army, units }));
+  return { supplied, starved };
 }
 
 export async function createArmy(name, options = {}) {

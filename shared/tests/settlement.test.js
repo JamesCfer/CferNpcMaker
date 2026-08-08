@@ -34,6 +34,12 @@ describe('sanitizeSettlement defaults', () => {
     expect(sanitizeSettlement({ stats: { occupied: true } }).stats.occupied).toBe(true);
   });
 
+  it('defaults occupiedBy to null and preserves a valid nation id (#80)', () => {
+    expect(sanitizeSettlement({}).stats.occupiedBy).toBeNull();
+    expect(sanitizeSettlement({ stats: { occupiedBy: 'nation1' } }).stats.occupiedBy).toBe('nation1');
+    expect(sanitizeSettlement({ stats: { occupiedBy: 42 } }).stats.occupiedBy).toBeNull();
+  });
+
   it('defaults treasury to zero coins', () => {
     const { treasury } = sanitizeSettlement({});
     expect(treasury).toEqual({ cp: 0, sp: 0, gp: 0, pp: 0 });
@@ -191,6 +197,46 @@ describe('applyDailyTick jitter bounds', () => {
     const doc = makeDoc(10);
     await applyDailyTick(doc, 1);
     expect(doc.getStored().stores[0].income.lastTick).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe('applyDailyTick occupation drain (#80)', () => {
+  function makeDoc(gp, occupied, occupiedBy) {
+    const settlement = {
+      _schemaVersion: CURRENT_SCHEMA_VERSION,
+      stores: [],
+      treasury: { cp: 0, sp: 0, gp, pp: 0 },
+      stats: { occupied, occupiedBy },
+    };
+    let stored = settlement;
+    return {
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('drains 5% of gp per day to the occupier nation treasury', async () => {
+    const nationDoc = makeDoc(0, false, null);
+    globalThis.game = { journal: { get: (id) => (id === 'nation1' ? nationDoc : null) } };
+    const doc = makeDoc(1000, true, 'nation1');
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(950);
+    expect(nationDoc.getStored().treasury.gp).toBe(50);
+  });
+
+  it('does nothing when the settlement is not occupied', async () => {
+    globalThis.game = { journal: { get: () => null } };
+    const doc = makeDoc(1000, false, null);
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(1000);
+  });
+
+  it('never drains below 0 gp', async () => {
+    globalThis.game = { journal: { get: () => null } };
+    const doc = makeDoc(0, true, 'nation1');
+    await applyDailyTick(doc, 1);
+    expect(doc.getStored().treasury.gp).toBe(0);
   });
 });
 

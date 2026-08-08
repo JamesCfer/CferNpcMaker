@@ -86,6 +86,7 @@
  * @property {number} morale
  * @property {number} unrest
  * @property {boolean} occupied  true once hp has been sieged to 0 (#77)
+ * @property {string|null} occupiedBy  occupying nation's journal ID; drained daily for gp (#80)
  */
 
 /**
@@ -163,6 +164,8 @@
  * @property {CalendarDate|null} arrivalDate  date the army reaches `destination` (#75)
  * @property {Array<{ id: string, type: string, count: number, level: number, equipment: string, morale: number }>} units
  * @property {string|null} commanderActorId
+ * @property {string|null} ownerNationId  nation this army belongs to; occupier of record on a successful siege (#80)
+ * @property {string|null} supplySource   settlement journal ID the army draws food from each day (#79)
  * @property {string} notes
  */
 
