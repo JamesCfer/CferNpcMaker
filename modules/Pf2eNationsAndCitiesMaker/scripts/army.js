@@ -40,6 +40,15 @@ function safeString(s, def = '') {
 
 function shortId() { return Math.random().toString(36).slice(2, 10); }
 
+function validDate(d) {
+  return d && typeof d === 'object'
+    && Number.isFinite(Number(d.year)) && Number.isFinite(Number(d.month)) && Number.isFinite(Number(d.day));
+}
+
+function asDate(d) {
+  return validDate(d) ? { year: Number(d.year), month: Number(d.month), day: Number(d.day) } : null;
+}
+
 export function sanitizeArmy(raw) {
   const a = (raw && typeof raw === 'object') ? raw : {};
   const units = Array.isArray(a.units) ? a.units.map(u => ({
@@ -51,24 +60,24 @@ export function sanitizeArmy(raw) {
     morale:    safeNum(u?.morale, 100, 0, 100),
   })) : [];
 
-  const arrivalDate = a.arrivalDate;
-  const validArrivalDate = arrivalDate && typeof arrivalDate === 'object'
-    && Number.isFinite(Number(arrivalDate.year))
-    && Number.isFinite(Number(arrivalDate.month))
-    && Number.isFinite(Number(arrivalDate.day));
+  const contract = a.contract && typeof a.contract === 'object' ? a.contract : {};
 
   return {
     kind:        'army',
     stationedAt: (typeof a.stationedAt === 'string' && a.stationedAt) ? a.stationedAt : null,
     mode:        ['garrison', 'field'].includes(a.mode) ? a.mode : 'garrison',
     destination: (typeof a.destination === 'string' && a.destination) ? a.destination : null,
-    arrivalDate: validArrivalDate
-      ? { year: Number(arrivalDate.year), month: Number(arrivalDate.month), day: Number(arrivalDate.day) }
-      : null,
+    arrivalDate: asDate(a.arrivalDate),
     units,
     commanderActorId: a.commanderActorId || null,
     ownerNationId: (typeof a.ownerNationId === 'string' && a.ownerNationId) ? a.ownerNationId : null,
     supplySource: (typeof a.supplySource === 'string' && a.supplySource) ? a.supplySource : null,
+    contract: {
+      active:      !!contract.active,
+      companyId:   safeString(contract.companyId, '') || null,
+      companyLabel: safeString(contract.companyLabel, ''),
+      expiresDate: asDate(contract.expiresDate),
+    },
     notes:       safeString(a.notes, ''),
   };
 }
@@ -202,4 +211,82 @@ export async function createArmy(name, options = {}) {
       },
     },
   });
+}
+
+/**
+ * Buyable mercenary companies (#81) — preset rosters hired for a lump sum
+ * covering a fixed contract length, in gp/day of contract. Auto-disband
+ * (the army journal is deleted) once the contract expires.
+ */
+export const MERCENARY_COMPANIES = [
+  { id: 'skirmishers',     label: 'Skirmisher Company', costPerDay: 15, units: [{ type: 'spearmen', count: 20, level: 2 }, { type: 'archers', count: 10, level: 2 }] },
+  { id: 'free-cavalry',    label: 'Free Cavalry',       costPerDay: 30, units: [{ type: 'cavalry', count: 15, level: 3 }] },
+  { id: 'battlemages',     label: 'Battle-mage Circle', costPerDay: 45, units: [{ type: 'mages', count: 8, level: 4 }] },
+  { id: 'siege-engineers', label: 'Siege Engineers',    costPerDay: 40, units: [{ type: 'siege', count: 5, level: 3 }, { type: 'spearmen', count: 10, level: 2 }] },
+];
+
+export function getMercenaryCompany(id) {
+  return MERCENARY_COMPANIES.find(c => c.id === id) || null;
+}
+
+/** Lump-sum gp cost to hire `company` for `days` (#81). */
+export function mercenaryHireCost(company, days) {
+  return Math.round(company.costPerDay * Math.max(1, Number(days) || 1));
+}
+
+/**
+ * Hire a mercenary company (#81): drains the lump-sum cost from `settlementDoc`'s
+ * treasury and creates a new Army journal, stationed there, under a fixed-length
+ * contract. Returns `{ error: 'insufficient-funds', cost }` if the settlement can't
+ * afford it, or `{ journal, cost, expiresDate }` on success.
+ */
+export async function hireMercenaryCompany(settlementDoc, companyId, days, calendarState) {
+  const company = getMercenaryCompany(companyId);
+  if (!company || !settlementDoc) return null;
+
+  const cost = mercenaryHireCost(company, days);
+  const settlement = getSettlement(settlementDoc) || {};
+  const gp = Number(settlement.treasury?.gp) || 0;
+  if (cost > gp) return { error: 'insufficient-funds', cost };
+
+  const s = foundry.utils.deepClone(settlement);
+  s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+  s.treasury.gp = gp - cost;
+  await settlementDoc.setFlag(FLAG_SCOPE, FLAG_KEY, s);
+
+  const expiresDate = computeArrivalDate(calendarState.currentDate, days, calendarState.calendarDef);
+  const journal = await JournalEntry.create({
+    name: company.label,
+    flags: {
+      [FLAG_SCOPE]: {
+        [FLAG_KEY]: sanitizeArmy({
+          stationedAt: settlementDoc.id,
+          units: company.units,
+          contract: { active: true, companyId: company.id, companyLabel: company.label, expiresDate },
+        }),
+        createdBy: MODULE_ID,
+      },
+    },
+  });
+
+  return { journal, cost, expiresDate };
+}
+
+/** Whether a mercenary army's contract has run out as of `currentDate` (#81). */
+export function isContractExpired(army, currentDate) {
+  return !!(army.contract?.active && army.contract.expiresDate && currentDate
+    && cmpDate(currentDate, army.contract.expiresDate) >= 0);
+}
+
+function gmWhisper() {
+  return game.users?.filter(u => u.isGM).map(u => u.id) ?? [];
+}
+
+/** Post a GM-whispered chat card announcing a mercenary company's contract has ended (#81, #82). */
+export function postMercenaryDisbandChatCard(journal) {
+  ChatMessage.create({
+    content: `<h3><i class="fa-solid fa-people-group"></i> Contract Expired</h3>
+      <p><strong>${journal.name}</strong>'s mercenary contract has run out — the company disbands and marches off.</p>`,
+    whisper: gmWhisper(),
+  }).catch(() => {});
 }

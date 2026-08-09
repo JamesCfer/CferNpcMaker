@@ -62,6 +62,35 @@
     </button>
   </div>
 
+  <h3><i class="fa-solid fa-people-arrows"></i> Relations</h3>
+  {{#if relationsView.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Nation</th><th>Relation</th><th>Score</th></tr></thead>
+      <tbody>
+        {{#each relationsView}}
+          <tr>
+            <td>{{name}}</td>
+            <td>
+              <select data-action="setRelation" data-nation-id="{{id}}" data-field="relation">
+                <option value="ally"     {{#if (eqStr relation "ally")}}selected{{/if}}>Ally</option>
+                <option value="friendly" {{#if (eqStr relation "friendly")}}selected{{/if}}>Friendly</option>
+                <option value="neutral"  {{#if (eqStr relation "neutral")}}selected{{/if}}>Neutral</option>
+                <option value="cold"     {{#if (eqStr relation "cold")}}selected{{/if}}>Cold</option>
+                <option value="hostile"  {{#if (eqStr relation "hostile")}}selected{{/if}}>Hostile</option>
+              </select>
+            </td>
+            <td>
+              <input type="number" min="-100" max="100" step="1" value="{{score}}"
+                     data-action="setRelation" data-nation-id="{{id}}" data-field="score" style="width:5em;" />
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No other nations exist yet to track relations with.</em>
+  {{/if}}
+
   <h3><i class="fa-solid fa-scroll"></i> Notes</h3>
   <textarea data-path="notes" rows="8">{{nation.notes}}</textarea>
   <button type="button" class="pf2e-settlement-btn" data-action="saveNotes">

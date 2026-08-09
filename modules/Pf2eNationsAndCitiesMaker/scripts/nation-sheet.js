@@ -21,6 +21,7 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       openChildCity:   function(ev) { this._onOpenChildCity(ev); },
       saveField:       function(ev) { this._onSaveField(ev); },
       saveNotes:       function()   { this._onSaveNotes(); },
+      setRelation:     function(ev) { this._onSetRelation(ev); },
     },
   };
 
@@ -68,7 +69,14 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .map(j => ({ id: j.id, name: j.name })) || [];
 
-    return { doc: this.document, nation, cities, totals, availableJournals };
+    const relationsView = (game.journal?.contents || [])
+      .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
+      .map(j => {
+        const entry = nation.relations.find(r => r.nationId === j.id);
+        return { id: j.id, name: j.name, relation: entry?.relation || 'neutral', score: entry?.score ?? 0 };
+      });
+
+    return { doc: this.document, nation, cities, totals, availableJournals, relationsView };
   }
 
   _onRender() {
@@ -116,6 +124,19 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const ta = this.element.querySelector('[data-path="notes"]');
     if (!ta) return;
     this._patch(s => { s.notes = ta.value; });
+  }
+
+  _onSetRelation(ev) {
+    const nationId = ev.currentTarget?.dataset?.nationId;
+    const field    = ev.currentTarget?.dataset?.field;
+    if (!nationId || !field) return;
+    const value = field === 'score' ? Number(ev.currentTarget.value) : ev.currentTarget.value;
+    this._patch(s => {
+      s.relations = s.relations || [];
+      let entry = s.relations.find(r => r.nationId === nationId);
+      if (!entry) { entry = { nationId, relation: 'neutral', score: 0 }; s.relations.push(entry); }
+      entry[field] = value;
+    });
   }
 }
 

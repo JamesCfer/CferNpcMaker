@@ -114,6 +114,16 @@
  */
 
 /**
+ * A nation's standing with one other nation (#83). Lives on the Nation
+ * document's own `relations` list — each nation tracks its side of the
+ * relationship independently, so a pair can (deliberately) disagree.
+ * @typedef {object} NationRelation
+ * @property {string} nationId
+ * @property {'ally'|'friendly'|'neutral'|'cold'|'hostile'} relation
+ * @property {number} score  -100..100
+ */
+
+/**
  * @typedef {object} Settlement
  * @property {number}           _schemaVersion
  * @property {string}           kind           city|town|village|nation
@@ -130,6 +140,7 @@
  * @property {Religion[]}       religions
  * @property {number}           priceMultiplier  multiplied into all displayed prices (1.0 = normal) (#62)
  * @property {string[]}         childCityIds
+ * @property {NationRelation[]} relations        nation-tier only; standing with every other Nation (#83)
  * @property {string|null}      bannerImage      header banner image path; AI-generated or user-picked (#102)
  * @property {string}           notes
  * @property {{ endpoint: string, model: string, prompt: string }} ai
@@ -153,6 +164,17 @@
  */
 
 /**
+ * Mercenary contract (#81) — set when an army was hired as a preset company
+ * rather than recruited. Once `expiresDate` passes, the army journal is
+ * deleted automatically (no refund) on the next `dayAdvanced` tick.
+ * @typedef {object} Contract
+ * @property {boolean} active
+ * @property {string|null} companyId      key into MERCENARY_COMPANIES
+ * @property {string} companyLabel
+ * @property {CalendarDate|null} expiresDate
+ */
+
+/**
  * Army document shape (#70). Lives on its own JournalEntry, same flag path
  * as Settlement/Nation. `commanderActorId` gives a flat power bonus in
  * battles and sieges equal to the linked Actor's level (#78).
@@ -166,6 +188,7 @@
  * @property {string|null} commanderActorId
  * @property {string|null} ownerNationId  nation this army belongs to; occupier of record on a successful siege (#80)
  * @property {string|null} supplySource   settlement journal ID the army draws food from each day (#79)
+ * @property {Contract} contract          set when hired as a mercenary company (#81)
  * @property {string} notes
  */
 

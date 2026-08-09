@@ -84,6 +84,30 @@ describe('sanitizeSettlement defaults', () => {
     const s = sanitizeSettlement({ stores: [{ jobs: [{ status: 'rampaging' }] }] });
     expect(s.stores[0].jobs[0].status).toBe('open');
   });
+
+  it('defaults relations to an empty list (#83)', () => {
+    expect(sanitizeSettlement({}).relations).toEqual([]);
+  });
+
+  it('sanitizes relation fields with safe defaults', () => {
+    const s = sanitizeSettlement({ relations: [{ nationId: 'nation1', relation: 'ally', score: '50' }] });
+    expect(s.relations).toEqual([{ nationId: 'nation1', relation: 'ally', score: 50 }]);
+  });
+
+  it('drops relation entries without a nationId', () => {
+    expect(sanitizeSettlement({ relations: [{ relation: 'ally' }] }).relations).toEqual([]);
+  });
+
+  it('rejects an unknown relation value and falls back to neutral', () => {
+    const s = sanitizeSettlement({ relations: [{ nationId: 'nation1', relation: 'rampaging' }] });
+    expect(s.relations[0].relation).toBe('neutral');
+  });
+
+  it('clamps relation score to -100..100', () => {
+    const s = sanitizeSettlement({ relations: [{ nationId: 'nation1', score: 500 }, { nationId: 'nation2', score: -500 }] });
+    expect(s.relations[0].score).toBe(100);
+    expect(s.relations[1].score).toBe(-100);
+  });
 });
 
 describe('computeNext', () => {

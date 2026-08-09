@@ -53,6 +53,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       siegeSettlement: function()  { this._onSiegeSettlement(); },
       openCommander:  function()   { this._onOpenCommander(); },
       clearCommander: function()   { this._onClearCommander(); },
+      disbandCompany: function()   { this._onDisbandCompany(); },
     },
   };
 
@@ -103,6 +104,13 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       arrivalDateLabel = formatCalendarDate(army.arrivalDate, calendarDef);
     }
 
+    let contractExpiresLabel = '';
+    if (army.contract?.active && army.contract.expiresDate) {
+      let calendarDef = null;
+      try { calendarDef = game.settings.get('Pf2eCalendarTimeline', 'state')?.calendarDef; } catch (_) {}
+      contractExpiresLabel = formatCalendarDate(army.contract.expiresDate, calendarDef);
+    }
+
     return {
       doc: this.document,
       army,
@@ -111,6 +119,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       stationedAtName: stationedAtDoc?.name || '',
       destinationName: destinationDoc?.name || '',
       arrivalDateLabel,
+      contractExpiresLabel,
       availableJournals,
       availableNations,
       supplyStatus,
@@ -297,6 +306,16 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onClearCommander() {
     this._patch(a => { a.commanderActorId = null; });
+  }
+
+  async _onDisbandCompany() {
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window:      { title: 'Disband Mercenary Company' },
+      content:     `<p>Disband ${this.document.name} early? Their contract will not be refunded.</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return;
+    await this.document.delete();
   }
 
   async _onResolveBattle() {
