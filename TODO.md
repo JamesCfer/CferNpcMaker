@@ -154,11 +154,11 @@ item that has all its dependencies satisfied.
 - [x] 78. **Generals (commander Actor)** — set an Actor as army commander; their level adds a flat bonus to mass-combat rolls. (#106)
 - [x] 79. **Supply chain** — armies drain food from their origin settlement per day; cut supply → morale drops until starvation.
 - [x] 80. **Surrender / occupation flag** — defeated settlements get `occupiedBy: <nationId>`; the occupier's nation gains gp drain rights.
-- [ ] 81. **Mercenary companies** — buyable temporary armies tied to a contract length; auto-disband on contract end.
+- [x] 81. **Mercenary companies** — buyable temporary armies tied to a contract length; auto-disband on contract end. (#107)
 - [x] 82. **War chat-cards** — every battle / siege resolution posts a styled chat card with casualty totals and a "Details" expander. (#106)
 
 ## F. Diplomacy & nations (83–92)
-- [ ] 83. **Relations matrix** — Nation sheet gains a grid: every other Nation → `relation: 'ally|friendly|neutral|cold|hostile'` + numeric score (-100..100).
+- [x] 83. **Relations matrix** — Nation sheet gains a grid: every other Nation → `relation: 'ally|friendly|neutral|cold|hostile'` + numeric score (-100..100). (#107)
 - [ ] 84. **Treaty objects** — `treaties: [{ partnerNationId, kind, signedOn, expiresOn, terms }]`; kinds = non-aggression / defensive / trade / vassalage.
 - [ ] 85. **Treaty expiry events** — auto-schedule calendar events when treaties expire and fire a chat reminder.
 - [ ] 86. **Vassal / suzerain links** — a Nation can list `vassalNationIds[]` or set `suzerainNationId`; aggregated stats roll up.
