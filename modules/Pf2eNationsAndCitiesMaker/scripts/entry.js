@@ -13,7 +13,9 @@ import { MODULE_ID, getSettlement, setSettlement } from './constants.js';
 import { SettlementSheet, openWithFixture } from './settlement-sheet.js';
 import { NationSheet }                from './nation-sheet.js';
 import { ArmySheet }                  from './army-sheet.js';
-import { createArmy, applyArmyWages, applyArmySupply, cmpDate } from './army.js';
+import { createArmy, applyArmyWages, applyArmySupply, cmpDate,
+         MERCENARY_COMPANIES, hireMercenaryCompany,
+         isContractExpired, postMercenaryDisbandChatCard } from './army.js';
 import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settlements.js';
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
@@ -113,6 +115,71 @@ class CreateArmyMenu {
       if (!name) return;
       const journal = await createArmy(name);
       if (journal) new ArmySheet(journal).render(true);
+    }).catch(() => {});
+    return this;
+  }
+}
+
+class HireMercenariesMenu {
+  render() {
+    if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
+      ui.notifications.warn(game.i18n.localize('SettlementBuilder.Settings.HireMercenaries.NotActive'));
+      return this;
+    }
+    const settlements = (game.journal?.contents || [])
+      .filter(j => { const s = getSettlement(j); return s && ['city', 'town', 'village'].includes(s.kind); })
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!settlements.length) {
+      ui.notifications.warn(game.i18n.localize('SettlementBuilder.Settings.HireMercenaries.NoSettlements'));
+      return this;
+    }
+
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Paying settlement
+          <select name="settlementId" style="width:100%;margin-top:0.25em;">
+            ${settlements.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+          </select>
+        </label>
+        <label>Company
+          <select name="companyId" style="width:100%;margin-top:0.25em;">
+            ${MERCENARY_COMPANIES.map(c => `<option value="${c.id}">${c.label} (${c.costPerDay} gp/day)</option>`).join('')}
+          </select>
+        </label>
+        <label>Contract length (days)
+          <input type="number" name="days" value="30" min="1" step="1" style="width:100%;margin-top:0.25em;" />
+        </label>
+      </div>`;
+    foundry.applications.api.DialogV2.prompt({
+      window: { title: game.i18n.localize('SettlementBuilder.Settings.HireMercenaries.Name') },
+      content: html,
+      ok: {
+        label: game.i18n.localize('SettlementBuilder.Settings.HireMercenaries.ConfirmLabel'),
+        icon:  'fa-solid fa-handshake',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            settlementId: root.querySelector('[name="settlementId"]')?.value || null,
+            companyId:    root.querySelector('[name="companyId"]')?.value || null,
+            days:         Math.max(1, Number(root.querySelector('[name="days"]')?.value) || 1),
+          };
+        },
+      },
+      rejectClose: false,
+    }).then(async (picked) => {
+      if (!picked?.settlementId || !picked?.companyId) return;
+      const settlementDoc = game.journal?.get(picked.settlementId);
+      if (!settlementDoc) return;
+      const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
+      const result = await hireMercenaryCompany(settlementDoc, picked.companyId, picked.days, calState);
+      if (result?.error === 'insufficient-funds') {
+        ui.notifications.warn(`${settlementDoc.name} can't afford this contract (needs ${result.cost} gp).`);
+        return;
+      }
+      if (result?.journal) {
+        ui.notifications.info(`Hired ${result.journal.name} for ${result.cost} gp — contract runs ${picked.days} day(s).`);
+        new ArmySheet(result.journal).render(true);
+      }
     }).catch(() => {});
     return this;
   }
@@ -310,6 +377,14 @@ Hooks.once('init', () => {
     type:       CreateArmyMenu,
     restricted: true,
   });
+  game.settings.registerMenu(MODULE_ID, 'hireMercenaries', {
+    name:       'SettlementBuilder.Settings.HireMercenaries.Name',
+    label:      'SettlementBuilder.Settings.HireMercenaries.Label',
+    hint:       'SettlementBuilder.Settings.HireMercenaries.Hint',
+    icon:       'fa-solid fa-handshake',
+    type:       HireMercenariesMenu,
+    restricted: true,
+  });
 });
 
 // Intercept JournalEntry.sheet rendering — when the journal carries a
@@ -448,6 +523,11 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = 
       const s = getSettlement(j);
       if (!s || s.kind === 'nation') continue;
       if (s.kind === 'army') {
+        if (isContractExpired(s, currentDate)) {
+          postMercenaryDisbandChatCard(j);
+          await j.delete();
+          continue;
+        }
         const stationedAt = s.stationedAt && game.journal?.get(s.stationedAt);
         if (stationedAt) await applyArmyWages(j, stationedAt, days);
         if (s.supplySource) {

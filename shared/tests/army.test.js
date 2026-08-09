@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeArmy, totalUnitCount, recruitmentCost, totalDailyWage, applyArmyWages, UNIT_TYPES,
-         cmpDate, computeArrivalDate, totalDailyFoodNeed, settlementFoodCapacity, isSupplied, applyArmySupply }
+         cmpDate, computeArrivalDate, totalDailyFoodNeed, settlementFoodCapacity, isSupplied, applyArmySupply,
+         MERCENARY_COMPANIES, getMercenaryCompany, mercenaryHireCost, hireMercenaryCompany, isContractExpired }
   from '../../modules/Pf2eNationsAndCitiesMaker/scripts/army.js';
 import { sanitizeSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/sanitizer.js';
 
@@ -15,6 +16,7 @@ describe('sanitizeArmy defaults', () => {
     expect(a.arrivalDate).toBeNull();
     expect(a.ownerNationId).toBeNull();
     expect(a.supplySource).toBeNull();
+    expect(a.contract).toEqual({ active: false, companyId: null, companyLabel: '', expiresDate: null });
   });
 
   it('accepts a field-army mode and rejects unknown modes', () => {
@@ -241,5 +243,84 @@ describe('applyArmySupply', () => {
     const armyDoc = makeArmyDoc([{ id: 'u1', type: 'spearmen', count: 10, morale: 50 }]);
     const result = await applyArmySupply(armyDoc, null, 1);
     expect(result.supplied).toBe(false);
+  });
+});
+
+describe('mercenaryHireCost', () => {
+  it('multiplies the daily rate by contract length', () => {
+    const company = getMercenaryCompany('skirmishers');
+    expect(mercenaryHireCost(company, 10)).toBe(150);
+  });
+
+  it('floors the contract length at 1 day', () => {
+    const company = getMercenaryCompany('skirmishers');
+    expect(mercenaryHireCost(company, 0)).toBe(company.costPerDay);
+  });
+});
+
+describe('getMercenaryCompany', () => {
+  it('resolves every preset by id', () => {
+    for (const c of MERCENARY_COMPANIES) expect(getMercenaryCompany(c.id)).toBe(c);
+  });
+
+  it('returns null for an unknown id', () => {
+    expect(getMercenaryCompany('dragon-riders')).toBeNull();
+  });
+});
+
+describe('hireMercenaryCompany', () => {
+  function makeSettlementDoc(gp) {
+    let stored = { treasury: { cp: 0, sp: 0, gp, pp: 0 } };
+    return {
+      id: 'settlement1',
+      name: 'Test Town',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  const calendarState = { currentDate: { year: 4710, month: 1, day: 1 }, calendarDef: { daysPerMonth: Array(12).fill(30) } };
+
+  it('drains the lump-sum cost and creates a stationed army under contract', async () => {
+    const created = [];
+    globalThis.JournalEntry = { create: async (data) => { const doc = { id: 'army1', name: data.name, flags: data.flags }; created.push(doc); return doc; } };
+
+    const settlementDoc = makeSettlementDoc(1000);
+    const result = await hireMercenaryCompany(settlementDoc, 'skirmishers', 10, calendarState);
+
+    expect(result.cost).toBe(150);
+    expect(settlementDoc.getStored().treasury.gp).toBe(850);
+    expect(created).toHaveLength(1);
+    const army = created[0].flags.Pf2eNationsAndCitiesMaker.settlement;
+    expect(army.stationedAt).toBe('settlement1');
+    expect(army.contract.active).toBe(true);
+    expect(army.contract.companyId).toBe('skirmishers');
+    expect(army.contract.expiresDate).toEqual({ year: 4710, month: 1, day: 11 });
+  });
+
+  it('refuses to hire when the settlement cannot afford it', async () => {
+    const settlementDoc = makeSettlementDoc(10);
+    const result = await hireMercenaryCompany(settlementDoc, 'skirmishers', 10, calendarState);
+    expect(result).toEqual({ error: 'insufficient-funds', cost: 150 });
+    expect(settlementDoc.getStored().treasury.gp).toBe(10);
+  });
+
+  it('returns null for an unknown company', async () => {
+    const settlementDoc = makeSettlementDoc(1000);
+    expect(await hireMercenaryCompany(settlementDoc, 'dragon-riders', 10, calendarState)).toBeNull();
+  });
+});
+
+describe('isContractExpired', () => {
+  it('is false when the contract is not active', () => {
+    const army = sanitizeArmy({});
+    expect(isContractExpired(army, { year: 4711, month: 1, day: 1 })).toBe(false);
+  });
+
+  it('is true once currentDate reaches expiresDate', () => {
+    const army = sanitizeArmy({ contract: { active: true, expiresDate: { year: 4710, month: 6, day: 1 } } });
+    expect(isContractExpired(army, { year: 4710, month: 6, day: 1 })).toBe(true);
+    expect(isContractExpired(army, { year: 4710, month: 5, day: 30 })).toBe(false);
   });
 });

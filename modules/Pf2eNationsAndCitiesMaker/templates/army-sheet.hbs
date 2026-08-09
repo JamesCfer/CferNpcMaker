@@ -18,6 +18,15 @@
     </div>
   </div>
 
+  {{#if army.contract.active}}
+    <p class="pf2e-empty">
+      <i class="fa-solid fa-handshake"></i> Mercenary contract ({{army.contract.companyLabel}}) expires {{contractExpiresLabel}}.
+      <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger" data-action="disbandCompany" title="Disband early">
+        <i class="fa-solid fa-trash"></i> Disband Now
+      </button>
+    </p>
+  {{/if}}
+
   <label>Stationed At
     <select name="stationedAt" data-path="stationedAt" data-action="saveField" style="width:100%;margin-top:0.25em;">
       <option value="">&mdash; none &mdash;</option>

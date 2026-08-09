@@ -6,8 +6,9 @@
 import { MODULE_ID } from './constants.js';
 import { CURRENT_SCHEMA_VERSION } from './migrations.js';
 
-const KINDS  = new Set(['city', 'town', 'village', 'nation']);
-const SIZES  = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
+const KINDS     = new Set(['city', 'town', 'village', 'nation']);
+const SIZES     = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
+const RELATIONS = new Set(['ally', 'friendly', 'neutral', 'cold', 'hostile']);
 
 function safeNum(n, def, min = -Infinity, max = Infinity) {
   const v = Number(n);
@@ -177,6 +178,11 @@ export function sanitizeSettlement(raw, formData = {}) {
       pct:      safeNum(d?.pct, 0, 0, 100),
     })) : [],
     childCityIds: Array.isArray(s.childCityIds) ? s.childCityIds.filter(x => typeof x === 'string') : [],
+    relations: Array.isArray(s.relations) ? s.relations.map(r => ({
+      nationId: safeString(r?.nationId, ''),
+      relation: RELATIONS.has(r?.relation) ? r.relation : 'neutral',
+      score:    safeNum(r?.score, 0, -100, 100),
+    })).filter(r => r.nationId) : [],
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
     bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
     notes: safeString(s.notes, ''),
