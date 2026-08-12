@@ -876,6 +876,7 @@ jobs:
         run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Push source to Pf2eNationsAndCitiesMaker
+        id: push
         env:
           MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
         run: |
@@ -883,8 +884,10 @@ jobs:
           rm -rf _pf2esettle_repo
           if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eNationsAndCitiesMaker.git _pf2esettle_repo; then
             echo "::warning::Clone failed (does the repo exist?). Skipping settlement release."
+            echo "repo_exists=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          echo "repo_exists=true" >> $GITHUB_OUTPUT
           rsync -a --exclude=.git --delete Pf2eNationsAndCitiesMaker/ _pf2esettle_repo/
           cd _pf2esettle_repo
           git config user.name "github-actions[bot]"
@@ -894,6 +897,7 @@ jobs:
           git push -u origin HEAD
 
       - name: Create Pf2eNationsAndCitiesMaker versioned release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -919,6 +923,7 @@ jobs:
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update Pf2eNationsAndCitiesMaker latest release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -972,6 +977,7 @@ jobs:
         run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Push source to Pf2eCalendarTimeline
+        id: push
         env:
           MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
         run: |
@@ -979,8 +985,10 @@ jobs:
           rm -rf _pf2ecal_repo
           if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eCalendarTimeline.git _pf2ecal_repo; then
             echo "::warning::Clone failed (does the repo exist?). Skipping calendar release."
+            echo "repo_exists=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          echo "repo_exists=true" >> $GITHUB_OUTPUT
           rsync -a --exclude=.git --delete Pf2eCalendarTimeline/ _pf2ecal_repo/
           cd _pf2ecal_repo
           git config user.name "github-actions[bot]"
@@ -990,6 +998,7 @@ jobs:
           git push -u origin HEAD
 
       - name: Create Pf2eCalendarTimeline versioned release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -1015,6 +1024,7 @@ jobs:
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update Pf2eCalendarTimeline latest release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -1072,6 +1082,7 @@ jobs:
         run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Push source to Pf2eStoreGenerator
+        id: push
         env:
           MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
         run: |
@@ -1079,8 +1090,10 @@ jobs:
           rm -rf _pf2estore_repo
           if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eStoreGenerator.git _pf2estore_repo; then
             echo "::warning::Clone failed (does the repo exist?). Skipping PF2e store release."
+            echo "repo_exists=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          echo "repo_exists=true" >> $GITHUB_OUTPUT
           rsync -a --exclude=.git --delete Pf2eStoreGenerator/ _pf2estore_repo/
           cd _pf2estore_repo
           git config user.name "github-actions[bot]"
@@ -1090,6 +1103,7 @@ jobs:
           git push -u origin HEAD
 
       - name: Create Pf2eStoreGenerator versioned release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -1115,6 +1129,7 @@ jobs:
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update Pf2eStoreGenerator latest release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -1151,6 +1166,7 @@ jobs:
   # and a release token secret is set.
   release-dnd5e-store:
     needs: [build, release-pf2e-store]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1172,6 +1188,7 @@ jobs:
         run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
 
       - name: Push source to Dnd5eStoreGenerator
+        id: push
         env:
           MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
         run: |
@@ -1179,8 +1196,10 @@ jobs:
           rm -rf _dnd5estore_repo
           if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Dnd5eStoreGenerator.git _dnd5estore_repo; then
             echo "::warning::Clone failed (does the repo exist?). Skipping D&D store release."
+            echo "repo_exists=false" >> $GITHUB_OUTPUT
             exit 0
           fi
+          echo "repo_exists=true" >> $GITHUB_OUTPUT
           rsync -a --exclude=.git --delete Dnd5eStoreGenerator/ _dnd5estore_repo/
           cd _dnd5estore_repo
           git config user.name "github-actions[bot]"
@@ -1190,6 +1209,7 @@ jobs:
           git push -u origin HEAD
 
       - name: Create Dnd5eStoreGenerator versioned release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
@@ -1215,6 +1235,7 @@ jobs:
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
       - name: Update Dnd5eStoreGenerator latest release
+        if: steps.push.outputs.repo_exists == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.MODULES_RELEASE_PAT }}
