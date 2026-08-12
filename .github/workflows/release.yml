@@ -6,6 +6,15 @@ on:
     paths:
       - 'version.json'
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release pacing (auto = detect from version bump; major = release everything immediately; minor = stagger through the day)'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+        default: auto
 
 jobs:
 
@@ -32,9 +41,13 @@ jobs:
           PREV="$(git show HEAD^:version.json 2>/dev/null | jq -r .version 2>/dev/null || echo '')"
           CURR_MAJOR="${CURR%%.*}"
           PREV_MAJOR="${PREV%%.*}"
+          OVERRIDE="${{ github.event.inputs.release_type }}"
           # Major bump → release every module immediately.
           # Anything else (minor/patch) → stagger releases throughout the day.
-          if [ -n "$PREV" ] && [ "$CURR_MAJOR" != "$PREV_MAJOR" ]; then
+          # A manual workflow_dispatch can override the detection either way.
+          if [ -n "$OVERRIDE" ] && [ "$OVERRIDE" != "auto" ]; then
+            TYPE="$OVERRIDE"
+          elif [ -n "$PREV" ] && [ "$CURR_MAJOR" != "$PREV_MAJOR" ]; then
             TYPE="major"
           else
             TYPE="minor"

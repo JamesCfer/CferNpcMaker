@@ -69,4 +69,6 @@ pushes each output to its own GitHub repo
 Release pacing depends on the version bump: a **major** bump (e.g.
 `2.x.y` → `3.0.0`) releases every module immediately, while a minor or
 patch bump staggers the releases ~3 hours apart so they spread across
-the day.
+the day. Running the workflow manually (workflow_dispatch) lets you
+override the detection with an explicit `major` (immediate) or `minor`
+(staggered) choice.
