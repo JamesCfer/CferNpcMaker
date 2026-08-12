@@ -11,11 +11,13 @@ Sibling Foundry VTT modules for AI-assisted NPC, item, and settlement generation
 | `Dnd5eItemGenerator`            | `dnd5e` | Magic items / consumables              | `game.items`      |
 | `Pf2eNationsAndCitiesMaker`     | `pf2e`  | Settlements (cities/towns/villages/nations) with custom sheet, stores, guards, leadership, economy | `game.journal` (custom sheet swap) |
 | `Pf2eCalendarTimeline`          | `pf2e`  | In-world calendar + scheduled events (taxes, paydays, festivals); other modules listen for fired events | World setting + custom UI |
+| `Pf2eStoreGenerator`            | `pf2e`  | A single shop (owner, staff, hours, priced stock, services, rumours) — 7 uses each | `game.journal` (store sheet) |
+| `Dnd5eStoreGenerator`           | `dnd5e` | A single shop (owner, staff, hours, priced stock, services, rumours) — 7 uses each | `game.journal` (store sheet) |
 
 ## Repository layout
 
 Each release ships only the code it needs. The home tab inside the builder
-links to the other three modules so users can install them too.
+links to the sibling modules so users can install them too.
 
 ```
 /shared/                          source of truth (not shipped directly)
@@ -48,7 +50,8 @@ To produce a shipped module locally (e.g. to symlink into Foundry's
 ./build.sh Pf2eNpcMaker                 # one module
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker   # several
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator \
-           Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline   # all
+           Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline \
+           Pf2eStoreGenerator Dnd5eStoreGenerator                            # all
 ```
 
 The script copies `shared/scripts/core/` into each output's `scripts/core/`,
@@ -56,9 +59,36 @@ concatenates `shared/styles/core.css` with `modules/<Name>/styles/accents.css`,
 and splices `shared/templates/home.html` + `modules/<Name>/templates/form.html`
 into `shared/templates/shell.html`.
 
+## Monthly uses
+
+Every builder shows the user's remaining monthly allowance in the signed-in
+strip of the auth banner, and stamps each Generate button with what that
+generation costs (1 use for an NPC or item, 4 for an image, 7 for a store).
+
+The relay owns the quota — `shared/scripts/core/usage.js` only reads, caches
+(per module, in `localStorage`) and displays whatever the n8n endpoints report.
+Any response from a builder webhook, the image webhook, or
+`/webhook/oauth/patreon/validate` may carry usage figures in either form:
+
+```
+X-Uses-Remaining: 38        # or X-RateLimit-Remaining
+X-Uses-Limit:     50        # or X-RateLimit-Limit
+X-Uses-Reset:     1767225600   # Unix seconds, Unix ms, or an ISO date
+```
+
+```jsonc
+{ "usage": { "used": 12, "limit": 50, "remaining": 38, "reset": 1767225600 } }
+```
+
+Only one of `used` / `remaining` is required — the other is derived from
+`limit`. A 429 body's existing `{ limit, reset }` is understood too, and reads
+as "0 remaining". When a relay reports nothing, the indicator stays hidden
+rather than showing a guess; after a successful generation the client
+subtracts the cost locally so the figure stays current between round-trips.
+
 ## Releasing
 
 Bumping `version.json` on `main` triggers
-`.github/workflows/release.yml`, which runs `build.sh` for all four modules,
+`.github/workflows/release.yml`, which runs `build.sh` for every module,
 pushes each output to its own GitHub repo
 (`JamesCfer/<Name>`), and uploads a versioned + floating-`latest` release.

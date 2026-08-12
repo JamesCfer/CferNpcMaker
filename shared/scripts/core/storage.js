@@ -15,6 +15,7 @@ export class Storage {
     this.historyKey  = `${moduleFolder}.history`;
     this.versionKey  = `${moduleFolder}.module-version`;
     this.artStyleKey = `${moduleFolder}.art-style`;
+    this.usageKey    = `${moduleFolder}.usage`;
   }
 
   /* ── Patreon session key ────────────────────────────────── */
@@ -91,6 +92,29 @@ export class Storage {
     try { localStorage.setItem(this.artStyleKey, style); } catch (_) {}
   }
 
+  /* ── Monthly-use snapshot ───────────────────────────────── */
+
+  /** @returns {import('./usage.js').Usage|null} The cached usage snapshot, or null. */
+  getUsage() {
+    try {
+      const raw = localStorage.getItem(this.usageKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === 'object') ? parsed : null;
+    } catch (_) { return null; }
+  }
+
+  /**
+   * Persist a usage snapshot. Pass null to clear it.
+   * @param {import('./usage.js').Usage|null} usage
+   */
+  setUsage(usage) {
+    try {
+      if (usage) localStorage.setItem(this.usageKey, JSON.stringify(usage));
+      else       localStorage.removeItem(this.usageKey);
+    } catch (_) {}
+  }
+
   /* ── Clear all module storage ───────────────────────────── */
 
   /** Removes every key stored under this module's namespace. */
@@ -101,6 +125,7 @@ export class Storage {
       this.historyKey,
       this.versionKey,
       this.artStyleKey,
+      this.usageKey,
     ];
     for (const k of keys) {
       try { localStorage.removeItem(k); } catch (_) {}

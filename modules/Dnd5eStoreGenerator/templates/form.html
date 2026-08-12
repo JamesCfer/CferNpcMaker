@@ -1,0 +1,94 @@
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name">Shop Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. The Iron Anvil" />
+          </div>
+          <div class="field field--level">
+            <label for="store-level">Party Level</label>
+            <input type="number" id="store-level" name="level" value="1" min="0" max="20" step="1" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="store-type">Shop Type</label>
+            <select id="store-type" name="storeType">
+              <option value="blacksmith">Blacksmith</option>
+              <option value="armorer">Armorer</option>
+              <option value="weapons">Weaponsmith</option>
+              <option value="alchemist">Alchemist</option>
+              <option value="tavern">Tavern</option>
+              <option value="inn">Inn</option>
+              <option value="general" selected>General Store</option>
+              <option value="grocer">Grocer</option>
+              <option value="tailor">Tailor</option>
+              <option value="jeweler">Jeweler</option>
+              <option value="temple">Temple</option>
+              <option value="magic">Magic Shop</option>
+              <option value="stable">Stable</option>
+              <option value="apothecary">Apothecary</option>
+              <option value="bookbinder">Bookbinder</option>
+              <option value="guild">Adventurer's Guild</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="store-tier">Price Tier</label>
+            <select id="store-tier" name="priceTier">
+              <option value="low">Low — bargain prices</option>
+              <option value="standard" selected>Standard</option>
+              <option value="high">High — upmarket</option>
+              <option value="luxury">Luxury — exclusive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="store-settlement">Settlement</label>
+            <input type="text" id="store-settlement" name="settlement" placeholder="e.g. Ashenford (optional)" />
+          </div>
+          <div class="field field--level">
+            <label for="store-stock">Goods</label>
+            <input type="number" id="store-stock" name="stockCount" value="10" min="1" max="40" step="1" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <select class="desc-template-select" aria-label="Load a description template">
+            <option value="">— Quick template… —</option>
+            <option value="A soot-stained smithy on the edge of the market square, run by a taciturn dwarf who forges reliable, unglamorous steel. Stock is mostly weapons and armor repairs, with one or two commissioned pieces waiting for owners who never came back.">Village smithy</option>
+            <option value="A cramped alchemist's shop crowded with bubbling glassware and hanging herbs. The proprietor is enthusiastic, slightly singed, and happy to explain exactly what each potion does at excessive length. Stock leans toward healing draughts and utility elixirs.">Alchemist's shop</option>
+            <option value="A warm, noisy tavern with a well-worn bar and a permanent card game in the corner. Sells meals, rooms, and drink; the innkeeper trades gossip freely and knows who in town owes money to whom.">Busy tavern</option>
+            <option value="A discreet magic shop reached through a back-alley door, lit by floating candles. The owner deals in uncommon wands, scrolls and curiosities, prices high, and asks no questions about where anything came from.">Back-alley magic shop</option>
+            <option value="A cluttered general store that sells a little of everything — rope, lamp oil, dried rations, cookware, cheap tools. The owner is a sharp-eyed trader who will haggle enthusiastically and upsell relentlessly.">General store</option>
+            <option value="A quiet temple storefront offering blessings, healing services, and modest devotional goods. Donations expected rather than prices charged; the presiding cleric keeps a careful record of who has been helped.">Temple dispensary</option>
+            <option value="A stable and tack shop on the road out of town, smelling of hay and leather. Sells mounts, feed, saddles and cart repairs, and rents out draught animals by the day.">Stable and tack shop</option>
+          </select>
+          <textarea id="npc-desc" name="description" rows="6"
+            placeholder="Describe this shop: its atmosphere, owner, clientele, specialities, the kind of stock it carries, any secrets…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+          <span class="field-hint" id="store-cost-hint"></span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span class="btn-label">Generate Store</span>
+            <span class="generate-cost-badge btn-cost-badge"></span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+      </form>

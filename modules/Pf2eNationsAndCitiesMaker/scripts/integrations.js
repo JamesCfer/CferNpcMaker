@@ -8,7 +8,10 @@ import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { N8N_BASE, devUrl, isDevMode } from './core/n8n.js';
 import { postToN8n } from './core/adapter.js';
 import { Storage } from './core/storage.js';
+import { detectModuleFolder } from './core/utils.js';
 import { sanitizeSettlement } from './sanitizer.js';
+
+const MODULE_FOLDER = detectModuleFolder(MODULE_ID);
 
 function npcModuleActive() {
   return !!game.modules?.get('Pf2eNpcMaker')?.active;
@@ -190,7 +193,7 @@ export async function rerollStores(doc) {
 
   let rawStores;
   try {
-    const { response, responseText } = await postToN8n(endpoint, payload, getKey());
+    const { response, responseText } = await postToN8n(endpoint, payload, getKey(), MODULE_FOLDER);
     let data;
     try { data = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON: ${e.message}`); }
     if (!response.ok) throw new Error(data?.message || `Status ${response.status}`);
@@ -226,7 +229,7 @@ export async function rerollSingleStore(doc, storeId) {
 
   let rawStore;
   try {
-    const { response, responseText } = await postToN8n(endpoint, payload, getKey());
+    const { response, responseText } = await postToN8n(endpoint, payload, getKey(), MODULE_FOLDER);
     let data;
     try { data = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON: ${e.message}`); }
     if (!response.ok) throw new Error(data?.message || `Status ${response.status}`);

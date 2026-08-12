@@ -104,7 +104,7 @@ export class Pf2eNpcAdapter extends SystemAdapter {
       payload.spellMapping = await this._buildSpellMapping();
     }
 
-    const { response, responseText } = await postToN8n(endpoint, payload, key);
+    const { response, responseText } = await postToN8n(endpoint, payload, key, this.moduleFolder);
 
     let data;
     try {
@@ -261,7 +261,7 @@ export class Pf2eNpcAdapter extends SystemAdapter {
       };
 
       const endpoint = devUrl(LEVELUP_URL, isDevMode(builderApp.moduleFolder));
-      const { response, responseText } = await postToN8n(endpoint, payload, key);
+      const { response, responseText } = await postToN8n(endpoint, payload, key, this.moduleFolder);
 
       const data = JSON.parse(responseText);
       if (!response.ok) throw new Error(data?.message || `Server returned status ${response.status}`);

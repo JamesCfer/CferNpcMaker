@@ -46,6 +46,13 @@
       "SentSuccess": "Image generation request sent successfully.",
       "Failed": "Image generation failed: {error}"
     },
+    "Usage": {
+      "Left": "{remaining} / {limit} uses left",
+      "LeftNoLimit": "{remaining} uses left",
+      "ResetToday": "Your monthly allowance resets today.",
+      "ResetTomorrow": "Your monthly allowance resets tomorrow.",
+      "ResetDays": "Your monthly allowance resets in {days} days."
+    },
     "ImageConfirm": {
       "ForName": "Generate an image for {name}?",
       "CostNote": "This will use {cost} NPC uses from your monthly allowance.",

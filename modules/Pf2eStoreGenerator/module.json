@@ -1,0 +1,14 @@
+{
+  "id": "Pf2eStoreGenerator",
+  "title": "PF2e Store Generator",
+  "description": "Generate a single Pathfinder 2e shop — owner, staff, opening hours, priced stock, services and rumours — from a short description. Each store is created as a JournalEntry with its own store sheet.",
+  "authors": [{ "name": "JamesCfer" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "systems": ["pf2e"],
+  "esmodules": ["scripts/preload-templates.js", "scripts/entry.js"],
+  "styles": ["styles/builder.css"],
+  "templateDir": "templates",
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ]
+}

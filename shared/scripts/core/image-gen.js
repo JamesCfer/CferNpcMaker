@@ -5,6 +5,7 @@
  */
 
 import { N8N_ENDPOINTS, PATREON_URL, devUrl } from './n8n.js';
+import { parseUsage, recordUsage }            from './usage.js';
 
 /** Number of monthly NPC uses charged per image generation. */
 export const IMAGE_COST = 4;
@@ -18,6 +19,7 @@ export const IMAGE_COST = 4;
  * @param {string}   [opts.artStyle='']   Optional free-text art style override.
  * @param {string}   opts.key             Patreon session key.
  * @param {boolean}  [opts.devMode=false] Route requests to the -dev endpoints.
+ * @param {string}   [opts.moduleFolder]  Storage namespace for the usage cache.
  * @param {() => void}      [opts.onAuthFailed]   Called when the server returns 401/403.
  * @param {(data: object) => void} [opts.onRateLimited] Called when the server returns 429.
  * @returns {Promise<{ savedPath: string|null, message: string }>}
@@ -28,6 +30,7 @@ export async function generateImage({
   artStyle = '',
   key,
   devMode = false,
+  moduleFolder,
   onAuthFailed,
   onRateLimited,
 }) {
@@ -47,23 +50,23 @@ export async function generateImage({
     body: JSON.stringify(payload),
   });
 
+  let data; try { data = JSON.parse(await response.text()); } catch { data = null; }
+  recordUsage(moduleFolder, parseUsage(response, data));
+
   if (response.status === 401 || response.status === 403) {
     onAuthFailed?.();
     throw new Error('Authentication failed. Please sign in again.');
   }
 
   if (response.status === 429) {
-    const data = await response.json().catch(() => ({}));
-    onRateLimited?.(data);
+    onRateLimited?.(data || {});
     throw new Error(data?.message || 'Monthly limit reached.');
   }
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
     throw new Error(data?.message || `Server returned status ${response.status}`);
   }
 
-  const data = await response.json();
   if (!data?.imageUrl) return { savedPath: null, message: 'Image generation request sent.' };
 
   // Download and re-upload into Foundry's data directory

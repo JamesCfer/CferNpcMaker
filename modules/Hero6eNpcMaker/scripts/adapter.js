@@ -132,7 +132,7 @@ export class Hero6eNpcAdapter extends SystemAdapter {
       createGear:  formData.createGear,
     };
 
-    const { response, responseText } = await postToN8n(endpoint, payload, key);
+    const { response, responseText } = await postToN8n(endpoint, payload, key, this.moduleFolder);
 
     let data;
     try { data = JSON.parse(responseText); } catch { data = null; }

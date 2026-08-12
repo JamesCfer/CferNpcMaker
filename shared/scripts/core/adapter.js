@@ -20,6 +20,8 @@
  *   - registerSheetHooks(getApp)      → registers Hooks for sheet button injection
  */
 
+import { parseUsage, recordUsage } from './usage.js';
+
 /* ── Shared type definitions ─────────────────────────────── */
 
 /**
@@ -75,6 +77,7 @@
  * @typedef {object} N8nPostResult
  * @property {Response} response
  * @property {string}   responseText
+ * @property {import('./usage.js').Usage|null} [usage]  Usage snapshot, when the relay reported one.
  */
 
 /* ── Custom error classes ────────────────────────────────── */
@@ -171,6 +174,14 @@ export class SystemAdapter {
   get supportsImageGeneration() { return false; }
 
   /**
+   * Monthly uses charged for one generation. Displayed as a badge on the
+   * Generate button and subtracted from the cached uses-left figure after a
+   * successful run.
+   * @returns {number}
+   */
+  get generationCost() { return 1; }
+
+  /**
    * Returns an array of fields to show in the post-generation quick-edit dialog,
    * or null to skip the dialog and open the sheet directly.
    *
@@ -257,12 +268,17 @@ export class SystemAdapter {
  * POSTs to an n8n webhook with Patreon auth headers.
  * Maps 401/403 → AuthError and 429 → RateLimitError.
  *
+ * Any usage figures the relay reports (headers or body) are cached for the
+ * calling module when `moduleFolder` is supplied, including on the error
+ * paths — a 429 is the most informative usage report there is.
+ *
  * @param {string} endpoint
  * @param {object} payload
  * @param {string} key
+ * @param {string} [moduleFolder]  Storage namespace for the usage cache.
  * @returns {Promise<N8nPostResult>}
  */
-export async function postToN8n(endpoint, payload, key) {
+export async function postToN8n(endpoint, payload, key, moduleFolder) {
   const response = await fetch(endpoint, {
     method:  'POST',
     headers: {
@@ -275,13 +291,16 @@ export async function postToN8n(endpoint, payload, key) {
 
   const responseText = await response.text();
 
+  let parsed; try { parsed = JSON.parse(responseText); } catch { parsed = null; }
+  const usage = recordUsage(moduleFolder, parseUsage(response, parsed));
+
   if (response.status === 401 || response.status === 403) {
-    let data; try { data = JSON.parse(responseText); } catch { data = {}; }
+    const data = parsed || {};
     throw new AuthError(data?.message || 'Unauthorized. Please sign in with Patreon.');
   }
 
   if (response.status === 429) {
-    let data; try { data = JSON.parse(responseText); } catch { data = {}; }
+    const data = parsed || {};
     const limit = data?.limit || 0;
     const tierMap = { 3: 'Free', 15: 'Local Adventurer', 50: 'Standard', 80: 'Champion' };
     const tier = limit && tierMap[limit] ? tierMap[limit] : null;
@@ -300,5 +319,5 @@ export async function postToN8n(endpoint, payload, key) {
     throw new RateLimitError(data?.message || 'Monthly limit reached.', tier, resetAt);
   }
 
-  return { response, responseText };
+  return { response, responseText, usage };
 }

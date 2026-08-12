@@ -1,0 +1,162 @@
+/* ============================================================
+   Store sheet — the JournalEntry replacement rendered by StoreSheet.
+   Shared verbatim by the PF2e and D&D 5e store modules.
+   ============================================================ */
+
+.application.cfer-store-sheet .store-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  padding: 0.9em 1.1em 1.2em;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #f8f2e0 0%, #ece2c6 100%);
+  color: #2b2318;
+  font-size: 0.95em;
+}
+
+.application.cfer-store-sheet .store-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1em;
+  padding-bottom: 0.6em;
+  border-bottom: 3px double #5d4a1c;
+}
+.application.cfer-store-sheet .store-title {
+  margin: 0;
+  font-family: "Cinzel", "Modesto Condensed", serif;
+  font-size: 1.5em;
+  color: #14503f;
+}
+.application.cfer-store-sheet .store-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4em;
+  margin-top: 0.25em;
+  font-size: 0.85em;
+  color: #6a5a2f;
+}
+.application.cfer-store-sheet .store-type-badge,
+.application.cfer-store-sheet .store-closed-badge,
+.application.cfer-store-sheet .store-black-badge {
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  border: 1px solid #5d4a1c;
+  background: rgba(255, 255, 255, 0.55);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.application.cfer-store-sheet .store-closed-badge { border-color: #a1302c; color: #a1302c; }
+.application.cfer-store-sheet .store-black-badge  { border-color: #4a3a63; color: #4a3a63; }
+
+.application.cfer-store-sheet .store-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+}
+.application.cfer-store-sheet .store-btn {
+  padding: 0.3em 0.7em;
+  border: 1px solid #5d4a1c;
+  border-radius: 3px;
+  background: #fbf6e4;
+  color: #14503f;
+  font-family: "Cinzel", serif;
+  font-size: 0.8em;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.application.cfer-store-sheet .store-btn:hover { background: #f2e7c0; }
+.application.cfer-store-sheet .store-btn--mini { font-size: 0.72em; padding: 0.15em 0.5em; margin-left: 0.6em; }
+.application.cfer-store-sheet .store-btn--icon { padding: 0.1em 0.4em; }
+
+.application.cfer-store-sheet .store-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5em;
+}
+.application.cfer-store-sheet .store-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.35em 0.6em;
+  border: 1px solid rgba(93, 74, 28, 0.5);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.application.cfer-store-sheet .store-stat-label {
+  font-size: 0.7em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6a5a2f;
+}
+.application.cfer-store-sheet .store-stat-value {
+  font-weight: 700;
+  color: #14503f;
+}
+
+.application.cfer-store-sheet .store-block-title {
+  display: flex;
+  align-items: center;
+  margin: 0 0 0.4em;
+  font-family: "Cinzel", serif;
+  font-size: 0.9em;
+  letter-spacing: 0.08em;
+  color: #14503f;
+  border-bottom: 1px solid rgba(93, 74, 28, 0.4);
+}
+.application.cfer-store-sheet .store-description { margin: 0; font-style: italic; line-height: 1.45; }
+.application.cfer-store-sheet .store-empty { margin: 0; color: #6a5a2f; font-style: italic; }
+
+.application.cfer-store-sheet .store-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5em;
+}
+.application.cfer-store-sheet .store-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  font-size: 0.78em;
+  letter-spacing: 0.06em;
+  color: #6a5a2f;
+}
+.application.cfer-store-sheet .store-field input,
+.application.cfer-store-sheet .store-field select {
+  background: #fbf6e4;
+  border: 1px solid #5d4a1c;
+  border-radius: 3px;
+  color: #2b2318;
+}
+
+.application.cfer-store-sheet .store-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.application.cfer-store-sheet .store-table th,
+.application.cfer-store-sheet .store-table td {
+  padding: 0.25em 0.4em;
+  border-bottom: 1px dashed rgba(93, 74, 28, 0.35);
+  text-align: left;
+  vertical-align: top;
+}
+.application.cfer-store-sheet .store-table th {
+  font-family: "Cinzel", serif;
+  font-size: 0.75em;
+  letter-spacing: 0.08em;
+  color: #14503f;
+}
+.application.cfer-store-sheet .store-table .num { text-align: right; white-space: nowrap; }
+.application.cfer-store-sheet .store-table input[type="text"] { width: 100%; }
+.application.cfer-store-sheet .store-table input[type="number"] { width: 4.5em; text-align: right; }
+.application.cfer-store-sheet .store-item-desc {
+  font-size: 0.82em;
+  font-style: italic;
+  color: #6a5a2f;
+}
+
+.application.cfer-store-sheet .store-list {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.5;
+}

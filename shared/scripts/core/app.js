@@ -32,6 +32,10 @@ import { initConsoleCapture,
 import { generateImage,
          IMAGE_COST }             from './image-gen.js';
 import { isDevMode }              from './n8n.js';
+import { getUsage,
+         spendLocally,
+         formatUsage,
+         formatUsageTooltip }     from './usage.js';
 import { ALL_MODULES,
          getModuleMeta }          from './home-data.js';
 import { escapeHtml,
@@ -177,6 +181,9 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const mountForm = this.element.querySelector('.npc-form');
     if (mountForm && typeof this.adapter.onFormMount === 'function') {
       this.adapter.onFormMount(mountForm);
+      // onFormMount may have computed a form-dependent cost (e.g. settlements).
+      this._applyUsageUI();
+      mountForm.addEventListener('change', () => this._applyUsageUI());
     }
 
     this.element.addEventListener('keydown', (ev) => {
@@ -240,6 +247,54 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const undoBtn = root.querySelector('button[data-action="undolast"]');
     if (undoBtn) undoBtn.disabled = !this.lastDocument;
+
+    this._applyUsageUI();
+  }
+
+  /* ── Uses-left indicator ────────────────────────────────── */
+
+  /**
+   * Paints the cached uses-left figure into the signed-in auth strip and
+   * stamps the generation cost onto the Generate button.
+   *
+   * The relay is the only authority on the quota — when it reports nothing,
+   * the indicator stays hidden rather than showing a guess.
+   */
+  _applyUsageUI() {
+    const root = this.element;
+    if (!root) return;
+
+    const el = root.querySelector('.auth-uses');
+    if (el) {
+      const usage = this.authenticated ? getUsage(this.moduleFolder) : null;
+      const text  = formatUsage(usage);
+      el.textContent = text;
+      el.title       = formatUsageTooltip(usage);
+      el.hidden      = !text;
+      el.classList.toggle('is-depleted', !!usage && usage.remaining === 0);
+      el.classList.toggle('is-low', !!usage && usage.remaining !== null
+        && usage.remaining > 0 && usage.remaining < this.adapter.generationCost);
+    }
+
+    const costEl = root.querySelector('.generate-cost-badge');
+    if (costEl) {
+      const cost = this.adapter.generationCost;
+      costEl.textContent = `${cost} use${cost === 1 ? '' : 's'}`;
+    }
+  }
+
+  /**
+   * Subtracts a generation's cost from the cached figure, but only when the
+   * relay didn't report a fresher one during the request itself — otherwise
+   * the spend would be counted twice.
+   *
+   * @param {number} cost
+   * @param {number} startedAt  Unix ms taken before the request went out.
+   */
+  _spendUses(cost, startedAt) {
+    const usage = getUsage(this.moduleFolder);
+    if (usage?.fetchedAt && usage.fetchedAt >= startedAt) return;
+    spendLocally(this.moduleFolder, cost);
   }
 
   /* ── Action wiring ──────────────────────────────────────── */
@@ -292,6 +347,8 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.storage.setKey(key);
       this.authenticated = true;
       this._applyAuthStateUI();
+      // Pulls the fresh uses-left figure for the account that just signed in.
+      this._validateSessionOnOpen().catch(() => {});
       ui.notifications?.info?.(game.i18n.localize('NpcBuilder.SignIn.Complete'));
     } catch (err) {
       console.error('[NPC Builder] sign-in failed:', err);
@@ -609,6 +666,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _runGeneration(historyEntry, key, formData) {
+    const startedAt = Date.now();
     try {
       const result = await this.adapter.generate({
         formData,
@@ -622,6 +680,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.lastExportData = result.exportData || null;
 
       this._updateHistoryEntry(historyEntry.id, { status: 'success' });
+      this._spendUses(this.adapter.generationCost, startedAt);
       this._applyAuthStateUI();
 
       const docName = result.document?.name || formData.name || 'document';
@@ -647,6 +706,8 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       } else if (err instanceof RateLimitError) {
         this._updateHistoryEntry(historyEntry.id, { status: 'error', error: 'Rate limit exceeded' });
         if (err.tier) this.patreonTier = err.tier;
+        // postToN8n cached the 429's figures; repaint so the badge reads 0.
+        this._applyUsageUI();
         let msg = err.message || 'Monthly limit reached.';
         if (err.resetAt) {
           const daysLeft = Math.max(1, Math.ceil((err.resetAt - Date.now()) / 86400000));
@@ -848,7 +909,8 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _validateSessionOnOpen() {
     if (!this.authenticated || !this.accessKey) return;
-    const valid = await validateSessionKey(this.accessKey, isDevMode(this.moduleFolder));
+    const valid = await validateSessionKey(this.accessKey, isDevMode(this.moduleFolder), this.moduleFolder);
+    if (valid && this.element?.isConnected) this._applyUsageUI();
     if (!valid && this.element?.isConnected) {
       this.storage.setKey('');
       this.accessKey     = '';
@@ -924,6 +986,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     ui.notifications.info(game.i18n.localize('NpcBuilder.ImageGen.Generating'));
 
+    const startedAt = Date.now();
     try {
       const { savedPath } = await generateImage({
         npcData,
@@ -931,6 +994,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         artStyle,
         key,
         devMode:  isDevMode(this.moduleFolder),
+        moduleFolder: this.moduleFolder,
         onAuthFailed: () => {
           this.storage.setKey('');
           this.accessKey     = '';
@@ -938,6 +1002,9 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
           this._applyAuthStateUI();
         },
       });
+
+      this._spendUses(IMAGE_COST, startedAt);
+      this._applyUsageUI();
 
       const docId = npcData._id;
       const doc   = docId ? (game.actors?.get(docId) ?? game.items?.get(docId)) : null;
@@ -954,6 +1021,7 @@ export class BuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     } catch (err) {
       console.error('[NPC Builder] image generation error:', err);
+      this._applyUsageUI();
       ui.notifications.error(game.i18n.format('NpcBuilder.ImageGen.Failed', { error: err.message }));
     }
   }

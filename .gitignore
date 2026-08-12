@@ -6,5 +6,7 @@
 /Dnd5eItemGenerator/
 /Pf2eNationsAndCitiesMaker/
 /Pf2eCalendarTimeline/
+/Pf2eStoreGenerator/
+/Dnd5eStoreGenerator/
 *.zip
 node_modules/

@@ -215,6 +215,11 @@ item that has all its dependencies satisfied.
 - [x] 127. **ARIA roles** — `role="tablist"` / `role="tabpanel"` on sheet tabs; `aria-busy` on generating buttons; visible focus rings.
 - [x] 128. **Screen-reader live region** — tax-fired / day-advanced notifications announced to assistive tech. (#103)
 
+## L. Store generators & allowance visibility (129–131)
+- [x] 129. **PF2e Store Generator** — standalone module generating one shop (owner, staff, hours, priced stock, services, rumours) as a JournalEntry with a custom store sheet; `/webhook/pf2e-store-builder`, 7 uses per store.
+- [x] 130. **D&D Store Generator** — the same for dnd5e via `/webhook/dnd5e-store-builder`.
+- [x] 131. **Uses-left indicator** — every builder shows the remaining monthly allowance in the signed-in auth strip, and each Generate button carries its cost badge (`shared/scripts/core/usage.js`). Figures come from the relay (headers or body); the indicator hides when it reports none.
+
 ---
 
 ## How to pick the next task
@@ -227,7 +232,7 @@ item that has all its dependencies satisfied.
 ## Definition of done (per item)
 
 - Implementation + minimal styling consistent with existing palette.
-- `./build.sh` for all seven modules still passes.
+- `./build.sh` for all nine modules still passes.
 - Any new field added to the settlement schema has a safe default in `sanitizer.js`.
 - PR description includes a one-line manual-test recipe.
 - The item's checkbox is ticked with the PR number on merge: `- [x] 42. … (#NN)`.

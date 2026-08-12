@@ -1,0 +1,132 @@
+{
+  "name": "Store Builder — pf2e-store-builder / dnd5e-store-builder",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pf2e-store-builder",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-auth-check",
+      "name": "Validate API Key",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://foundryrelay.dedicated2.com/webhook/oauth/patreon/validate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ key: $('Webhook').item.json.headers['x-builder-key'] ?? '', cost: 7 }) }}"
+      }
+    },
+    {
+      "id": "node-auth-gate",
+      "name": "Auth Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $('Validate API Key').item.json.ok }}", "value2": true }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-reject-auth",
+      "name": "Reject Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 401,
+        "responseBody": "={ \"ok\": false, \"message\": \"Unauthorized. Please sign in with Patreon.\" }"
+      }
+    },
+    {
+      "id": "node-build-prompt",
+      "name": "Build System Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 140],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "value": "You are an expert tabletop RPG worldbuilder. Generate a single shop as a JSON object that strictly follows the schema below. Return JSON only — no prose, no code fences.\n\nRules:\n- Names (shop, owner, staff, goods) must be fantasy-appropriate and period-accurate; no modern words.\n- Produce exactly the requested number of inventory lines, appropriate to the shop type and the requested party level.\n- Prices are in gold pieces (gp) as plain numbers, at STANDARD prices — the client applies the wealth-tier multiplier itself, so do not pre-multiply.\n- Stock counts should be plausible: common goods in quantity, rare or high-level goods as one-offs.\n- For the pf2e endpoint use rarity common|uncommon|rare|unique; for the dnd5e endpoint use common|uncommon|rare|very rare|legendary|artifact.\n- hours.open / hours.close are 24-hour \"HH:MM\" strings.\n- Include 1–3 short rumours or plot hooks tied to the shop or its owner.\n- Add services only where the shop type would sell labour rather than goods (smiths, stables, temples, inns).\n\nSchema:\n{\n  \"name\": string,\n  \"type\": \"blacksmith|armorer|weapons|alchemist|tavern|inn|general|grocer|tailor|jeweler|temple|magic|stable|apothecary|bookbinder|guild|other\",\n  \"description\": string,\n  \"settlement\": string,\n  \"level\": number,\n  \"priceTier\": \"low|standard|high|luxury\",\n  \"owner\": { \"name\": string, \"description\": string },\n  \"staff\": [ { \"name\": string, \"role\": string, \"shift\": \"morning|day|evening|night|graveyard\" } ],\n  \"hours\": { \"open\": \"HH:MM\", \"close\": \"HH:MM\", \"daysClosed\": [string] },\n  \"inventory\": [ { \"name\": string, \"description\": string, \"price\": number, \"stock\": number, \"level\": number, \"rarity\": string } ],\n  \"services\": [ { \"name\": string, \"description\": string, \"price\": number } ],\n  \"rumors\": [string],\n  \"income\": { \"balance\": number, \"dailyAvg\": number }\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-ai-generate",
+      "name": "AI Generate Store",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [1120, 140],
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "modelId": { "__rl": true, "value": "gpt-4o", "mode": "list" },
+        "messages": {
+          "values": [
+            { "role": "system", "content": "={{ $('Build System Prompt').item.json.systemPrompt }}" },
+            { "role": "user", "content": "={{ 'Generate a ' + ($('Webhook').item.json.body.storeType ?? 'general') + ' shop called \"' + ($('Webhook').item.json.body.name ?? 'New Shop') + '\" for the ' + ($('Webhook').item.json.body.system ?? 'pf2e') + ' system.' + (($('Webhook').item.json.body.description ?? '').length > 0 ? ' Description: ' + $('Webhook').item.json.body.description : '') + (($('Webhook').item.json.body.settlement ?? '').length > 0 ? ' It stands in ' + $('Webhook').item.json.body.settlement + '.' : '') + ' Party level: ' + ($('Webhook').item.json.body.level ?? 1) + '. Wealth tier: ' + ($('Webhook').item.json.body.priceTier ?? 'standard') + '. Inventory lines: ' + ($('Webhook').item.json.body.stockCount ?? 10) + '.' }}" }
+          ]
+        },
+        "options": { "temperature": 0.85, "maxTokens": 4096 }
+      }
+    },
+    {
+      "id": "node-parse-response",
+      "name": "Parse JSON Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 140],
+      "parameters": {
+        "jsCode": "const raw = items[0].json.message?.content ?? items[0].json.choices?.[0]?.message?.content ?? '';\nlet parsed;\ntry {\n  const cleaned = raw.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  return [{ json: { ok: false, message: 'AI returned invalid JSON: ' + e.message, raw } }];\n}\nconst store = parsed.store ?? parsed;\nconst usage = $('Validate API Key').item.json.usage ?? null;\nreturn [{ json: { ok: true, store, usage } }];"
+      }
+    },
+    {
+      "id": "node-respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Parse JSON Response').item.json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook":             { "main": [[{ "node": "Validate API Key",    "type": "main", "index": 0 }]] },
+    "Validate API Key":    { "main": [[{ "node": "Auth Gate",           "type": "main", "index": 0 }]] },
+    "Auth Gate":           { "main": [[{ "node": "Build System Prompt", "type": "main", "index": 0 }],
+                                      [{ "node": "Reject Unauthorized", "type": "main", "index": 0 }]] },
+    "Build System Prompt": { "main": [[{ "node": "AI Generate Store",   "type": "main", "index": 0 }]] },
+    "AI Generate Store":   { "main": [[{ "node": "Parse JSON Response", "type": "main", "index": 0 }]] },
+    "Parse JSON Response": { "main": [[{ "node": "Respond OK",          "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "_devNote": "Two live copies are needed: path 'pf2e-store-builder' and path 'dnd5e-store-builder' (change only the Webhook path and the rarity line in the system prompt). Duplicate each again with a '-dev' suffix for the modules' devMode setting; the dev mirrors bypass the Patreon tier check — omit Auth Gate and wire Webhook straight to Build System Prompt. Each store charges 7 uses, passed to the validate workflow as `cost`. The client reads remaining-allowance figures from either the X-Uses-Remaining / X-Uses-Limit / X-Uses-Reset response headers or a `usage` object in the body ({ used, limit, remaining, reset }) — see the 'Monthly uses' section of the repository README."
+}

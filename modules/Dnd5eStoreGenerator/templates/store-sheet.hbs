@@ -1,0 +1,158 @@
+<div class="store-sheet-body">
+
+  <header class="store-header">
+    <div class="store-header-main">
+      <h2 class="store-title">{{store.name}}</h2>
+      <div class="store-subtitle">
+        <span class="store-type-badge">{{typeLabel}}</span>
+        {{#if store.settlement}}<span class="store-settlement">{{store.settlement}}</span>{{/if}}
+        {{#if store.closed}}<span class="store-closed-badge">Closed</span>{{/if}}
+        {{#if store.isBlackMarket}}<span class="store-black-badge">Black market</span>{{/if}}
+      </div>
+    </div>
+    <div class="store-header-actions">
+      {{#if isGM}}
+      <button type="button" data-action="toggleClosed" class="store-btn">
+        <i class="fa-solid fa-door-{{#if store.closed}}open{{else}}closed{{/if}}"></i>
+        {{#if store.closed}}Reopen{{else}}Close shop{{/if}}
+      </button>
+      {{/if}}
+      <button type="button" data-action="postToChat" class="store-btn">
+        <i class="fa-solid fa-comment"></i> Post to chat
+      </button>
+      <button type="button" data-action="exportJson" class="store-btn">
+        <i class="fa-solid fa-file-arrow-down"></i> Export
+      </button>
+    </div>
+  </header>
+
+  <section class="store-summary">
+    <div class="store-stat"><span class="store-stat-label">Owner</span><span class="store-stat-value">{{store.owner.name}}</span></div>
+    <div class="store-stat"><span class="store-stat-label">Hours</span><span class="store-stat-value">{{store.hours.open}}–{{store.hours.close}}</span></div>
+    <div class="store-stat"><span class="store-stat-label">Level</span><span class="store-stat-value">{{store.level}}</span></div>
+    <div class="store-stat"><span class="store-stat-label">Goods</span><span class="store-stat-value">{{stockCount}}</span></div>
+    <div class="store-stat"><span class="store-stat-label">Stock value</span><span class="store-stat-value">{{totalValue}} gp</span></div>
+    <div class="store-stat"><span class="store-stat-label">Balance</span><span class="store-stat-value">{{store.income.balance}} gp</span></div>
+  </section>
+
+  {{#if store.description}}
+  <section class="store-block">
+    <p class="store-description">{{store.description}}</p>
+  </section>
+  {{/if}}
+
+  {{#if isGM}}
+  <section class="store-block store-settings">
+    <label class="store-field">
+      <span>Shop type</span>
+      <select data-path="type" data-action="saveField">
+        {{#each storeTypes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+      </select>
+    </label>
+    <label class="store-field">
+      <span>Price tier</span>
+      <select data-path="priceTier" data-action="saveField">
+        {{#each priceTiers}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+      </select>
+    </label>
+    <label class="store-field">
+      <span>Opens</span>
+      <input type="text" value="{{store.hours.open}}" data-path="hours.open" data-action="saveField" />
+    </label>
+    <label class="store-field">
+      <span>Closes</span>
+      <input type="text" value="{{store.hours.close}}" data-path="hours.close" data-action="saveField" />
+    </label>
+  </section>
+  {{/if}}
+
+  <section class="store-block">
+    <h3 class="store-block-title">
+      Inventory
+      {{#if isGM}}<button type="button" data-action="addItem" class="store-btn store-btn--mini"><i class="fa-solid fa-plus"></i> Add</button>{{/if}}
+    </h3>
+    {{#if inventory.length}}
+    <table class="store-table">
+      <thead>
+        <tr>
+          <th>Item</th><th class="num">Lv</th><th class="num">Stock</th>
+          <th class="num">Price</th><th class="num">Line</th>{{#if isGM}}<th></th>{{/if}}
+        </tr>
+      </thead>
+      <tbody>
+        {{#each inventory}}
+        <tr data-id="{{id}}">
+          <td>
+            {{#if ../isGM}}
+              <input type="text" value="{{name}}" data-id="{{id}}" data-path="inventory.name" data-action="saveField" />
+            {{else}}{{name}}{{/if}}
+            {{#if description}}<div class="store-item-desc">{{description}}</div>{{/if}}
+          </td>
+          <td class="num">{{level}}</td>
+          <td class="num">
+            {{#if ../isGM}}
+              <input type="number" min="0" value="{{stock}}" data-id="{{id}}" data-path="inventory.stock" data-action="saveField" />
+            {{else}}{{stock}}{{/if}}
+          </td>
+          <td class="num">{{displayPrice}} gp</td>
+          <td class="num">{{lineValue}} gp</td>
+          {{#if ../isGM}}
+          <td class="num">
+            <button type="button" data-action="removeItem" data-id="{{id}}" class="store-btn store-btn--icon" aria-label="Remove item">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+          {{/if}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    {{else}}
+    <p class="store-empty">No goods on the shelves.</p>
+    {{/if}}
+  </section>
+
+  {{#if hasServices}}
+  <section class="store-block">
+    <h3 class="store-block-title">Services</h3>
+    <ul class="store-list">
+      {{#each store.services}}
+      <li><strong>{{name}}</strong> — {{price}} gp{{#if description}} · {{description}}{{/if}}</li>
+      {{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
+  <section class="store-block">
+    <h3 class="store-block-title">
+      Staff
+      {{#if isGM}}<button type="button" data-action="addStaff" class="store-btn store-btn--mini"><i class="fa-solid fa-plus"></i> Add</button>{{/if}}
+    </h3>
+    {{#if hasStaff}}
+    <ul class="store-list">
+      {{#each store.staff}}
+      <li data-id="{{id}}">
+        <strong>{{name}}</strong> — {{role}} <em>({{shift}} shift)</em>
+        {{#if ../isGM}}
+        <button type="button" data-action="removeStaff" data-id="{{id}}" class="store-btn store-btn--icon" aria-label="Remove staff member">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+        {{/if}}
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="store-empty">The owner works alone.</p>
+    {{/if}}
+  </section>
+
+  {{#if hasRumors}}
+  <section class="store-block">
+    <h3 class="store-block-title">Rumours &amp; hooks</h3>
+    <ul class="store-list">
+      {{#each store.rumors}}<li>{{this}}</li>{{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
+</div>

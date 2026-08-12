@@ -8,17 +8,23 @@
  */
 
 import { N8N_ENDPOINTS, PATREON_URL, devUrl } from './n8n.js';
+import { parseUsage, recordUsage }            from './usage.js';
 
 /**
  * Silently probes the validate endpoint with the stored key.
  * Returns false only on a definitive 401/403; network failures return true
  * to avoid logging the user out on a transient connectivity blip.
  *
+ * Doubles as the uses-left refresh: whatever quota figures the validate
+ * endpoint reports are cached for `moduleFolder`, so the indicator is
+ * populated as soon as the builder opens.
+ *
  * @param {string}  key
  * @param {boolean} [devMode=false]
+ * @param {string}  [moduleFolder]  Storage namespace for the usage cache.
  * @returns {Promise<boolean>}
  */
-export async function validateSessionKey(key, devMode = false) {
+export async function validateSessionKey(key, devMode = false, moduleFolder) {
   if (!key) return false;
   try {
     const url  = devUrl(N8N_ENDPOINTS.authValidate, devMode);
@@ -27,6 +33,10 @@ export async function validateSessionKey(key, devMode = false) {
       headers: { 'Content-Type': 'application/json', 'X-Builder-Key': key },
       body:    JSON.stringify({ validate: true }),
     });
+
+    let data; try { data = JSON.parse(await resp.text()); } catch { data = null; }
+    recordUsage(moduleFolder, parseUsage(resp, data));
+
     if (resp.status === 401 || resp.status === 403) return false;
     return true;
   } catch (_) {

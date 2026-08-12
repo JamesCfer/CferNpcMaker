@@ -149,7 +149,7 @@ export class Pf2eItemAdapter extends SystemAdapter {
       description: formData.description,
     };
 
-    const { response, responseText } = await postToN8n(endpoint, payload, key);
+    const { response, responseText } = await postToN8n(endpoint, payload, key, this.moduleFolder);
 
     let data;
     try {
