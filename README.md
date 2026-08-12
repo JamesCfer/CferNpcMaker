@@ -62,6 +62,11 @@ into `shared/templates/shell.html`.
 ## Releasing
 
 Bumping `version.json` on `main` triggers
-`.github/workflows/release.yml`, which runs `build.sh` for all four modules,
+`.github/workflows/release.yml`, which runs `build.sh` for all modules,
 pushes each output to its own GitHub repo
 (`JamesCfer/<Name>`), and uploads a versioned + floating-`latest` release.
+
+Release pacing depends on the version bump: a **major** bump (e.g.
+`2.x.y` → `3.0.0`) releases every module immediately, while a minor or
+patch bump staggers the releases ~3 hours apart so they spread across
+the day.

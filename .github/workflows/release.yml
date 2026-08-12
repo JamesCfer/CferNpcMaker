@@ -18,13 +18,30 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_type: ${{ steps.version.outputs.release_type }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Get version from version.json
+      - name: Get version + release type from version.json
         id: version
-        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+        run: |
+          CURR="$(jq -r .version version.json)"
+          PREV="$(git show HEAD^:version.json 2>/dev/null | jq -r .version 2>/dev/null || echo '')"
+          CURR_MAJOR="${CURR%%.*}"
+          PREV_MAJOR="${PREV%%.*}"
+          # Major bump → release every module immediately.
+          # Anything else (minor/patch) → stagger releases throughout the day.
+          if [ -n "$PREV" ] && [ "$CURR_MAJOR" != "$PREV_MAJOR" ]; then
+            TYPE="major"
+          else
+            TYPE="minor"
+          fi
+          echo "Version: $PREV → $CURR ($TYPE release)"
+          echo "version=$CURR" >> $GITHUB_OUTPUT
+          echo "release_type=$TYPE" >> $GITHUB_OUTPUT
 
       - name: Build all module packages
         run: |
@@ -96,7 +113,7 @@ jobs:
             Pf2eNationsAndCitiesMaker.zip
             Pf2eCalendarTimeline.zip
 
-  # ── Release 1 of 5: Pf2eNpcMaker (immediate) ─────────────────────────────────
+  # ── Release 1 of 9: Pf2eNpcMaker (immediate) ─────────────────────────────────
   release-pf2e-npc:
     needs: build
     runs-on: ubuntu-latest
@@ -238,9 +255,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 2 of 5: DnD5eNpcMaker (~1h after release 1) ─────────────────────
+  # ── Release 2 of 9: DnD5eNpcMaker ───────────────────────────────────────────
   release-dnd5e-npc:
-    needs: release-pf2e-npc
+    needs: [build, release-pf2e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -248,8 +265,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 2/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -382,9 +400,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 3 of 5: Hero6eNpcMaker (~2h after release 1) ────────────────────
+  # ── Release 3 of 9: Hero6eNpcMaker ──────────────────────────────────────────
   release-hero6e-npc:
-    needs: release-dnd5e-npc
+    needs: [build, release-dnd5e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -392,8 +410,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 3/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -526,9 +545,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_HERO6E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 4 of 5: Pf2eItemMaker (~3h after release 1) ─────────────────────
+  # ── Release 4 of 9: Pf2eItemMaker ───────────────────────────────────────────
   release-pf2e-item:
-    needs: release-hero6e-npc
+    needs: [build, release-hero6e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -536,8 +555,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 4/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -670,9 +690,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 5 of 5: D-Ditemmaker (~4h after release 1) ──────────────────────
+  # ── Release 5 of 9: D-Ditemmaker ────────────────────────────────────────────
   release-dnd5e-item:
-    needs: release-pf2e-item
+    needs: [build, release-pf2e-item]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -680,8 +700,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 5/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -814,13 +835,13 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 6 of 7: Pf2eNationsAndCitiesMaker ───────────────────────────────
+  # ── Release 6 of 9: Pf2eNationsAndCitiesMaker ───────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eNationsAndCitiesMaker to exist and
   # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
   # intentionally skipped — add it once the Foundry package id is registered
   # and a FOUNDRYVTT_PF2E_SETTLEMENTS_RELEASE_TOKEN secret is set.
   release-pf2e-settlements:
-    needs: release-dnd5e-item
+    needs: [build, release-dnd5e-item]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -828,8 +849,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -913,9 +935,9 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eNationsAndCitiesMaker/module.json'], ['Pf2eNationsAndCitiesMaker.zip', 'Pf2eNationsAndCitiesMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-  # ── Release 7 of 7: Pf2eCalendarTimeline ────────────────────────────────────
+  # ── Release 7 of 9: Pf2eCalendarTimeline ────────────────────────────────────
   release-pf2e-calendar:
-    needs: release-pf2e-settlements
+    needs: [build, release-pf2e-settlements]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -923,8 +945,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -1014,7 +1037,7 @@ jobs:
   # intentionally skipped — add it once the Foundry package id is registered
   # and a release token secret is set.
   release-pf2e-store:
-    needs: release-pf2e-calendar
+    needs: [build, release-pf2e-calendar]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1022,8 +1045,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -1113,7 +1137,7 @@ jobs:
   # intentionally skipped — add it once the Foundry package id is registered
   # and a release token secret is set.
   release-dnd5e-store:
-    needs: release-pf2e-store
+    needs: [build, release-pf2e-store]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1121,8 +1145,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
