@@ -1,0 +1,127 @@
+/* ============================================================
+   D&D Store Generator — Trading Hall accents
+   Burgundy awnings, aged gold, deep oak — a market-day cousin
+   of the D&D 5e item palette.
+   ============================================================ */
+
+.application.npc-builder .builder-tab[data-tab="builder"].is-active {
+  border-bottom-color: #8c2d3c;
+}
+
+.application.npc-builder .npc-panel-form {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(140, 45, 60, 0.10), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(191, 149, 63, 0.10), transparent 55%),
+    linear-gradient(180deg, #f6efdf 0%, #e9dcc4 100%);
+  border-top: 3px double #5c3a1e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #2c1f16;
+}
+
+.application.npc-builder .npc-panel-history {
+  background:
+    repeating-linear-gradient(45deg, rgba(140, 45, 60, 0.02) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #eddcb2 0%, #d9c188 100%);
+  border-left: 3px double #5c3a1e;
+}
+
+.application.npc-builder .history-header {
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  font-weight: 700;
+  font-size: 0.82em;
+  letter-spacing: 0.12em;
+  color: #6b1f2c;
+  background: linear-gradient(180deg, #e9dab0 0%, #d5c088 100%);
+  border-bottom: 2px solid #5c3a1e;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.application.npc-builder .history-header i { color: #bf953f; }
+
+.application.npc-builder .history-entry {
+  background: transparent;
+  border-bottom: 1px dashed rgba(92, 58, 30, 0.35);
+  border-left: 3px solid transparent;
+}
+.application.npc-builder .history-entry:hover { background: rgba(140, 45, 60, 0.08); }
+.application.npc-builder .history-entry.is-selected {
+  background: rgba(140, 45, 60, 0.14);
+  border-left-color: #8c2d3c;
+  box-shadow: inset 3px 0 0 #bf953f;
+}
+.application.npc-builder .history-entry-name {
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  color: #2c1f16;
+}
+.application.npc-builder .history-entry-meta { color: #6b5a33; font-style: italic; }
+
+.application.npc-builder .history-selected-banner {
+  background: linear-gradient(180deg, rgba(140, 45, 60, 0.12), rgba(191, 149, 63, 0.10));
+  border: 1px solid #5c3a1e;
+  border-left: 3px solid #8c2d3c;
+  border-radius: 2px;
+  color: #6b1f2c;
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  font-size: 0.8em;
+  letter-spacing: 0.02em;
+}
+
+.application.npc-builder .field > label {
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  letter-spacing: 0.08em;
+  color: #6b1f2c;
+  font-size: 0.8em;
+}
+
+.application.npc-builder .field input[type="text"],
+.application.npc-builder .field input[type="number"],
+.application.npc-builder .field textarea,
+.application.npc-builder .field select {
+  background: #fcf7e8;
+  border: 1px solid #5c3a1e;
+  border-radius: 3px;
+  color: #2c1f16;
+  box-shadow: inset 0 1px 2px rgba(92, 58, 30, 0.12);
+}
+.application.npc-builder .field input:focus,
+.application.npc-builder .field textarea:focus,
+.application.npc-builder .field select:focus {
+  border-color: #8c2d3c;
+  box-shadow: 0 0 0 2px rgba(140, 45, 60, 0.25), inset 0 1px 2px rgba(92, 58, 30, 0.10);
+}
+.application.npc-builder .field-hint { color: #6b5a33; }
+
+.application.npc-builder button.btn-primary {
+  background: linear-gradient(180deg, #a83a4b 0%, #6b1f2c 100%);
+  border: 1px solid #4a1520;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 0 #bf953f,
+    0 2px 4px rgba(74, 21, 32, 0.35);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  letter-spacing: 0.04em;
+}
+
+.application.npc-builder button.btn-secondary {
+  background: #fcf7e8;
+  color: #6b1f2c;
+  border: 1px solid #5c3a1e;
+  border-radius: 3px;
+  font-family: "Modesto Condensed", "Cinzel", serif;
+  letter-spacing: 0.04em;
+}
+.application.npc-builder button.btn-secondary:hover:not(:disabled) { background: #f3e9cb; }
+
+.application.npc-builder .history-progress-bar {
+  background: linear-gradient(90deg, transparent, #8c2d3c 40%, #bf953f 60%, transparent);
+}
+
+.application.npc-builder .auth-unsigned {
+  background: linear-gradient(180deg, #f7eecb 0%, #ebdfa6 100%);
+  border-bottom: 2px solid #5c3a1e;
+}
+.application.npc-builder .auth-signed {
+  background: linear-gradient(180deg, #e3d7c2 0%, #cfc0a4 100%);
+  border-bottom: 2px solid #5c3a1e;
+}

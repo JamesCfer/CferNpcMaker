@@ -9,6 +9,8 @@ Sibling Foundry VTT modules for AI-assisted NPC, item, and settlement generation
 | `Hero6eNpcMaker`                | `hero6e`| Characters (via HDC import)            | `game.actors`     |
 | `Pf2eItemGenerator`             | `pf2e`  | Items (weapons, armor, consumables…)   | `game.items`      |
 | `Dnd5eItemGenerator`            | `dnd5e` | Magic items / consumables              | `game.items`      |
+| `Pf2eStoreGenerator`            | `pf2e`  | Stores (shopkeeper + stocked inventory, 7 uses each) | `game.journal` + `game.items` |
+| `Dnd5eStoreGenerator`           | `dnd5e` | Stores (shopkeeper + stocked inventory, 7 uses each) | `game.journal` + `game.items` |
 | `Pf2eNationsAndCitiesMaker`     | `pf2e`  | Settlements (cities/towns/villages/nations) with custom sheet, stores, guards, leadership, economy | `game.journal` (custom sheet swap) |
 | `Pf2eCalendarTimeline`          | `pf2e`  | In-world calendar + scheduled events (taxes, paydays, festivals); other modules listen for fired events | World setting + custom UI |
 
@@ -48,7 +50,8 @@ To produce a shipped module locally (e.g. to symlink into Foundry's
 ./build.sh Pf2eNpcMaker                 # one module
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker   # several
 ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator \
-           Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline   # all
+           Dnd5eItemGenerator Pf2eStoreGenerator Dnd5eStoreGenerator \
+           Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline   # all
 ```
 
 The script copies `shared/scripts/core/` into each output's `scripts/core/`,
