@@ -1,0 +1,71 @@
+      <form class="npc-form" autocomplete="off">
+
+        <div class="history-selected-banner" style="display:none;">
+          <i class="fa-solid fa-arrow-turn-up fa-rotate-90"></i>
+          <span class="history-selected-label">Editing prompt from <strong></strong> — update fields and Generate to recreate</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field field--name">
+            <label for="npc-name">Store Name</label>
+            <input type="text" id="npc-name" name="name" placeholder="e.g. The Gilded Griffon Trading Post" />
+          </div>
+          <div class="field field--level">
+            <label for="store-level">Stock Level</label>
+            <input type="number" id="store-level" name="level" value="3" min="0" max="20" step="1" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="store-type">Store Type</label>
+            <select id="store-type" name="storeType">
+              <option value="general" selected>General Goods</option>
+              <option value="blacksmith">Blacksmith / Weaponsmith</option>
+              <option value="armorer">Armorer</option>
+              <option value="alchemist">Alchemist / Apothecary</option>
+              <option value="magic">Magic Shop</option>
+              <option value="jeweler">Jeweler / Curiosities</option>
+              <option value="fletcher">Fletcher / Bowyer</option>
+              <option value="tavern">Tavern / Inn</option>
+            </select>
+          </div>
+          <div class="field field--level">
+            <label for="store-settlement">Settlement</label>
+            <select id="store-settlement" name="settlementSize">
+              <option value="village">Village</option>
+              <option value="town" selected>Town</option>
+              <option value="city">City</option>
+              <option value="metropolis">Metropolis</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="npc-desc">Description</label>
+          <select class="desc-template-select" aria-label="Load a description template">
+            <option value="">— Quick template… —</option>
+            <option value="A cramped, cluttered general store run by a retired adventurer. Shelves overflow with rope, lanterns, rations, and the occasional oddity picked up on old expeditions. The owner haggles cheerfully and always throws in a story with each sale.">Adventurer's general store</option>
+            <option value="A soot-stained smithy famous for reliable, no-nonsense steel. The dwarven smith takes commissions for masterwork blades and keeps a modest stock of weapons and armor, plus a locked chest of low-level runes for trusted customers.">Dwarven smithy</option>
+            <option value="A fragrant apothecary whose ceiling drips with drying herbs. The gnome alchemist sells healing potions, antidotes, elixirs, and a few experimental bombs of dubious stability. Regulars know to ask what's 'fresh from the still'.">Gnomish apothecary</option>
+            <option value="An incense-heavy shop of arcane curios behind a velvet curtain. Scrolls, wands, and talismans line glass cases; the elven proprietor appraises magic items for a fee and quietly buys artifacts with no questions asked.">Arcane curio shop</option>
+            <option value="A rowdy dockside tavern doubling as a trading post. Ale, hot meals, and rooms upstairs — plus a back room where the owner fences salvage, maps, and 'imported' goods that fell off a ship.">Dockside tavern</option>
+          </select>
+          <textarea id="npc-desc" name="description" rows="6"
+            placeholder="Describe this store: its look and feel, the shopkeeper, specialty stock, price attitude, rumours…"></textarea>
+          <span class="field-hint">The more detail you provide, the better the AI can match your vision.</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" data-action="generate" class="btn-primary" disabled>
+            <i class="fa-solid fa-store"></i>
+            <span class="btn-label">Generate Store</span>
+            <span class="btn-cost-badge">7 uses</span>
+          </button>
+          <button type="button" data-action="export" class="btn-secondary" disabled>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export JSON</span>
+          </button>
+        </div>
+
+      </form>

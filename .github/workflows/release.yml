@@ -6,6 +6,15 @@ on:
     paths:
       - 'version.json'
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release pacing (auto = detect from version bump; major = release everything immediately; minor = stagger through the day)'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+        default: auto
 
 jobs:
 
@@ -18,18 +27,39 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_type: ${{ steps.version.outputs.release_type }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Get version from version.json
+      - name: Get version + release type from version.json
         id: version
-        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+        run: |
+          CURR="$(jq -r .version version.json)"
+          PREV="$(git show HEAD^:version.json 2>/dev/null | jq -r .version 2>/dev/null || echo '')"
+          CURR_MAJOR="${CURR%%.*}"
+          PREV_MAJOR="${PREV%%.*}"
+          OVERRIDE="${{ github.event.inputs.release_type }}"
+          # Major bump → release every module immediately.
+          # Anything else (minor/patch) → stagger releases throughout the day.
+          # A manual workflow_dispatch can override the detection either way.
+          if [ -n "$OVERRIDE" ] && [ "$OVERRIDE" != "auto" ]; then
+            TYPE="$OVERRIDE"
+          elif [ -n "$PREV" ] && [ "$CURR_MAJOR" != "$PREV_MAJOR" ]; then
+            TYPE="major"
+          else
+            TYPE="minor"
+          fi
+          echo "Version: $PREV → $CURR ($TYPE release)"
+          echo "version=$CURR" >> $GITHUB_OUTPUT
+          echo "release_type=$TYPE" >> $GITHUB_OUTPUT
 
       - name: Build all module packages
         run: |
           chmod +x ./build.sh
-          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline
+          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator Pf2eStoreGenerator Dnd5eStoreGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline
 
       - name: Inject version + manifest URLs into each module.json
         run: |
@@ -53,6 +83,8 @@ jobs:
           inject Hero6eNpcMaker
           inject Pf2eItemGenerator Pf2eItemMaker
           inject Dnd5eItemGenerator D-Ditemmaker
+          inject Pf2eStoreGenerator
+          inject Dnd5eStoreGenerator
           inject Pf2eNationsAndCitiesMaker
           inject Pf2eCalendarTimeline
 
@@ -63,6 +95,8 @@ jobs:
           zip -r Hero6eNpcMaker.zip             Hero6eNpcMaker/
           zip -r Pf2eItemGenerator.zip          Pf2eItemGenerator/
           zip -r Dnd5eItemGenerator.zip         Dnd5eItemGenerator/
+          zip -r Pf2eStoreGenerator.zip         Pf2eStoreGenerator/
+          zip -r Dnd5eStoreGenerator.zip        Dnd5eStoreGenerator/
           zip -r Pf2eNationsAndCitiesMaker.zip  Pf2eNationsAndCitiesMaker/
           zip -r Pf2eCalendarTimeline.zip       Pf2eCalendarTimeline/
 
@@ -78,6 +112,8 @@ jobs:
             Hero6eNpcMaker/
             Pf2eItemGenerator/
             Dnd5eItemGenerator/
+            Pf2eStoreGenerator/
+            Dnd5eStoreGenerator/
             Pf2eNationsAndCitiesMaker/
             Pf2eCalendarTimeline/
             Pf2eNpcMaker.zip
@@ -85,10 +121,12 @@ jobs:
             Hero6eNpcMaker.zip
             Pf2eItemGenerator.zip
             Dnd5eItemGenerator.zip
+            Pf2eStoreGenerator.zip
+            Dnd5eStoreGenerator.zip
             Pf2eNationsAndCitiesMaker.zip
             Pf2eCalendarTimeline.zip
 
-  # ── Release 1 of 5: Pf2eNpcMaker (immediate) ─────────────────────────────────
+  # ── Release 1 of 9: Pf2eNpcMaker (immediate) ─────────────────────────────────
   release-pf2e-npc:
     needs: build
     runs-on: ubuntu-latest
@@ -230,9 +268,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 2 of 5: DnD5eNpcMaker (~1h after release 1) ─────────────────────
+  # ── Release 2 of 9: DnD5eNpcMaker ───────────────────────────────────────────
   release-dnd5e-npc:
-    needs: release-pf2e-npc
+    needs: [build, release-pf2e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -240,8 +278,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 2/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -374,9 +413,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 3 of 5: Hero6eNpcMaker (~2h after release 1) ────────────────────
+  # ── Release 3 of 9: Hero6eNpcMaker ──────────────────────────────────────────
   release-hero6e-npc:
-    needs: release-dnd5e-npc
+    needs: [build, release-dnd5e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -384,8 +423,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 3/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -518,9 +558,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_HERO6E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 4 of 5: Pf2eItemMaker (~3h after release 1) ─────────────────────
+  # ── Release 4 of 9: Pf2eItemMaker ───────────────────────────────────────────
   release-pf2e-item:
-    needs: release-hero6e-npc
+    needs: [build, release-hero6e-npc]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -528,8 +568,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 4/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -662,9 +703,9 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 5 of 5: D-Ditemmaker (~4h after release 1) ──────────────────────
+  # ── Release 5 of 9: D-Ditemmaker ────────────────────────────────────────────
   release-dnd5e-item:
-    needs: release-pf2e-item
+    needs: [build, release-pf2e-item]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -672,8 +713,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait 1h (stagger over 4h, interval 5/5)
-        run: sleep 3600
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -806,13 +848,13 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 6 of 7: Pf2eNationsAndCitiesMaker ───────────────────────────────
+  # ── Release 6 of 9: Pf2eNationsAndCitiesMaker ───────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eNationsAndCitiesMaker to exist and
   # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
   # intentionally skipped — add it once the Foundry package id is registered
   # and a FOUNDRYVTT_PF2E_SETTLEMENTS_RELEASE_TOKEN secret is set.
   release-pf2e-settlements:
-    needs: release-dnd5e-item
+    needs: [build, release-dnd5e-item]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -820,8 +862,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -905,9 +948,9 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eNationsAndCitiesMaker/module.json'], ['Pf2eNationsAndCitiesMaker.zip', 'Pf2eNationsAndCitiesMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-  # ── Release 7 of 7: Pf2eCalendarTimeline ────────────────────────────────────
+  # ── Release 7 of 9: Pf2eCalendarTimeline ────────────────────────────────────
   release-pf2e-calendar:
-    needs: release-pf2e-settlements
+    needs: [build, release-pf2e-settlements]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -915,8 +958,9 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Wait briefly to stagger
-        run: sleep 60
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
 
       - name: Download release assets
         uses: actions/download-artifact@v4
@@ -998,4 +1042,204 @@ jobs:
               })).data;
             }
             for (const [name, path] of [['module.json', 'Pf2eCalendarTimeline/module.json'], ['Pf2eCalendarTimeline.zip', 'Pf2eCalendarTimeline.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+  # ── Release 8 of 9: Pf2eStoreGenerator ──────────────────────────────────────
+  # NOTE: Requires GitHub repo JamesCfer/Pf2eStoreGenerator to exist and
+  # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
+  # intentionally skipped — add it once the Foundry package id is registered
+  # and a release token secret is set.
+  release-pf2e-store:
+    needs: [build, release-pf2e-calendar]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Pf2eStoreGenerator
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _pf2estore_repo
+          if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Pf2eStoreGenerator.git _pf2estore_repo; then
+            echo "::warning::Clone failed (does the repo exist?). Skipping PF2e store release."
+            exit 0
+          fi
+          rsync -a --exclude=.git --delete Pf2eStoreGenerator/ _pf2estore_repo/
+          cd _pf2estore_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Pf2eStoreGenerator versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eStoreGenerator';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Pf2eStoreGenerator v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eStoreGenerator/module.json'], ['Pf2eStoreGenerator.zip', 'Pf2eStoreGenerator.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update Pf2eStoreGenerator latest release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Pf2eStoreGenerator';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Pf2eStoreGenerator/module.json'], ['Pf2eStoreGenerator.zip', 'Pf2eStoreGenerator.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+  # ── Release 9 of 9: Dnd5eStoreGenerator ─────────────────────────────────────
+  # NOTE: Requires GitHub repo JamesCfer/Dnd5eStoreGenerator to exist and
+  # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
+  # intentionally skipped — add it once the Foundry package id is registered
+  # and a release token secret is set.
+  release-dnd5e-store:
+    needs: [build, release-pf2e-store]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to Dnd5eStoreGenerator
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _dnd5estore_repo
+          if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/Dnd5eStoreGenerator.git _dnd5estore_repo; then
+            echo "::warning::Clone failed (does the repo exist?). Skipping D&D store release."
+            exit 0
+          fi
+          rsync -a --exclude=.git --delete Dnd5eStoreGenerator/ _dnd5estore_repo/
+          cd _dnd5estore_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create Dnd5eStoreGenerator versioned release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Dnd5eStoreGenerator';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `Dnd5eStoreGenerator v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Dnd5eStoreGenerator/module.json'], ['Dnd5eStoreGenerator.zip', 'Dnd5eStoreGenerator.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update Dnd5eStoreGenerator latest release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'Dnd5eStoreGenerator';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'Dnd5eStoreGenerator/module.json'], ['Dnd5eStoreGenerator.zip', 'Dnd5eStoreGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
