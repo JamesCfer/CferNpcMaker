@@ -181,7 +181,34 @@ export class Pf2eStoreAdapter extends SystemAdapter {
         text: { content: buildStoreJournalHtml(store, formData, createdItems), format: 1 },
       }],
     };
-    if (folder?.id) journalData.flags = { [this.module.id]: { itemFolderId: folder.id } };
+    // The store flag drives the custom store sheet (see store-sheet.js).
+    journalData.flags = {
+      [this.module.id]: {
+        ...(folder?.id ? { itemFolderId: folder.id } : {}),
+        store: {
+          name:           storeName,
+          storeType:      store.storeType || formData.storeType,
+          settlementSize: store.settlementSize || formData.settlementSize,
+          level:          formData.level,
+          description:    store.description || formData.description,
+          owner:          store.owner || store.shopkeeper || null,
+          itemFolderId:   folder?.id || null,
+          inventory:      createdItems.map(item => {
+            const data = item.toObject ? item.toObject() : item;
+            return {
+              uuid:  item.uuid,
+              name:  item.name,
+              img:   item.img || 'icons/svg/item-bag.svg',
+              type:  item.type,
+              level: Number(data.system?.level?.value) || 0,
+              price: priceLabel(data),
+              priceCp: (v => (Number(v?.pp) || 0) * 1000 + (Number(v?.gp) || 0) * 100 + (Number(v?.sp) || 0) * 10 + (Number(v?.cp) || 0))(data.system?.price?.value),
+              qty:   Math.max(1, Number(data.system?.quantity) || 1),
+            };
+          }),
+        },
+      },
+    };
 
     let journal;
     try {

@@ -189,7 +189,34 @@ export class Dnd5eStoreAdapter extends SystemAdapter {
         text: { content: buildStoreJournalHtml(store, formData, createdItems), format: 1 },
       }],
     };
-    if (folder?.id) journalData.flags = { [this.module.id]: { itemFolderId: folder.id } };
+    // The store flag drives the custom store sheet (see store-sheet.js).
+    journalData.flags = {
+      [this.module.id]: {
+        ...(folder?.id ? { itemFolderId: folder.id } : {}),
+        store: {
+          name:           storeName,
+          storeType:      store.storeType || formData.storeType,
+          wealth:         store.wealth || formData.wealth,
+          settlementSize: store.settlementSize || formData.settlementSize,
+          description:    store.description || formData.description,
+          owner:          store.owner || store.shopkeeper || null,
+          itemFolderId:   folder?.id || null,
+          inventory:      createdItems.map(item => {
+            const data = item.toObject ? item.toObject() : item;
+            return {
+              uuid:   item.uuid,
+              name:   item.name,
+              img:    item.img || 'icons/svg/item-bag.svg',
+              type:   item.type,
+              rarity: rarityLabel(data),
+              price:  priceLabel(data),
+              priceCp: Math.round((Number(data.system?.price?.value) || 0) * ({ pp: 1000, gp: 100, ep: 50, sp: 10, cp: 1 }[data.system?.price?.denomination] || 100)),
+              qty:    Math.max(1, Number(data.system?.quantity) || 1),
+            };
+          }),
+        },
+      },
+    };
 
     let journal;
     try {

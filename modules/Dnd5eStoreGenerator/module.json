@@ -11,7 +11,9 @@
     "minimum": "13",
     "verified": "14"
   },
-  "systems": ["dnd5e"],
+  "systems": [
+    "dnd5e"
+  ],
   "esmodules": [
     "scripts/preload-templates.js",
     "scripts/entry.js"
@@ -21,6 +23,11 @@
   ],
   "templateDir": "templates",
   "languages": [
-    { "lang": "en", "name": "English", "path": "lang/en.json" }
-  ]
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "socket": true
 }

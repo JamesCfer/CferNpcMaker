@@ -1,0 +1,1126 @@
+{
+ "name": "D&D 5e Store Builder",
+ "nodes": [
+  {
+   "id": "wh-post",
+   "name": "Webhook: /webhook/dnd5e-store-builder",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    -1600,
+    0
+   ],
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "dnd5e-store-builder",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "dnd5e-store-builder-post"
+  },
+  {
+   "id": "wh-opts",
+   "name": "Webhook OPTIONS dnd5e-store-builder",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    -1600,
+    -300
+   ],
+   "parameters": {
+    "httpMethod": "OPTIONS",
+    "path": "dnd5e-store-builder",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "dnd5e-store-builder-options"
+  },
+  {
+   "id": "if-opts",
+   "name": "IF OPTIONS Preflight",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    -1380,
+    -300
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "cors-method-check",
+       "leftValue": "={{ $json.method || $json.headers?.['access-control-request-method'] }}",
+       "rightValue": "OPTIONS",
+       "operator": {
+        "type": "string",
+        "operation": "equalsIgnoreCase"
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "resp-preflight",
+   "name": "Respond CORS Preflight",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -1160,
+    -380
+   ],
+   "parameters": {
+    "respondWith": "noData",
+    "options": {
+     "responseCode": 204,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook OPTIONS dnd5e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       },
+       {
+        "name": "Access-Control-Max-Age",
+        "value": "86400"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "resp-cors",
+   "name": "Respond CORS Headers",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -1160,
+    -220
+   ],
+   "parameters": {
+    "respondWith": "noData",
+    "options": {
+     "responseCode": 204,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook OPTIONS dnd5e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       },
+       {
+        "name": "Access-Control-Max-Age",
+        "value": "86400"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "sess-val",
+   "name": "Session Validation Node",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -1380,
+    0
+   ],
+   "parameters": {
+    "jsCode": "const headers = $json.headers || {};\nconst body = $json.body || {};\nconst query = $json.query || {};\nconst sessionKey = headers['x-builder-key'] || headers['X-Builder-Key'] || body.sessionKey || query.sessionKey || null;\nconst origin = headers['x-foundry-origin'] || headers['X-Foundry-Origin'] || body.origin || query.origin || '';\nif (!sessionKey) return [{ json: { authorized: false, error: 'NO_SESSION_KEY', message: 'Missing session key.', requiresAuth: true } }];\nif (sessionKey.length !== 32 || !/^[a-f0-9]{32}$/.test(sessionKey)) return [{ json: { authorized: false, error: 'INVALID_SESSION_FORMAT', message: 'Invalid session key format.', requiresAuth: true } }];\nreturn [{ json: { ...($json), sessionKey, requestOrigin: origin, _needsValidation: true } }];"
+   }
+  },
+  {
+   "id": "dt-lookup",
+   "name": "Data Table: Lookup Session",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -1160,
+    0
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "lpvCd8nOjLWrLeE7",
+     "mode": "list",
+     "cachedResultName": "patreon_sessions",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/lpvCd8nOjLWrLeE7"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $json.sessionKey }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "val-sess",
+   "name": "Validate Session & Check Expiration",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -940,
+    0
+   ],
+   "parameters": {
+    "jsCode": "const input = $('Session Validation Node').first().json;\nconst sessions = $input.all().map(i => i.json);\nconst sessionData = sessions && sessions.length > 0 ? sessions[0] : null;\nif (!sessionData || !sessionData.key) return [{ json: { authorized: false, error: 'SESSION_NOT_FOUND', message: 'Session expired or invalid.', requiresAuth: true } }];\nconst now = new Date();\nconst expiresAt = new Date(sessionData.expires_at);\nif (expiresAt < now) return [{ json: { authorized: false, error: 'SESSION_EXPIRED', message: 'Your session has expired.', requiresAuth: true } }];\nconst isSuperuser = sessionData.superuser === true;\nconst tier = sessionData.tier ? String(sessionData.tier).trim() : '';\nreturn [{ json: { authorized: true, sessionEmail: sessionData.email, sessionTier: tier, sessionIsSuperuser: isSuperuser, sessionKey: sessionData.key, ...input } }];"
+   }
+  },
+  {
+   "id": "if-auth",
+   "name": "IF: Is Authorized?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    -720,
+    0
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "auth-check-condition",
+       "leftValue": "={{ $json.authorized }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "build-unauth",
+   "name": "Build Unauthorized Response",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -500,
+    200
+   ],
+   "parameters": {
+    "jsCode": "const error = $json.error || 'UNAUTHORIZED';\nconst message = $json.message || 'You are not authorized to access this feature.';\nconst requiresAuth = $json.requiresAuth === true;\nconst rateLimitExceeded = $json.rateLimitExceeded === true;\nreturn [{ json: { ok: false, error, message, requiresAuth, rateLimitExceeded, ...(rateLimitExceeded ? { currentUsage: $json.currentUsage, limit: $json.limit, tier: $json.tier, resetDate: $json.resetDate, upgradeUrl: $json.upgradeUrl } : {}), authUrl: requiresAuth ? 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login' : undefined } }];"
+   }
+  },
+  {
+   "id": "resp-401",
+   "name": "Respond: 401 Unauthorized",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -280,
+    200
+   ],
+   "parameters": {
+    "options": {
+     "responseCode": 401,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook: /webhook/dnd5e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "rate-prep",
+   "name": "Rate Limit: Prepare Check",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -500,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const PATREON_CAMPAIGN_ID='9988159';\nconst PATREON_CREATOR_TOKEN='4YdoFngay8oKRuXgwN8Wso2YmLdGuAfoxgfGMi6nvEc';\nconst email=($json.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=($json.sessionKey||'').trim();\nconst sessionTier=($json.sessionTier||'').toLowerCase().trim();\nconst isSuperuser=$json.sessionIsSuperuser===true;\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nif(isSuperuser){const currentMonth=new Date().toISOString().substring(0,7);const compositeKey=lookupKey+'::'+currentMonth;return [{json:{...($json),sessionTier:'superuser',_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit:TIER_LIMITS['superuser'],tier:'superuser'}}}];}\nlet tier=sessionTier;\ntry{\n  const url='https://www.patreon.com/api/oauth2/v2/campaigns/'+PATREON_CAMPAIGN_ID+'/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=500';\n  const resp=await $helpers.httpRequest({method:'GET',url,headers:{Authorization:'Bearer '+PATREON_CREATOR_TOKEN}});\n  const tierMap={};\n  for(const inc of(resp.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n  const member=(resp.data||[]).find(m=>(m.attributes.email||'').toLowerCase()===email);\n  if(member){\n    const tierIds=member.relationships?.currently_entitled_tiers?.data||[];\n    const tierNames=tierIds.map(t=>tierMap[t.id]).filter(Boolean);\n    const paidTier=tierNames.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    const liveTier=(paidTier||'').toLowerCase();\n    if(member.attributes.patron_status==='active_patron'&&liveTier)tier=liveTier;\n    else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:'free';}\n  }else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:(sessionTier||'free');}\n}catch(e){tier=sessionTier||'free';}\nlet monthlyLimit=TIER_LIMITS.hasOwnProperty(tier)?TIER_LIMITS[tier]:25;\nif(!tier||tier==='free'||tier==='')monthlyLimit=3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nconst compositeKey=lookupKey+'::'+currentMonth;\nreturn [{json:{...($json),sessionTier:tier,_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
+   }
+  },
+  {
+   "id": "dt-usage",
+   "name": "Get row(s)",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -280,
+    -100
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "Y1GdmWbjIPOnDzeD",
+     "mode": "list",
+     "cachedResultName": "patreon_usage",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "session_key",
+       "keyValue": "={{ $json._rateLimitCheck.sessionKey }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "rate-val",
+   "name": "Rate Limit: Validate",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -60,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const STORE_COST=7;\nconst rateLimitData=$('Rate Limit: Prepare Check').first().json._rateLimitCheck;\nconst monthlyLimit=rateLimitData.monthlyLimit;\nconst tier=rateLimitData.tier;\nconst usageRecords=$input.all().map(i=>i.json);\nconst usageData=usageRecords&&usageRecords.length>0?usageRecords[0]:null;\nconst currentCount=usageData?.npc_count||0;\nif(currentCount+STORE_COST>monthlyLimit){\n  const resetDate=new Date();resetDate.setMonth(resetDate.getMonth()+1);resetDate.setDate(1);resetDate.setHours(0,0,0,0);\n  return [{json:{ok:false,rateLimitExceeded:true,error:'RATE_LIMIT_EXCEEDED',message:'A store generation costs '+STORE_COST+' uses. You have used '+currentCount+' of your '+monthlyLimit+' monthly uses for the \"'+(tier||'free')+'\" tier, which is not enough for another store. Resets on '+resetDate.toLocaleDateString()+'.',currentUsage:currentCount,limit:monthlyLimit,tier,resetDate:resetDate.toISOString(),upgradeUrl:'https://www.patreon.com/c/CelestiaTools/membership'}}];\n}\nconst originalData=$('Rate Limit: Prepare Check').first().json;\nreturn [{json:{...originalData,_rateLimitCheck:{...rateLimitData,currentCount,usageRecordExists:!!usageData,usageRecordId:usageData?.id||null}}}];"
+   }
+  },
+  {
+   "id": "if-rate",
+   "name": "IF: Rate Limit Exceeded?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    160,
+    -100
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "rate-limit-exceeded-condition",
+       "leftValue": "={{ $json.rateLimitExceeded }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "inc-usage",
+   "name": "Increment Usage Counter",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    380,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const STORE_COST=7;\nconst rateLimitValidateData=$('Rate Limit: Validate').first().json;\nconst rateLimitData=rateLimitValidateData._rateLimitCheck;\nconst compositeKey=rateLimitData.sessionKey;\nconst currentMonth=rateLimitData.currentMonth;\nconst currentCount=rateLimitData.currentCount||0;\nconst now=new Date().toISOString();\nreturn [{json:{...rateLimitValidateData,session_key:compositeKey,month:currentMonth,npc_count:currentCount+STORE_COST,last_created:now,_usageUpdate:{session_key:compositeKey,month:currentMonth,npc_count:currentCount+STORE_COST,last_created:now}}}];"
+   }
+  },
+  {
+   "id": "dt-upsert",
+   "name": "Upsert Usage Row",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    600,
+    -20
+   ],
+   "parameters": {
+    "operation": "upsert",
+    "dataTableId": {
+     "__rl": true,
+     "value": "Y1GdmWbjIPOnDzeD",
+     "mode": "list",
+     "cachedResultName": "patreon_usage",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "session_key",
+       "keyValue": "={{ $json.session_key }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "session_key": "={{ $json.session_key }}",
+      "month": "={{ $json.month }}",
+      "npc_count": "={{ $json.npc_count }}",
+      "last_created": "={{ $json.last_created }}"
+     },
+     "matchingColumns": [
+      "session_key"
+     ],
+     "schema": [
+      {
+       "id": "session_key",
+       "displayName": "session_key",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "month",
+       "displayName": "month",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "npc_count",
+       "displayName": "npc_count",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "last_created",
+       "displayName": "last_created",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ],
+     "attemptToConvertTypes": false,
+     "convertFieldsToString": false
+    }
+   }
+  },
+  {
+   "id": "restore-ctx",
+   "name": "Restore Request Context",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    820,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const originalData = $('Increment Usage Counter').first()?.json;\nif (!originalData || !originalData.body) throw new Error('Could not restore request context: Increment Usage Counter data missing');\nreturn [{ json: originalData }];"
+   }
+  },
+  {
+   "id": "prep-input",
+   "name": "Prep Store Input",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "let input = $json;\nif (Array.isArray(input)) input = input[0];\nif (input?.body) input = input.body;\nconst name           = String(input.name || 'Generated Store').trim();\nconst storeType      = String(input.storeType || 'general').trim().toLowerCase();\nconst wealth         = String(input.wealth || 'modest').trim().toLowerCase();\nconst settlementSize = String(input.settlementSize || 'town').trim().toLowerCase();\nconst description    = String(input.description || '').trim();\nconst VALID_TYPES  = new Set(['general','blacksmith','armorer','alchemist','magic','jeweler','fletcher','tavern']);\nconst VALID_WEALTH = new Set(['poor','modest','wealthy','aristocratic']);\nconst VALID_SIZES  = new Set(['village','town','city','metropolis']);\nif (!VALID_TYPES.has(storeType)) throw new Error(`Invalid storeType: ${storeType}`);\nif (!VALID_WEALTH.has(wealth)) throw new Error(`Invalid wealth: ${wealth}`);\nif (!VALID_SIZES.has(settlementSize)) throw new Error(`Invalid settlementSize: ${settlementSize}`);\nif (!description) throw new Error('Missing required field: description');\nreturn [{ json: { name, storeType, wealth, settlementSize, description, _prepSuccess: true } }];"
+   }
+  },
+  {
+   "id": "build-prompt",
+   "name": "Build Store Prompt",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1260,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "// Build Store Prompt (D&D 5e) — shopkeeper + stocked inventory in one JSON payload\nconst ITEM_COUNT = { village: 6, town: 8, city: 10, metropolis: 12 };\nconst STOCK_GUIDE = {\n  general:    'everyday adventuring gear, tools, rope, rations, lanterns, packs; mostly mundane equipment and loot',\n  blacksmith: 'weapons (swords, axes, hammers, polearms) and ammunition; mostly weapon type',\n  armorer:    'armor of various categories and shields; equipment type with armor data',\n  alchemist:  'potions, oils, poisons, alchemical concoctions, healer\\'s kits; almost all consumable type',\n  magic:      'wondrous items, wands, scrolls, magical trinkets; equipment and consumable types with rarities',\n  jeweler:    'jewelry, gems, art objects, curiosities; loot and equipment types',\n  fletcher:   'bows, crossbows, arrows, bolts, quivers; weapon type plus ammunition consumables',\n  tavern:     'food, drink, lodging tokens, house specialties, a couple of quirky curios; consumable and loot types, all cheap',\n};\nconst WEALTH_GUIDE = {\n  poor:         'Mundane items only, worn or second-hand. No magic items. Prices 10-20% below book value.',\n  modest:       'Solid mundane stock. At most ONE common magic item. Book prices.',\n  wealthy:      'Quality stock. 2-3 magic items up to uncommon rarity (one may be rare). Prices at or slightly above book value.',\n  aristocratic: 'Premium stock for elite clientele. 3-4 magic items up to rare rarity (one may be very rare). Prices 20-50% above book value.',\n};\nconst { name, storeType, wealth, settlementSize, description } = $json;\nconst count = ITEM_COUNT[settlementSize] || 8;\n\nconst SYSTEM_PROMPT = 'You are a D&D 5e Foundry VTT store designer. Return STRICT JSON only (no markdown, no prose, no code fences).\\n' +\n  'Target system: Foundry VTT dnd5e.\\n\\n' +\n  'TOP-LEVEL SHAPE:\\n' +\n  '{\\n' +\n  '  \"name\": \"<store name>\",\\n' +\n  '  \"storeType\": \"' + storeType + '\",\\n' +\n  '  \"wealth\": \"' + wealth + '\",\\n' +\n  '  \"settlementSize\": \"' + settlementSize + '\",\\n' +\n  '  \"description\": \"<1-2 paragraphs of store flavour: the building, atmosphere, smells, clientele. PLAIN TEXT, no HTML>\",\\n' +\n  '  \"owner\": { \"name\": \"<shopkeeper name>\", \"race\": \"<D&D 5e race>\", \"description\": \"<2-3 sentences: personality, appearance, a mannerism, a hook>\" },\\n' +\n  '  \"inventory\": [ <exactly ' + count + ' complete Foundry dnd5e item objects> ]\\n' +\n  '}\\n\\n' +\n  'EACH INVENTORY ITEM SHAPE: { \"name\", \"type\", \"img\": \"icons/svg/item-bag.svg\", \"system\": {...} }\\n' +\n  'Valid item types: weapon, equipment, consumable, tool, loot, container.\\n\\n' +\n  'UNIVERSAL SYSTEM FIELDS (every item):\\n' +\n  '- system.description = { \"value\": \"<p>...</p>\", \"chat\": \"\", \"unidentified\": \"\" } (HTML, 1 short paragraph; concrete numeric effects for magic items)\\n' +\n  '- system.rarity = \"\" (mundane) | \"common\" | \"uncommon\" | \"rare\" | \"veryRare\" | \"legendary\"\\n' +\n  '- system.attunement = 0 (none) | 1 (required)\\n' +\n  '- system.price = { \"value\": <number>, \"denomination\": \"gp\"|\"sp\"|\"cp\" }\\n' +\n  '- system.weight = <number in lb>\\n' +\n  '- system.quantity = 1 (or a realistic stack for ammo/rations)\\n' +\n  '- system.identified = true, system.equipped = false\\n' +\n  '- system.source = \"JamesCfer\"\\n\\n' +\n  'TYPE NOTES:\\n' +\n  '- weapon: system.weaponType (\"simpleM\"|\"martialM\"|\"simpleR\"|\"martialR\"), system.damage { \"parts\": [[\"1d8\", \"slashing\"]], \"versatile\": \"\" }, system.properties { \"fin\": true, ... } using 5e property keys (amm, fin, hvy, lgt, lod, rch, thr, two, ver), system.range { \"value\": null, \"long\": null, \"units\": \"ft\" }, system.actionType \"mwak\"|\"rwak\", system.ability \"\"\\n' +\n  '- equipment: system.armor { \"value\": <AC>, \"type\": \"light\"|\"medium\"|\"heavy\"|\"shield\", \"dex\": null } for armor, or system.armor { \"value\": null } plus system.type { \"value\": \"trinket\" } for wondrous items\\n' +\n  '- consumable: system.consumableType (\"potion\"|\"scroll\"|\"poison\"|\"food\"|\"ammo\"|\"trinket\"), system.uses { \"value\": 1, \"max\": \"1\", \"per\": \"charges\", \"autoDestroy\": true }\\n' +\n  '- tool: system.toolType, system.ability \"int\"\\n' +\n  '- loot / container: just the universal fields (container also gets system.capacity { \"type\": \"weight\", \"value\": 500, \"weightless\": false })\\n\\n' +\n  '5e DAMAGE TYPES: bludgeoning, piercing, slashing, acid, cold, fire, force, lightning, necrotic, poison, psychic, radiant, thunder.\\n' +\n  'FORBIDDEN PHRASES: \"DM\\'s discretion\", \"at the DM\\'s option\", \"the DM may decide\", \"an unspecified benefit\", \"as appropriate\".\\n\\n' +\n  'WEALTH TIER: ' + WEALTH_GUIDE[wealth] + '\\n' +\n  'No anachronisms, no modern names, no guns unless the description asks.';\n\nconst USER_PROMPT = 'Design a complete D&D 5e store for Foundry VTT.\\n\\n' +\n  'REQUEST:\\n' +\n  '- Store name: ' + name + '\\n' +\n  '- Store type: ' + STOCK_GUIDE[storeType] + '\\n' +\n  '- Wealth tier: ' + wealth + '\\n' +\n  '- Settlement: ' + settlementSize + ' (stock exactly ' + count + ' items)\\n' +\n  '- Description: ' + description + '\\n\\n' +\n  'DESIGN STEPS:\\n' +\n  '1. SHOPKEEPER: a memorable owner fitting the description (name, race, 2-3 sentence sketch).\\n' +\n  '2. FLAVOUR: 1-2 paragraphs describing the store itself.\\n' +\n  '3. INVENTORY: exactly ' + count + ' items matching the stock guide and wealth tier. Vary the types. Magic items get a rarity and concrete numeric effects.\\n' +\n  '4. Every item gets system.source = \"JamesCfer\".\\n\\n' +\n  'Return ONLY the JSON object.';\n\nreturn [{ json: { ...$json, system: SYSTEM_PROMPT, user: USER_PROMPT, _targetCount: count } }];"
+   }
+  },
+  {
+   "id": "writer",
+   "name": "Store Writer",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "typeVersion": 1.8,
+   "position": [
+    1480,
+    -20
+   ],
+   "parameters": {
+    "modelId": {
+     "__rl": true,
+     "value": "gpt-5.4-mini",
+     "mode": "list",
+     "cachedResultName": "GPT-5.4-MINI"
+    },
+    "messages": {
+     "values": [
+      {
+       "content": "={{$json.system}}",
+       "role": "system"
+      },
+      {
+       "content": "={{$json.user}}"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "credentials": {
+    "openAiApi": {
+     "id": "W5Uo8HDaFEFTOL9c",
+     "name": "OpenAi account"
+    }
+   }
+  },
+  {
+   "id": "assemble",
+   "name": "Parse & Assemble Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1700,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "// Parse & Assemble Store (D&D 5e) — normalize the LLM payload into a safe store object\nfunction safeParse(raw) {\n  if (!raw) return null;\n  if (typeof raw === 'object') return raw;\n  try { let s = String(raw).trim(); if (s.startsWith('```')) s = s.replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''); return JSON.parse(s); } catch { return null; }\n}\nconst prepInput = $('Prep Store Input').first().json;\nconst { name, storeType, wealth, settlementSize, description } = prepInput;\nconst raw = $json.message?.content ?? $json.completion ?? $json.text ?? null;\nconst parsed = safeParse(raw);\n\nconst VALID_TYPES = new Set(['weapon','equipment','consumable','tool','loot','container']);\nconst VALID_RARITIES = new Set(['','common','uncommon','rare','veryRare','legendary','artifact']);\nconst RARITY_REMAP = { 'very rare':'veryRare', 'veryrare':'veryRare', 'none':'', 'mundane':'' };\nfunction toInt(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : fb; }\nfunction toNum(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? n : fb; }\n\nconst warnings = [];\nif (!parsed) warnings.push('LLM output unparseable');\nconst base = parsed && typeof parsed === 'object' ? parsed : {};\nconst owner = (base.owner && typeof base.owner === 'object') ? base.owner : (base.shopkeeper && typeof base.shopkeeper === 'object') ? base.shopkeeper : null;\n\nconst rawInventory = Array.isArray(base.inventory) ? base.inventory : Array.isArray(base.items) ? base.items : [];\nconst MAX_ITEMS = 14;\nconst inventory = [];\nfor (const rawItem of rawInventory.slice(0, MAX_ITEMS)) {\n  if (!rawItem || typeof rawItem !== 'object') continue;\n  const sys = (rawItem.system && typeof rawItem.system === 'object') ? rawItem.system : {};\n  const type = VALID_TYPES.has(String(rawItem.type||'').toLowerCase()) ? String(rawItem.type).toLowerCase() : 'loot';\n  const item = { name: String(rawItem.name || 'Unnamed Item').slice(0, 120), type, img: String(rawItem.img || 'icons/svg/item-bag.svg'), system: sys };\n  const s = item.system;\n  const rawDesc = s.description?.value ?? s.description ?? '';\n  s.description = { value: typeof rawDesc === 'string' ? rawDesc : String(rawDesc || ''), chat: '', unidentified: '' };\n  let rarity = String(s.rarity ?? '').trim();\n  if (!VALID_RARITIES.has(rarity)) rarity = RARITY_REMAP[rarity.toLowerCase()] ?? '';\n  s.rarity = rarity;\n  s.attunement = [0,1,2].includes(Number(s.attunement)) ? Number(s.attunement) : 0;\n  const rawPrice = s.price ?? {};\n  const denom = ['pp','gp','ep','sp','cp'].includes(String(rawPrice.denomination||'').toLowerCase()) ? String(rawPrice.denomination).toLowerCase() : 'gp';\n  s.price = { value: Math.max(0, toNum(rawPrice.value ?? rawPrice, 0)), denomination: denom };\n  s.weight = Math.max(0, toNum(s.weight, 0));\n  s.quantity = Math.max(1, toInt(s.quantity, 1));\n  s.identified = true;\n  s.equipped = false;\n  s.source = 'JamesCfer';\n  if (type === 'weapon') {\n    if (!s.damage || typeof s.damage !== 'object') s.damage = { parts: [], versatile: '' };\n    if (!Array.isArray(s.damage.parts)) s.damage.parts = [];\n    if (!s.properties || typeof s.properties !== 'object') s.properties = {};\n  }\n  if (type === 'consumable') {\n    if (!s.consumableType) s.consumableType = 'trinket';\n    if (!s.uses || typeof s.uses !== 'object') s.uses = { value: 1, max: '1', per: 'charges', autoDestroy: true };\n  }\n  if (type === 'container' && (!s.capacity || typeof s.capacity !== 'object')) s.capacity = { type: 'weight', value: 500, weightless: false };\n  inventory.push(item);\n}\n\nconst store = {\n  name: String(base.name || name || 'Generated Store').slice(0, 120),\n  storeType,\n  wealth,\n  settlementSize,\n  description: String(base.description || description || '').slice(0, 4000),\n  owner: owner ? { name: String(owner.name || 'Shopkeeper').slice(0, 120), race: String(owner.race || owner.ancestry || '').slice(0, 60), description: String(owner.description || '').slice(0, 2000) } : null,\n  inventory,\n};\nconsole.log('[Assemble Store] \"' + store.name + '\" ' + storeType + '/' + wealth + '/' + settlementSize + ' items=' + inventory.length + ' warnings=' + warnings.length);\nreturn [{ json: { ...prepInput, store, _warnings: warnings, _assembled: true } }];"
+   }
+  },
+  {
+   "id": "audit",
+   "name": "Audit Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1920,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const prep = $('Prep Store Input').first().json;\nconst upstream = $json;\nconst store = upstream.store || {};\nconst targetCount = $('Build Store Prompt').first().json._targetCount || 8;\nconst issues = [];\nif (upstream._warnings && upstream._warnings.includes('LLM output unparseable')) issues.push('Prior output was not valid JSON. Return strictly valid JSON this time.');\nconst inv = Array.isArray(store.inventory) ? store.inventory : [];\nif (inv.length < Math.ceil(targetCount * 0.6)) issues.push('Inventory has only ' + inv.length + ' items but the request asked for ' + targetCount + '. Provide the full inventory.');\nif (!store.owner || !store.owner.name || store.owner.name === 'Shopkeeper') issues.push('Missing shopkeeper: provide owner with a proper name and a 2-3 sentence description.');\nif (!store.description || store.description.length < 60) issues.push('Store description is missing or too short. Provide 1-2 flavourful paragraphs.');\nconst FORBIDDEN = [\"dm's discretion\", \"dms discretion\", \"at the dm's option\", \"the dm may decide\", \"an unspecified benefit\", \"an unspecified bonus\", \"as appropriate\"];\nconst allText = (String(store.description||'') + ' ' + inv.map(i => String(i.system?.description?.value||'')).join(' ')).toLowerCase();\nfor (const phrase of FORBIDDEN) if (allText.includes(phrase)) issues.push('Text contains forbidden phrase: \"' + phrase + '\"');\nconst unnamed = inv.filter(i => !i.name || i.name === 'Unnamed Item').length;\nif (unnamed > 0) issues.push(unnamed + ' inventory item(s) are missing names.');\nconst noDesc = inv.filter(i => !i.system?.description?.value).length;\nif (noDesc > Math.ceil(inv.length / 3)) issues.push(noDesc + ' inventory item(s) have empty descriptions. Every item needs at least one sentence.');\nconst passed = issues.length === 0;\nconsole.log('[Audit Store] \"' + (store.name || 'unknown') + '\" audit=' + (passed ? 'PASS' : 'FAIL') + ' issues=' + issues.length);\nfor (const i of issues) console.log('  - ' + i);\nreturn [{ json: { ...upstream, _auditPassed: passed, _auditIssues: issues } }];"
+   }
+  },
+  {
+   "id": "if-audit",
+   "name": "IF: Audit Passed?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    2140,
+    -20
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "audit-passed-condition",
+       "leftValue": "={{ $json._auditPassed }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "upgrade-prompt",
+   "name": "Build Upgrade Prompt",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2140,
+    220
+   ],
+   "parameters": {
+    "jsCode": "const prep = $('Prep Store Input').first().json;\nconst { name, storeType, wealth, settlementSize, description } = prep;\nconst upstream = $json;\nconst store = upstream.store || {};\nconst issues = upstream._auditIssues || [];\nconst priorSummary = JSON.stringify({ name: store.name, owner: store.owner, description: (store.description||'').slice(0,300), inventory: (store.inventory||[]).map(i => ({ name: i.name, type: i.type, rarity: i.system?.rarity, price: i.system?.price })) }, null, 2);\nconst issueList = issues.map((v, i) => (i + 1) + '. ' + v).join('\\n');\nconst SYSTEM_PROMPT = 'You are a D&D 5e Foundry VTT store designer performing a CORRECTION PASS.\\n\\nYou previously generated a store that failed automated checks. Produce a CORRECTED version that:\\n1. Keeps the same store name, type, theme, and shopkeeper (unless an issue says otherwise).\\n2. Fixes every issue listed below.\\n3. Returns STRICT JSON only with the exact same top-level shape as before: { name, storeType, wealth, settlementSize, description, owner: { name, race, description }, inventory: [complete Foundry dnd5e item objects] }.\\n\\nKey rules: every item has name/type/img/system with description { value, chat, unidentified }, rarity, attunement, price { value, denomination }, weight, quantity, source \"JamesCfer\". Valid types: weapon, equipment, consumable, tool, loot, container. No DM-discretion language.\\n\\nReturn ONLY the corrected JSON object.';\nconst USER_PROMPT = 'ORIGINAL REQUEST:\\n- Store name: ' + name + '\\n- Store type: ' + storeType + '\\n- Wealth tier: ' + wealth + '\\n- Settlement: ' + settlementSize + '\\n- Description: ' + description + '\\n\\nYOUR PRIOR OUTPUT (abbreviated):\\n' + priorSummary + '\\n\\nISSUES TO FIX (fix ALL):\\n' + issueList + '\\n\\nProduce the corrected full store JSON, including COMPLETE item objects for the whole inventory. Return ONLY the JSON.';\nreturn [{ json: { ...upstream, system: SYSTEM_PROMPT, user: USER_PROMPT } }];"
+   }
+  },
+  {
+   "id": "writer2",
+   "name": "Store Upgrader",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "typeVersion": 1.8,
+   "position": [
+    2360,
+    220
+   ],
+   "parameters": {
+    "modelId": {
+     "__rl": true,
+     "value": "gpt-5.4-mini",
+     "mode": "list",
+     "cachedResultName": "GPT-5.4-MINI"
+    },
+    "messages": {
+     "values": [
+      {
+       "content": "={{$json.system}}",
+       "role": "system"
+      },
+      {
+       "content": "={{$json.user}}"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "credentials": {
+    "openAiApi": {
+     "id": "W5Uo8HDaFEFTOL9c",
+     "name": "OpenAi account"
+    }
+   }
+  },
+  {
+   "id": "reassemble",
+   "name": "Parse & Re-assemble Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2580,
+    220
+   ],
+   "parameters": {
+    "jsCode": "// Parse & Assemble Store (D&D 5e) — normalize the LLM payload into a safe store object\nfunction safeParse(raw) {\n  if (!raw) return null;\n  if (typeof raw === 'object') return raw;\n  try { let s = String(raw).trim(); if (s.startsWith('```')) s = s.replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''); return JSON.parse(s); } catch { return null; }\n}\nconst prepInput = $('Prep Store Input').first().json;\nconst { name, storeType, wealth, settlementSize, description } = prepInput;\nconst raw = $json.message?.content ?? $json.completion ?? $json.text ?? null;\nconst parsed = safeParse(raw);\n\nconst VALID_TYPES = new Set(['weapon','equipment','consumable','tool','loot','container']);\nconst VALID_RARITIES = new Set(['','common','uncommon','rare','veryRare','legendary','artifact']);\nconst RARITY_REMAP = { 'very rare':'veryRare', 'veryrare':'veryRare', 'none':'', 'mundane':'' };\nfunction toInt(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : fb; }\nfunction toNum(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? n : fb; }\n\nconst warnings = [];\nif (!parsed) warnings.push('LLM output unparseable');\nconst base = parsed && typeof parsed === 'object' ? parsed : {};\nconst owner = (base.owner && typeof base.owner === 'object') ? base.owner : (base.shopkeeper && typeof base.shopkeeper === 'object') ? base.shopkeeper : null;\n\nconst rawInventory = Array.isArray(base.inventory) ? base.inventory : Array.isArray(base.items) ? base.items : [];\nconst MAX_ITEMS = 14;\nconst inventory = [];\nfor (const rawItem of rawInventory.slice(0, MAX_ITEMS)) {\n  if (!rawItem || typeof rawItem !== 'object') continue;\n  const sys = (rawItem.system && typeof rawItem.system === 'object') ? rawItem.system : {};\n  const type = VALID_TYPES.has(String(rawItem.type||'').toLowerCase()) ? String(rawItem.type).toLowerCase() : 'loot';\n  const item = { name: String(rawItem.name || 'Unnamed Item').slice(0, 120), type, img: String(rawItem.img || 'icons/svg/item-bag.svg'), system: sys };\n  const s = item.system;\n  const rawDesc = s.description?.value ?? s.description ?? '';\n  s.description = { value: typeof rawDesc === 'string' ? rawDesc : String(rawDesc || ''), chat: '', unidentified: '' };\n  let rarity = String(s.rarity ?? '').trim();\n  if (!VALID_RARITIES.has(rarity)) rarity = RARITY_REMAP[rarity.toLowerCase()] ?? '';\n  s.rarity = rarity;\n  s.attunement = [0,1,2].includes(Number(s.attunement)) ? Number(s.attunement) : 0;\n  const rawPrice = s.price ?? {};\n  const denom = ['pp','gp','ep','sp','cp'].includes(String(rawPrice.denomination||'').toLowerCase()) ? String(rawPrice.denomination).toLowerCase() : 'gp';\n  s.price = { value: Math.max(0, toNum(rawPrice.value ?? rawPrice, 0)), denomination: denom };\n  s.weight = Math.max(0, toNum(s.weight, 0));\n  s.quantity = Math.max(1, toInt(s.quantity, 1));\n  s.identified = true;\n  s.equipped = false;\n  s.source = 'JamesCfer';\n  if (type === 'weapon') {\n    if (!s.damage || typeof s.damage !== 'object') s.damage = { parts: [], versatile: '' };\n    if (!Array.isArray(s.damage.parts)) s.damage.parts = [];\n    if (!s.properties || typeof s.properties !== 'object') s.properties = {};\n  }\n  if (type === 'consumable') {\n    if (!s.consumableType) s.consumableType = 'trinket';\n    if (!s.uses || typeof s.uses !== 'object') s.uses = { value: 1, max: '1', per: 'charges', autoDestroy: true };\n  }\n  if (type === 'container' && (!s.capacity || typeof s.capacity !== 'object')) s.capacity = { type: 'weight', value: 500, weightless: false };\n  inventory.push(item);\n}\n\nconst store = {\n  name: String(base.name || name || 'Generated Store').slice(0, 120),\n  storeType,\n  wealth,\n  settlementSize,\n  description: String(base.description || description || '').slice(0, 4000),\n  owner: owner ? { name: String(owner.name || 'Shopkeeper').slice(0, 120), race: String(owner.race || owner.ancestry || '').slice(0, 60), description: String(owner.description || '').slice(0, 2000) } : null,\n  inventory,\n};\nconsole.log('[Assemble Store] \"' + store.name + '\" ' + storeType + '/' + wealth + '/' + settlementSize + ' items=' + inventory.length + ' warnings=' + warnings.length);\nreturn [{ json: { ...prepInput, store, _warnings: warnings, _assembled: true, _upgraded: true } }];"
+   }
+  },
+  {
+   "id": "build-resp",
+   "name": "Build Response",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2400,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const store = $json.store;\nconst itemCount = (store?.inventory || []).length;\nreturn [{ json: { ok: true, name: store?.name, storeType: store?.storeType, itemCount, warnings: $json._warnings || [], store, message: 'Store \"' + (store?.name || 'store') + '\" generated with ' + itemCount + ' items' } }];"
+   }
+  },
+  {
+   "id": "resp-200",
+   "name": "Respond to Webhook",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    2620,
+    -100
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ $json }}",
+    "options": {
+     "responseCode": 200,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook: /webhook/dnd5e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "disc-prep",
+   "name": "Prep for Discord",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2400,
+    60
+   ],
+   "parameters": {
+    "jsCode": "const MAX = 1900;\nfunction slugify(s) { return String(s || 'store').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); }\nfunction redact(obj) {\n  const SENSITIVE = new Set(['access_token','refresh_token','id_token','client_secret','authorization','cookie','cookies','set-cookie','password','token','secret']);\n  const seen = new WeakSet();\n  const walk = (v) => { if (v === null || typeof v !== 'object') return v; if (seen.has(v)) return '[CIRCULAR]'; seen.add(v); if (Array.isArray(v)) return v.map(walk); const o = {}; for (const [k, val] of Object.entries(v)) { const key = String(k).toLowerCase(); o[k] = SENSITIVE.has(key) ? '[REDACTED]' : walk(val); } return o; };\n  return walk(obj);\n}\nconst data = $json || {};\nconst store = data.store ?? data;\nconst storeName = store?.name || 'Unnamed Store';\nconst itemCount = (store?.inventory || []).length;\nconst title = `D&D 5e Store — ${storeName} (${store?.storeType || 'store'}, ${itemCount} items)`;\nlet body;\ntry { body = JSON.stringify(redact(store), null, 2); }\ncatch (e) { body = JSON.stringify({ error: 'Serialization failed', message: String(e) }); }\nconst fileName = `${slugify(storeName)}.json`;\nconst b64 = Buffer.from(String(body), 'utf8').toString('base64');\nreturn [{ json: { ...data, content: `**${title}** (JSON attached)`, _hasFile: true }, binary: { file: { data: b64, fileName, mimeType: 'application/json' } } }];"
+   }
+  },
+  {
+   "id": "if-file",
+   "name": "Has File?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    2620,
+    60
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "has-file-check",
+       "leftValue": "={{ $json._hasFile }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "disc-send",
+   "name": "Send to Discord",
+   "type": "n8n-nodes-base.discord",
+   "typeVersion": 2,
+   "position": [
+    2840,
+    60
+   ],
+   "parameters": {
+    "resource": "message",
+    "guildId": {
+     "__rl": true,
+     "value": "853532551784431616",
+     "mode": "list",
+     "cachedResultName": "Celestia"
+    },
+    "channelId": {
+     "__rl": true,
+     "value": "982754114901512212",
+     "mode": "list",
+     "cachedResultName": "jane"
+    },
+    "content": "={{ $json.content }}",
+    "options": {}
+   },
+   "credentials": {
+    "discordBotApi": {
+     "id": "v845fBzdtlCbenJa",
+     "name": "Discord Bot account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Webhook OPTIONS dnd5e-store-builder": {
+   "main": [
+    [
+     {
+      "node": "IF OPTIONS Preflight",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF OPTIONS Preflight": {
+   "main": [
+    [
+     {
+      "node": "Respond CORS Preflight",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Respond CORS Headers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Webhook: /webhook/dnd5e-store-builder": {
+   "main": [
+    [
+     {
+      "node": "Session Validation Node",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Session Validation Node": {
+   "main": [
+    [
+     {
+      "node": "Data Table: Lookup Session",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Data Table: Lookup Session": {
+   "main": [
+    [
+     {
+      "node": "Validate Session & Check Expiration",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Validate Session & Check Expiration": {
+   "main": [
+    [
+     {
+      "node": "IF: Is Authorized?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Is Authorized?": {
+   "main": [
+    [
+     {
+      "node": "Rate Limit: Prepare Check",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Build Unauthorized Response",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Unauthorized Response": {
+   "main": [
+    [
+     {
+      "node": "Respond: 401 Unauthorized",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rate Limit: Prepare Check": {
+   "main": [
+    [
+     {
+      "node": "Get row(s)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get row(s)": {
+   "main": [
+    [
+     {
+      "node": "Rate Limit: Validate",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rate Limit: Validate": {
+   "main": [
+    [
+     {
+      "node": "IF: Rate Limit Exceeded?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Rate Limit Exceeded?": {
+   "main": [
+    [
+     {
+      "node": "Build Unauthorized Response",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Increment Usage Counter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Increment Usage Counter": {
+   "main": [
+    [
+     {
+      "node": "Upsert Usage Row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Upsert Usage Row": {
+   "main": [
+    [
+     {
+      "node": "Restore Request Context",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Restore Request Context": {
+   "main": [
+    [
+     {
+      "node": "Prep Store Input",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prep Store Input": {
+   "main": [
+    [
+     {
+      "node": "Build Store Prompt",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Store Prompt": {
+   "main": [
+    [
+     {
+      "node": "Store Writer",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Store Writer": {
+   "main": [
+    [
+     {
+      "node": "Parse & Assemble Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Parse & Assemble Store": {
+   "main": [
+    [
+     {
+      "node": "Audit Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Audit Store": {
+   "main": [
+    [
+     {
+      "node": "IF: Audit Passed?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Audit Passed?": {
+   "main": [
+    [
+     {
+      "node": "Build Response",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Prep for Discord",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Build Upgrade Prompt",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Upgrade Prompt": {
+   "main": [
+    [
+     {
+      "node": "Store Upgrader",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Store Upgrader": {
+   "main": [
+    [
+     {
+      "node": "Parse & Re-assemble Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Parse & Re-assemble Store": {
+   "main": [
+    [
+     {
+      "node": "Build Response",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Prep for Discord",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Response": {
+   "main": [
+    [
+     {
+      "node": "Respond to Webhook",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prep for Discord": {
+   "main": [
+    [
+     {
+      "node": "Has File?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Has File?": {
+   "main": [
+    [
+     {
+      "node": "Send to Discord",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}
