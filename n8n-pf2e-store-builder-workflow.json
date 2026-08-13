@@ -1,0 +1,1126 @@
+{
+ "name": "PF2e Store Builder",
+ "nodes": [
+  {
+   "id": "wh-post",
+   "name": "Webhook: /webhook/pf2e-store-builder",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    -1600,
+    0
+   ],
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "pf2e-store-builder",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "pf2e-store-builder-post"
+  },
+  {
+   "id": "wh-opts",
+   "name": "Webhook OPTIONS pf2e-store-builder",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    -1600,
+    -300
+   ],
+   "parameters": {
+    "httpMethod": "OPTIONS",
+    "path": "pf2e-store-builder",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "pf2e-store-builder-options"
+  },
+  {
+   "id": "if-opts",
+   "name": "IF OPTIONS Preflight",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    -1380,
+    -300
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "cors-method-check",
+       "leftValue": "={{ $json.method || $json.headers?.['access-control-request-method'] }}",
+       "rightValue": "OPTIONS",
+       "operator": {
+        "type": "string",
+        "operation": "equalsIgnoreCase"
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "resp-preflight",
+   "name": "Respond CORS Preflight",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -1160,
+    -380
+   ],
+   "parameters": {
+    "respondWith": "noData",
+    "options": {
+     "responseCode": 204,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook OPTIONS pf2e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       },
+       {
+        "name": "Access-Control-Max-Age",
+        "value": "86400"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "resp-cors",
+   "name": "Respond CORS Headers",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -1160,
+    -220
+   ],
+   "parameters": {
+    "respondWith": "noData",
+    "options": {
+     "responseCode": 204,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook OPTIONS pf2e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       },
+       {
+        "name": "Access-Control-Max-Age",
+        "value": "86400"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "sess-val",
+   "name": "Session Validation Node",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -1380,
+    0
+   ],
+   "parameters": {
+    "jsCode": "const headers = $json.headers || {};\nconst body = $json.body || {};\nconst query = $json.query || {};\nconst sessionKey = headers['x-builder-key'] || headers['X-Builder-Key'] || body.sessionKey || query.sessionKey || null;\nconst origin = headers['x-foundry-origin'] || headers['X-Foundry-Origin'] || body.origin || query.origin || '';\nif (!sessionKey) return [{ json: { authorized: false, error: 'NO_SESSION_KEY', message: 'Missing session key.', requiresAuth: true } }];\nif (sessionKey.length !== 32 || !/^[a-f0-9]{32}$/.test(sessionKey)) return [{ json: { authorized: false, error: 'INVALID_SESSION_FORMAT', message: 'Invalid session key format.', requiresAuth: true } }];\nreturn [{ json: { ...($json), sessionKey, requestOrigin: origin, _needsValidation: true } }];"
+   }
+  },
+  {
+   "id": "dt-lookup",
+   "name": "Data Table: Lookup Session",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -1160,
+    0
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "lpvCd8nOjLWrLeE7",
+     "mode": "list",
+     "cachedResultName": "patreon_sessions",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/lpvCd8nOjLWrLeE7"
+    },
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "key",
+       "keyValue": "={{ $json.sessionKey }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "val-sess",
+   "name": "Validate Session & Check Expiration",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -940,
+    0
+   ],
+   "parameters": {
+    "jsCode": "const input = $('Session Validation Node').first().json;\nconst sessions = $input.all().map(i => i.json);\nconst sessionData = sessions && sessions.length > 0 ? sessions[0] : null;\nif (!sessionData || !sessionData.key) return [{ json: { authorized: false, error: 'SESSION_NOT_FOUND', message: 'Session expired or invalid.', requiresAuth: true } }];\nconst now = new Date();\nconst expiresAt = new Date(sessionData.expires_at);\nif (expiresAt < now) return [{ json: { authorized: false, error: 'SESSION_EXPIRED', message: 'Your session has expired.', requiresAuth: true } }];\nconst isSuperuser = sessionData.superuser === true;\nconst tier = sessionData.tier ? String(sessionData.tier).trim() : '';\nreturn [{ json: { authorized: true, sessionEmail: sessionData.email, sessionTier: tier, sessionIsSuperuser: isSuperuser, sessionKey: sessionData.key, ...input } }];"
+   }
+  },
+  {
+   "id": "if-auth",
+   "name": "IF: Is Authorized?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    -720,
+    0
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "auth-check-condition",
+       "leftValue": "={{ $json.authorized }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "build-unauth",
+   "name": "Build Unauthorized Response",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -500,
+    200
+   ],
+   "parameters": {
+    "jsCode": "const error = $json.error || 'UNAUTHORIZED';\nconst message = $json.message || 'You are not authorized to access this feature.';\nconst requiresAuth = $json.requiresAuth === true;\nconst rateLimitExceeded = $json.rateLimitExceeded === true;\nreturn [{ json: { ok: false, error, message, requiresAuth, rateLimitExceeded, ...(rateLimitExceeded ? { currentUsage: $json.currentUsage, limit: $json.limit, tier: $json.tier, resetDate: $json.resetDate, upgradeUrl: $json.upgradeUrl } : {}), authUrl: requiresAuth ? 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login' : undefined } }];"
+   }
+  },
+  {
+   "id": "resp-401",
+   "name": "Respond: 401 Unauthorized",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    -280,
+    200
+   ],
+   "parameters": {
+    "options": {
+     "responseCode": 401,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook: /webhook/pf2e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "rate-prep",
+   "name": "Rate Limit: Prepare Check",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -500,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const PATREON_CAMPAIGN_ID='9988159';\nconst PATREON_CREATOR_TOKEN='4YdoFngay8oKRuXgwN8Wso2YmLdGuAfoxgfGMi6nvEc';\nconst email=($json.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=($json.sessionKey||'').trim();\nconst sessionTier=($json.sessionTier||'').toLowerCase().trim();\nconst isSuperuser=$json.sessionIsSuperuser===true;\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nif(isSuperuser){const currentMonth=new Date().toISOString().substring(0,7);const compositeKey=lookupKey+'::'+currentMonth;return [{json:{...($json),sessionTier:'superuser',_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit:TIER_LIMITS['superuser'],tier:'superuser'}}}];}\nlet tier=sessionTier;\ntry{\n  const url='https://www.patreon.com/api/oauth2/v2/campaigns/'+PATREON_CAMPAIGN_ID+'/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=500';\n  const resp=await $helpers.httpRequest({method:'GET',url,headers:{Authorization:'Bearer '+PATREON_CREATOR_TOKEN}});\n  const tierMap={};\n  for(const inc of(resp.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n  const member=(resp.data||[]).find(m=>(m.attributes.email||'').toLowerCase()===email);\n  if(member){\n    const tierIds=member.relationships?.currently_entitled_tiers?.data||[];\n    const tierNames=tierIds.map(t=>tierMap[t.id]).filter(Boolean);\n    const paidTier=tierNames.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    const liveTier=(paidTier||'').toLowerCase();\n    if(member.attributes.patron_status==='active_patron'&&liveTier)tier=liveTier;\n    else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:'free';}\n  }else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:(sessionTier||'free');}\n}catch(e){tier=sessionTier||'free';}\nlet monthlyLimit=TIER_LIMITS.hasOwnProperty(tier)?TIER_LIMITS[tier]:25;\nif(!tier||tier==='free'||tier==='')monthlyLimit=3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nconst compositeKey=lookupKey+'::'+currentMonth;\nreturn [{json:{...($json),sessionTier:tier,_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
+   }
+  },
+  {
+   "id": "dt-usage",
+   "name": "Get row(s)",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -280,
+    -100
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "value": "Y1GdmWbjIPOnDzeD",
+     "mode": "list",
+     "cachedResultName": "patreon_usage",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "session_key",
+       "keyValue": "={{ $json._rateLimitCheck.sessionKey }}"
+      }
+     ]
+    },
+    "limit": 1
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "rate-val",
+   "name": "Rate Limit: Validate",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -60,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const STORE_COST=7;\nconst rateLimitData=$('Rate Limit: Prepare Check').first().json._rateLimitCheck;\nconst monthlyLimit=rateLimitData.monthlyLimit;\nconst tier=rateLimitData.tier;\nconst usageRecords=$input.all().map(i=>i.json);\nconst usageData=usageRecords&&usageRecords.length>0?usageRecords[0]:null;\nconst currentCount=usageData?.npc_count||0;\nif(currentCount+STORE_COST>monthlyLimit){\n  const resetDate=new Date();resetDate.setMonth(resetDate.getMonth()+1);resetDate.setDate(1);resetDate.setHours(0,0,0,0);\n  return [{json:{ok:false,rateLimitExceeded:true,error:'RATE_LIMIT_EXCEEDED',message:'A store generation costs '+STORE_COST+' uses. You have used '+currentCount+' of your '+monthlyLimit+' monthly uses for the \"'+(tier||'free')+'\" tier, which is not enough for another store. Resets on '+resetDate.toLocaleDateString()+'.',currentUsage:currentCount,limit:monthlyLimit,tier,resetDate:resetDate.toISOString(),upgradeUrl:'https://www.patreon.com/c/CelestiaTools/membership'}}];\n}\nconst originalData=$('Rate Limit: Prepare Check').first().json;\nreturn [{json:{...originalData,_rateLimitCheck:{...rateLimitData,currentCount,usageRecordExists:!!usageData,usageRecordId:usageData?.id||null}}}];"
+   }
+  },
+  {
+   "id": "if-rate",
+   "name": "IF: Rate Limit Exceeded?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    160,
+    -100
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "rate-limit-exceeded-condition",
+       "leftValue": "={{ $json.rateLimitExceeded }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "inc-usage",
+   "name": "Increment Usage Counter",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    380,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const STORE_COST=7;\nconst rateLimitValidateData=$('Rate Limit: Validate').first().json;\nconst rateLimitData=rateLimitValidateData._rateLimitCheck;\nconst compositeKey=rateLimitData.sessionKey;\nconst currentMonth=rateLimitData.currentMonth;\nconst currentCount=rateLimitData.currentCount||0;\nconst now=new Date().toISOString();\nreturn [{json:{...rateLimitValidateData,session_key:compositeKey,month:currentMonth,npc_count:currentCount+STORE_COST,last_created:now,_usageUpdate:{session_key:compositeKey,month:currentMonth,npc_count:currentCount+STORE_COST,last_created:now}}}];"
+   }
+  },
+  {
+   "id": "dt-upsert",
+   "name": "Upsert Usage Row",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    600,
+    -20
+   ],
+   "parameters": {
+    "operation": "upsert",
+    "dataTableId": {
+     "__rl": true,
+     "value": "Y1GdmWbjIPOnDzeD",
+     "mode": "list",
+     "cachedResultName": "patreon_usage",
+     "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "session_key",
+       "keyValue": "={{ $json.session_key }}"
+      }
+     ]
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "session_key": "={{ $json.session_key }}",
+      "month": "={{ $json.month }}",
+      "npc_count": "={{ $json.npc_count }}",
+      "last_created": "={{ $json.last_created }}"
+     },
+     "matchingColumns": [
+      "session_key"
+     ],
+     "schema": [
+      {
+       "id": "session_key",
+       "displayName": "session_key",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "month",
+       "displayName": "month",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "npc_count",
+       "displayName": "npc_count",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "last_created",
+       "displayName": "last_created",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ],
+     "attemptToConvertTypes": false,
+     "convertFieldsToString": false
+    }
+   }
+  },
+  {
+   "id": "restore-ctx",
+   "name": "Restore Request Context",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    820,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const originalData = $('Increment Usage Counter').first()?.json;\nif (!originalData || !originalData.body) throw new Error('Could not restore request context: Increment Usage Counter data missing');\nreturn [{ json: originalData }];"
+   }
+  },
+  {
+   "id": "prep-input",
+   "name": "Prep Store Input",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "let input = $json;\nif (Array.isArray(input)) input = input[0];\nif (input?.body) input = input.body;\nconst name           = String(input.name || 'Generated Store').trim();\nconst storeType      = String(input.storeType || 'general').trim().toLowerCase();\nconst level          = Number.isFinite(Number(input.level)) ? Math.max(0, Math.min(20, Math.trunc(Number(input.level)))) : 1;\nconst settlementSize = String(input.settlementSize || 'town').trim().toLowerCase();\nconst description    = String(input.description || '').trim();\nconst VALID_TYPES = new Set(['general','blacksmith','armorer','alchemist','magic','jeweler','fletcher','tavern']);\nconst VALID_SIZES = new Set(['village','town','city','metropolis']);\nif (!VALID_TYPES.has(storeType)) throw new Error(`Invalid storeType: ${storeType}`);\nif (!VALID_SIZES.has(settlementSize)) throw new Error(`Invalid settlementSize: ${settlementSize}`);\nif (!description) throw new Error('Missing required field: description');\nreturn [{ json: { name, storeType, level, settlementSize, description, _prepSuccess: true } }];"
+   }
+  },
+  {
+   "id": "build-prompt",
+   "name": "Build Store Prompt",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1260,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "// Build Store Prompt (PF2e) — shopkeeper + stocked inventory in one JSON payload\nconst PRICE_BAND = {\"0\":{min:0,typical:5,max:5},\"1\":{min:10,typical:15,max:20},\"2\":{min:25,typical:30,max:35},\"3\":{min:45,typical:55,max:60},\"4\":{min:80,typical:100,max:125},\"5\":{min:140,typical:160,max:200},\"6\":{min:225,typical:250,max:300},\"7\":{min:340,typical:360,max:450},\"8\":{min:475,typical:500,max:650},\"9\":{min:650,typical:700,max:900},\"10\":{min:950,typical:1000,max:1400},\"11\":{min:1400,typical:1500,max:2000},\"12\":{min:2200,typical:2500,max:3000},\"13\":{min:2900,typical:3000,max:4500},\"14\":{min:4400,typical:4500,max:6500},\"15\":{min:6400,typical:6500,max:9500},\"16\":{min:9800,typical:10000,max:15000},\"17\":{min:15000,typical:15000,max:24000},\"18\":{min:23000,typical:24000,max:40000},\"19\":{min:40000,typical:40000,max:70000},\"20\":{min:70000,typical:70000,max:150000}};\nconst ITEM_COUNT = { village: 6, town: 8, city: 10, metropolis: 12 };\nconst STOCK_GUIDE = {\n  general:    'everyday adventuring gear, tools, rope, rations, lanterns, packs; mostly mundane equipment and consumables',\n  blacksmith: 'weapons (swords, axes, hammers, polearms), a few pieces of ammunition or weapon-adjacent gear; mostly weapon type',\n  armorer:    'armor of various categories and shields; armor and shield types',\n  alchemist:  'elixirs, potions, oils, poisons, alchemical bombs, mutagens; almost all consumable type',\n  magic:      'wondrous equipment, wands, scrolls, talismans, magical trinkets; equipment and consumable types with the magical trait',\n  jeweler:    'jewelry, gems, art objects, curiosities; treasure and equipment types',\n  fletcher:   'bows, crossbows, arrows, bolts, quivers; weapon and equipment types',\n  tavern:     'food, drink, lodging tokens, house specialties, a couple of quirky curios; consumable and treasure types, all low level',\n};\nconst { name, storeType, level, settlementSize, description } = $json;\nconst count = ITEM_COUNT[settlementSize] || 8;\nconst band = PRICE_BAND[String(Math.min(20, Math.max(0, level)))];\nconst lowLevel = Math.max(0, level - 2);\nconst showcaseLevel = Math.min(20, level + 1);\n\nconst SYSTEM_PROMPT = 'You are a PF2e Foundry VTT store designer. Return STRICT JSON only (no markdown, no prose, no code fences).\\n' +\n  'Target system: Foundry VTT pf2e, Remaster era.\\n\\n' +\n  'TOP-LEVEL SHAPE:\\n' +\n  '{\\n' +\n  '  \"name\": \"<store name>\",\\n' +\n  '  \"storeType\": \"' + storeType + '\",\\n' +\n  '  \"settlementSize\": \"' + settlementSize + '\",\\n' +\n  '  \"description\": \"<1-2 paragraphs of store flavour: the building, atmosphere, smells, clientele. PLAIN TEXT, no HTML>\",\\n' +\n  '  \"owner\": { \"name\": \"<shopkeeper name>\", \"ancestry\": \"<PF2e ancestry>\", \"description\": \"<2-3 sentences: personality, appearance, a mannerism, a hook>\" },\\n' +\n  '  \"inventory\": [ <exactly ' + count + ' complete Foundry PF2e item objects> ]\\n' +\n  '}\\n\\n' +\n  'EACH INVENTORY ITEM SHAPE: { \"name\", \"type\", \"img\": \"icons/svg/item-bag.svg\", \"system\": {...} }\\n' +\n  'Valid item types: weapon, armor, shield, equipment, consumable, treasure, backpack, book.\\n\\n' +\n  'UNIVERSAL SYSTEM FIELDS (every item):\\n' +\n  '- system.description = { \"value\": \"<p>...</p>\" } (HTML, 1 short paragraph, concrete numeric effects for magic items)\\n' +\n  '- system.level = { \"value\": <int> }\\n' +\n  '- system.traits = { \"value\": [<slugs>], \"rarity\": \"common\"|\"uncommon\"|\"rare\", \"otherTags\": [] }\\n' +\n  '- system.price = { \"value\": { \"gp\": N } } (use \"sp\"/\"cp\" keys for cheap goods)\\n' +\n  '- system.bulk = { \"value\": <number> } (0 negligible, 0.1 Light)\\n' +\n  '- system.quantity = 1 (or a realistic stack for ammo/rations)\\n' +\n  '- system.size = \"med\"\\n' +\n  '- system.publication = { \"title\": \"JamesCfer\", \"license\": \"ORC\", \"remaster\": true }\\n\\n' +\n  'TYPE NOTES:\\n' +\n  '- weapon: system.category (\"simple\"|\"martial\"|\"advanced\"), system.group (sword/axe/bow/...), system.damage { \"dice\": 1, \"die\": \"d4\"..\"d12\", \"damageType\": <remaster type>, \"modifier\": 0 }, system.runes { \"potency\": 0-3, \"striking\": 0-3, \"property\": [] }, system.usage { \"value\": \"held-in-one-hand\" }\\n' +\n  '- armor: system.category (\"light\"|\"medium\"|\"heavy\"), system.acBonus, dexCap, checkPenalty, speedPenalty, system.runes { \"potency\": 0-3, \"resilient\": 0-3, \"property\": [] }\\n' +\n  '- shield: system.acBonus, hardness, hp { \"value\", \"max\" }, system.runes { \"reinforcing\": 0-5 }\\n' +\n  '- equipment: system.usage { \"value\": \"worn\"|\"wornring\"|\"wornamulet\"|\"held-in-one-hand\" }\\n' +\n  '- consumable: system.category (\"potion\"|\"elixir\"|\"oil\"|\"scroll\"|\"talisman\"|\"poison\"|\"snare\"|\"drug\"|\"other\"), system.uses { \"value\": 1, \"max\": 1, \"autoDestroy\": true }\\n' +\n  '- treasure: system.stackGroup (\"gems\"|\"coins\"|null)\\n\\n' +\n  'REMASTER DAMAGE TYPES ONLY: bludgeoning, piercing, slashing, bleed, acid, cold, electricity, fire, sonic, force, vitality, void, mental, poison, spirit.\\n' +\n  'Magical items MUST include \"magical\" in traits.value. Runes only on items of level 2+ (potency 1 needs L2+, potency 2 needs L10+, striking needs L4+).\\n' +\n  'FORBIDDEN PHRASES: \"GM\\'s discretion\", \"at the GM\\'s option\", \"the GM may decide\", \"an unspecified benefit\", \"as appropriate\".\\n\\n' +\n  'STOCK LEVEL RULES:\\n' +\n  '- Typical stock level: ' + level + '. Most items should be level ' + lowLevel + '-' + level + '.\\n' +\n  '- Include exactly ONE showcase item at level ' + showcaseLevel + ' — the shop\\'s prize piece.\\n' +\n  '- Mundane staples (level 0) are welcome filler for general/tavern/fletcher stock.\\n' +\n  '- Level-' + level + ' items are typically priced around ' + band.min + '-' + band.max + ' gp; scale other items to their own level sensibly (L0 items cost silver/coppers to a few gp).\\n' +\n  '- No anachronisms, no modern names, no guns unless the description asks.';\n\nconst USER_PROMPT = 'Design a complete PF2e store for Foundry VTT.\\n\\n' +\n  'REQUEST:\\n' +\n  '- Store name: ' + name + '\\n' +\n  '- Store type: ' + STOCK_GUIDE[storeType] + '\\n' +\n  '- Typical stock level: ' + level + '\\n' +\n  '- Settlement: ' + settlementSize + ' (stock exactly ' + count + ' items)\\n' +\n  '- Description: ' + description + '\\n\\n' +\n  'DESIGN STEPS:\\n' +\n  '1. SHOPKEEPER: a memorable owner fitting the description (name, ancestry, 2-3 sentence sketch).\\n' +\n  '2. FLAVOUR: 1-2 paragraphs describing the store itself.\\n' +\n  '3. INVENTORY: exactly ' + count + ' items matching the stock guide, levels ' + lowLevel + '-' + level + ' plus one showcase at ' + showcaseLevel + '. Vary the types. Every magic item needs the \"magical\" trait and concrete numeric effects.\\n' +\n  '4. Every item gets system.publication.title = \"JamesCfer\".\\n\\n' +\n  'Return ONLY the JSON object.';\n\nreturn [{ json: { ...$json, system: SYSTEM_PROMPT, user: USER_PROMPT, _targetCount: count } }];"
+   }
+  },
+  {
+   "id": "writer",
+   "name": "Store Writer",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "typeVersion": 1.8,
+   "position": [
+    1480,
+    -20
+   ],
+   "parameters": {
+    "modelId": {
+     "__rl": true,
+     "value": "gpt-5.4-mini",
+     "mode": "list",
+     "cachedResultName": "GPT-5.4-MINI"
+    },
+    "messages": {
+     "values": [
+      {
+       "content": "={{$json.system}}",
+       "role": "system"
+      },
+      {
+       "content": "={{$json.user}}"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "credentials": {
+    "openAiApi": {
+     "id": "W5Uo8HDaFEFTOL9c",
+     "name": "OpenAi account"
+    }
+   }
+  },
+  {
+   "id": "assemble",
+   "name": "Parse & Assemble Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1700,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "// Parse & Assemble Store (PF2e) — normalize the LLM payload into a safe store object\nfunction safeParse(raw) {\n  if (!raw) return null;\n  if (typeof raw === 'object') return raw;\n  try { let s = String(raw).trim(); if (s.startsWith('```')) s = s.replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''); return JSON.parse(s); } catch { return null; }\n}\nconst prepInput = $('Prep Store Input').first().json;\nconst { name, storeType, level, settlementSize, description } = prepInput;\nconst raw = $json.message?.content ?? $json.completion ?? $json.text ?? null;\nconst parsed = safeParse(raw);\n\nconst VALID_TYPES = new Set(['weapon','armor','shield','equipment','consumable','treasure','backpack','book']);\nconst VALID_RARITY = new Set(['common','uncommon','rare','unique']);\nconst VALID_DAMAGE = new Set(['bludgeoning','piercing','slashing','bleed','acid','cold','electricity','fire','sonic','force','vitality','void','mental','poison','spirit','untyped']);\nconst DAMAGE_REMAP = { positive:'vitality', negative:'void', necrotic:'void', radiant:'vitality', good:'spirit', evil:'spirit', lawful:'spirit', chaotic:'spirit', thunder:'sonic', lightning:'electricity', psychic:'mental', physical:'bludgeoning', magic:'force' };\nfunction toInt(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : fb; }\nfunction clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }\n\nconst warnings = [];\nif (!parsed) warnings.push('LLM output unparseable');\nconst base = parsed && typeof parsed === 'object' ? parsed : {};\nconst owner = (base.owner && typeof base.owner === 'object') ? base.owner : (base.shopkeeper && typeof base.shopkeeper === 'object') ? base.shopkeeper : null;\n\nconst rawInventory = Array.isArray(base.inventory) ? base.inventory : Array.isArray(base.items) ? base.items : [];\nconst MAX_ITEMS = 14;\nconst inventory = [];\nfor (const rawItem of rawInventory.slice(0, MAX_ITEMS)) {\n  if (!rawItem || typeof rawItem !== 'object') continue;\n  const sys = (rawItem.system && typeof rawItem.system === 'object') ? rawItem.system : {};\n  const type = VALID_TYPES.has(String(rawItem.type||'').toLowerCase()) ? String(rawItem.type).toLowerCase() : 'equipment';\n  const item = { name: String(rawItem.name || 'Unnamed Item').slice(0, 120), type, img: String(rawItem.img || 'icons/svg/item-bag.svg'), system: sys };\n  const s = item.system;\n  const rawDesc = s.description?.value ?? s.description ?? '';\n  s.description = { value: typeof rawDesc === 'string' ? rawDesc : String(rawDesc || '') };\n  s.level = { value: clamp(toInt(s.level?.value ?? s.level, 0), 0, 25) };\n  const rawTraits = Array.isArray(s.traits?.value) ? s.traits.value : (Array.isArray(s.traits) ? s.traits : []);\n  const rarityRaw = String(s.traits?.rarity || 'common').toLowerCase();\n  s.traits = { value: rawTraits.map(t => String(t).toLowerCase().trim().replace(/\\s+/g,'-')).filter(Boolean), rarity: VALID_RARITY.has(rarityRaw) ? rarityRaw : 'common', otherTags: [] };\n  const rawPrice = s.price?.value ?? s.price ?? {};\n  const price = {};\n  for (const k of ['pp','gp','sp','cp']) { const v = toInt(rawPrice[k], 0); if (v > 0) price[k] = v; }\n  s.price = { value: price };\n  let bulkVal = s.bulk?.value ?? s.bulk ?? 0;\n  if (typeof bulkVal === 'string') { const lower = bulkVal.trim().toLowerCase(); bulkVal = (lower === 'l' || lower === 'light') ? 0.1 : (parseFloat(lower) || 0); }\n  s.bulk = { value: Math.max(0, Number(bulkVal) || 0) };\n  s.quantity = Math.max(1, toInt(s.quantity, 1));\n  s.size = 'med';\n  s.publication = { title: 'JamesCfer', license: 'ORC', remaster: true };\n  if (type === 'weapon' && s.damage && typeof s.damage === 'object') {\n    const dt = String(s.damage.damageType || 'slashing').toLowerCase();\n    s.damage.damageType = VALID_DAMAGE.has(dt) ? dt : (DAMAGE_REMAP[dt] || 'slashing');\n    s.damage.dice = clamp(toInt(s.damage.dice, 1), 1, 4);\n    s.damage.modifier = toInt(s.damage.modifier, 0);\n  }\n  if (type === 'consumable' && !s.traits.value.includes('consumable')) s.traits.value.push('consumable');\n  inventory.push(item);\n}\n\nconst store = {\n  name: String(base.name || name || 'Generated Store').slice(0, 120),\n  storeType,\n  settlementSize,\n  description: String(base.description || description || '').slice(0, 4000),\n  owner: owner ? { name: String(owner.name || 'Shopkeeper').slice(0, 120), ancestry: String(owner.ancestry || owner.race || '').slice(0, 60), description: String(owner.description || '').slice(0, 2000) } : null,\n  inventory,\n};\nconsole.log('[Assemble Store] \"' + store.name + '\" ' + storeType + '/' + settlementSize + ' items=' + inventory.length + ' warnings=' + warnings.length);\nreturn [{ json: { ...prepInput, store, _warnings: warnings, _assembled: true } }];"
+   }
+  },
+  {
+   "id": "audit",
+   "name": "Audit Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1920,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const prep = $('Prep Store Input').first().json;\nconst upstream = $json;\nconst store = upstream.store || {};\nconst targetCount = $('Build Store Prompt').first().json._targetCount || 8;\nconst issues = [];\nif (upstream._warnings && upstream._warnings.includes('LLM output unparseable')) issues.push('Prior output was not valid JSON. Return strictly valid JSON this time.');\nconst inv = Array.isArray(store.inventory) ? store.inventory : [];\nif (inv.length < Math.ceil(targetCount * 0.6)) issues.push('Inventory has only ' + inv.length + ' items but the request asked for ' + targetCount + '. Provide the full inventory.');\nif (!store.owner || !store.owner.name || store.owner.name === 'Shopkeeper') issues.push('Missing shopkeeper: provide owner with a proper name and a 2-3 sentence description.');\nif (!store.description || store.description.length < 60) issues.push('Store description is missing or too short. Provide 1-2 flavourful paragraphs.');\nconst FORBIDDEN = [\"gm's discretion\", \"gms discretion\", \"at the gm's option\", \"the gm may decide\", \"an unspecified benefit\", \"an unspecified bonus\", \"as appropriate\"];\nconst allText = (String(store.description||'') + ' ' + inv.map(i => String(i.system?.description?.value||'')).join(' ')).toLowerCase();\nfor (const phrase of FORBIDDEN) if (allText.includes(phrase)) issues.push('Text contains forbidden phrase: \"' + phrase + '\"');\nconst unnamed = inv.filter(i => !i.name || i.name === 'Unnamed Item').length;\nif (unnamed > 0) issues.push(unnamed + ' inventory item(s) are missing names.');\nconst noDesc = inv.filter(i => !i.system?.description?.value).length;\nif (noDesc > Math.ceil(inv.length / 3)) issues.push(noDesc + ' inventory item(s) have empty descriptions. Every item needs at least one sentence.');\nconst passed = issues.length === 0;\nconsole.log('[Audit Store] \"' + (store.name || 'unknown') + '\" audit=' + (passed ? 'PASS' : 'FAIL') + ' issues=' + issues.length);\nfor (const i of issues) console.log('  - ' + i);\nreturn [{ json: { ...upstream, _auditPassed: passed, _auditIssues: issues } }];"
+   }
+  },
+  {
+   "id": "if-audit",
+   "name": "IF: Audit Passed?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    2140,
+    -20
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "audit-passed-condition",
+       "leftValue": "={{ $json._auditPassed }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "upgrade-prompt",
+   "name": "Build Upgrade Prompt",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2140,
+    220
+   ],
+   "parameters": {
+    "jsCode": "const prep = $('Prep Store Input').first().json;\nconst { name, storeType, level, settlementSize, description } = prep;\nconst upstream = $json;\nconst store = upstream.store || {};\nconst issues = upstream._auditIssues || [];\nconst priorSummary = JSON.stringify({ name: store.name, owner: store.owner, description: (store.description||'').slice(0,300), inventory: (store.inventory||[]).map(i => ({ name: i.name, type: i.type, level: i.system?.level?.value, price: i.system?.price?.value })) }, null, 2);\nconst issueList = issues.map((v, i) => (i + 1) + '. ' + v).join('\\n');\nconst SYSTEM_PROMPT = 'You are a PF2e Foundry VTT store designer performing a CORRECTION PASS.\\n\\nYou previously generated a store that failed automated checks. Produce a CORRECTED version that:\\n1. Keeps the same store name, type, theme, and shopkeeper (unless an issue says otherwise).\\n2. Fixes every issue listed below.\\n3. Returns STRICT JSON only with the exact same top-level shape as before: { name, storeType, settlementSize, description, owner: { name, ancestry, description }, inventory: [complete Foundry PF2e item objects] }.\\n\\nKey rules: every item has name/type/img/system with description, level, traits (magical items include \"magical\"), price { value: { gp } }, bulk, quantity, size \"med\", publication.title \"JamesCfer\". Remaster damage types only. No GM-discretion language.\\n\\nReturn ONLY the corrected JSON object.';\nconst USER_PROMPT = 'ORIGINAL REQUEST:\\n- Store name: ' + name + '\\n- Store type: ' + storeType + '\\n- Typical stock level: ' + level + '\\n- Settlement: ' + settlementSize + '\\n- Description: ' + description + '\\n\\nYOUR PRIOR OUTPUT (abbreviated):\\n' + priorSummary + '\\n\\nISSUES TO FIX (fix ALL):\\n' + issueList + '\\n\\nProduce the corrected full store JSON, including COMPLETE item objects for the whole inventory. Return ONLY the JSON.';\nreturn [{ json: { ...upstream, system: SYSTEM_PROMPT, user: USER_PROMPT } }];"
+   }
+  },
+  {
+   "id": "writer2",
+   "name": "Store Upgrader",
+   "type": "@n8n/n8n-nodes-langchain.openAi",
+   "typeVersion": 1.8,
+   "position": [
+    2360,
+    220
+   ],
+   "parameters": {
+    "modelId": {
+     "__rl": true,
+     "value": "gpt-5.4-mini",
+     "mode": "list",
+     "cachedResultName": "GPT-5.4-MINI"
+    },
+    "messages": {
+     "values": [
+      {
+       "content": "={{$json.system}}",
+       "role": "system"
+      },
+      {
+       "content": "={{$json.user}}"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "credentials": {
+    "openAiApi": {
+     "id": "W5Uo8HDaFEFTOL9c",
+     "name": "OpenAi account"
+    }
+   }
+  },
+  {
+   "id": "reassemble",
+   "name": "Parse & Re-assemble Store",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2580,
+    220
+   ],
+   "parameters": {
+    "jsCode": "// Parse & Assemble Store (PF2e) — normalize the LLM payload into a safe store object\nfunction safeParse(raw) {\n  if (!raw) return null;\n  if (typeof raw === 'object') return raw;\n  try { let s = String(raw).trim(); if (s.startsWith('```')) s = s.replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''); return JSON.parse(s); } catch { return null; }\n}\nconst prepInput = $('Prep Store Input').first().json;\nconst { name, storeType, level, settlementSize, description } = prepInput;\nconst raw = $json.message?.content ?? $json.completion ?? $json.text ?? null;\nconst parsed = safeParse(raw);\n\nconst VALID_TYPES = new Set(['weapon','armor','shield','equipment','consumable','treasure','backpack','book']);\nconst VALID_RARITY = new Set(['common','uncommon','rare','unique']);\nconst VALID_DAMAGE = new Set(['bludgeoning','piercing','slashing','bleed','acid','cold','electricity','fire','sonic','force','vitality','void','mental','poison','spirit','untyped']);\nconst DAMAGE_REMAP = { positive:'vitality', negative:'void', necrotic:'void', radiant:'vitality', good:'spirit', evil:'spirit', lawful:'spirit', chaotic:'spirit', thunder:'sonic', lightning:'electricity', psychic:'mental', physical:'bludgeoning', magic:'force' };\nfunction toInt(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? Math.trunc(n) : fb; }\nfunction clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }\n\nconst warnings = [];\nif (!parsed) warnings.push('LLM output unparseable');\nconst base = parsed && typeof parsed === 'object' ? parsed : {};\nconst owner = (base.owner && typeof base.owner === 'object') ? base.owner : (base.shopkeeper && typeof base.shopkeeper === 'object') ? base.shopkeeper : null;\n\nconst rawInventory = Array.isArray(base.inventory) ? base.inventory : Array.isArray(base.items) ? base.items : [];\nconst MAX_ITEMS = 14;\nconst inventory = [];\nfor (const rawItem of rawInventory.slice(0, MAX_ITEMS)) {\n  if (!rawItem || typeof rawItem !== 'object') continue;\n  const sys = (rawItem.system && typeof rawItem.system === 'object') ? rawItem.system : {};\n  const type = VALID_TYPES.has(String(rawItem.type||'').toLowerCase()) ? String(rawItem.type).toLowerCase() : 'equipment';\n  const item = { name: String(rawItem.name || 'Unnamed Item').slice(0, 120), type, img: String(rawItem.img || 'icons/svg/item-bag.svg'), system: sys };\n  const s = item.system;\n  const rawDesc = s.description?.value ?? s.description ?? '';\n  s.description = { value: typeof rawDesc === 'string' ? rawDesc : String(rawDesc || '') };\n  s.level = { value: clamp(toInt(s.level?.value ?? s.level, 0), 0, 25) };\n  const rawTraits = Array.isArray(s.traits?.value) ? s.traits.value : (Array.isArray(s.traits) ? s.traits : []);\n  const rarityRaw = String(s.traits?.rarity || 'common').toLowerCase();\n  s.traits = { value: rawTraits.map(t => String(t).toLowerCase().trim().replace(/\\s+/g,'-')).filter(Boolean), rarity: VALID_RARITY.has(rarityRaw) ? rarityRaw : 'common', otherTags: [] };\n  const rawPrice = s.price?.value ?? s.price ?? {};\n  const price = {};\n  for (const k of ['pp','gp','sp','cp']) { const v = toInt(rawPrice[k], 0); if (v > 0) price[k] = v; }\n  s.price = { value: price };\n  let bulkVal = s.bulk?.value ?? s.bulk ?? 0;\n  if (typeof bulkVal === 'string') { const lower = bulkVal.trim().toLowerCase(); bulkVal = (lower === 'l' || lower === 'light') ? 0.1 : (parseFloat(lower) || 0); }\n  s.bulk = { value: Math.max(0, Number(bulkVal) || 0) };\n  s.quantity = Math.max(1, toInt(s.quantity, 1));\n  s.size = 'med';\n  s.publication = { title: 'JamesCfer', license: 'ORC', remaster: true };\n  if (type === 'weapon' && s.damage && typeof s.damage === 'object') {\n    const dt = String(s.damage.damageType || 'slashing').toLowerCase();\n    s.damage.damageType = VALID_DAMAGE.has(dt) ? dt : (DAMAGE_REMAP[dt] || 'slashing');\n    s.damage.dice = clamp(toInt(s.damage.dice, 1), 1, 4);\n    s.damage.modifier = toInt(s.damage.modifier, 0);\n  }\n  if (type === 'consumable' && !s.traits.value.includes('consumable')) s.traits.value.push('consumable');\n  inventory.push(item);\n}\n\nconst store = {\n  name: String(base.name || name || 'Generated Store').slice(0, 120),\n  storeType,\n  settlementSize,\n  description: String(base.description || description || '').slice(0, 4000),\n  owner: owner ? { name: String(owner.name || 'Shopkeeper').slice(0, 120), ancestry: String(owner.ancestry || owner.race || '').slice(0, 60), description: String(owner.description || '').slice(0, 2000) } : null,\n  inventory,\n};\nconsole.log('[Assemble Store] \"' + store.name + '\" ' + storeType + '/' + settlementSize + ' items=' + inventory.length + ' warnings=' + warnings.length);\nreturn [{ json: { ...prepInput, store, _warnings: warnings, _assembled: true, _upgraded: true } }];"
+   }
+  },
+  {
+   "id": "build-resp",
+   "name": "Build Response",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2400,
+    -100
+   ],
+   "parameters": {
+    "jsCode": "const store = $json.store;\nconst itemCount = (store?.inventory || []).length;\nreturn [{ json: { ok: true, name: store?.name, storeType: store?.storeType, itemCount, warnings: $json._warnings || [], store, message: 'Store \"' + (store?.name || 'store') + '\" generated with ' + itemCount + ' items' } }];"
+   }
+  },
+  {
+   "id": "resp-200",
+   "name": "Respond to Webhook",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    2620,
+    -100
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ $json }}",
+    "options": {
+     "responseCode": 200,
+     "responseHeaders": {
+      "entries": [
+       {
+        "name": "Access-Control-Allow-Origin",
+        "value": "={{ $('Webhook: /webhook/pf2e-store-builder').first().json.headers.origin || '*' }}"
+       },
+       {
+        "name": "Access-Control-Allow-Methods",
+        "value": "POST, OPTIONS"
+       },
+       {
+        "name": "Access-Control-Allow-Headers",
+        "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "disc-prep",
+   "name": "Prep for Discord",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2400,
+    60
+   ],
+   "parameters": {
+    "jsCode": "const MAX = 1900;\nfunction slugify(s) { return String(s || 'store').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); }\nfunction redact(obj) {\n  const SENSITIVE = new Set(['access_token','refresh_token','id_token','client_secret','authorization','cookie','cookies','set-cookie','password','token','secret']);\n  const seen = new WeakSet();\n  const walk = (v) => { if (v === null || typeof v !== 'object') return v; if (seen.has(v)) return '[CIRCULAR]'; seen.add(v); if (Array.isArray(v)) return v.map(walk); const o = {}; for (const [k, val] of Object.entries(v)) { const key = String(k).toLowerCase(); o[k] = SENSITIVE.has(key) ? '[REDACTED]' : walk(val); } return o; };\n  return walk(obj);\n}\nconst data = $json || {};\nconst store = data.store ?? data;\nconst storeName = store?.name || 'Unnamed Store';\nconst itemCount = (store?.inventory || []).length;\nconst title = `PF2e Store — ${storeName} (${store?.storeType || 'store'}, ${itemCount} items)`;\nlet body;\ntry { body = JSON.stringify(redact(store), null, 2); }\ncatch (e) { body = JSON.stringify({ error: 'Serialization failed', message: String(e) }); }\nconst fileName = `${slugify(storeName)}.json`;\nconst b64 = Buffer.from(String(body), 'utf8').toString('base64');\nreturn [{ json: { ...data, content: `**${title}** (JSON attached)`, _hasFile: true }, binary: { file: { data: b64, fileName, mimeType: 'application/json' } } }];"
+   }
+  },
+  {
+   "id": "if-file",
+   "name": "Has File?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2.3,
+   "position": [
+    2620,
+    60
+   ],
+   "parameters": {
+    "conditions": {
+     "options": {
+      "version": 2,
+      "leftValue": "",
+      "caseSensitive": true,
+      "typeValidation": "strict"
+     },
+     "conditions": [
+      {
+       "id": "has-file-check",
+       "leftValue": "={{ $json._hasFile }}",
+       "rightValue": "",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       }
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   }
+  },
+  {
+   "id": "disc-send",
+   "name": "Send to Discord",
+   "type": "n8n-nodes-base.discord",
+   "typeVersion": 2,
+   "position": [
+    2840,
+    60
+   ],
+   "parameters": {
+    "resource": "message",
+    "guildId": {
+     "__rl": true,
+     "value": "853532551784431616",
+     "mode": "list",
+     "cachedResultName": "Celestia"
+    },
+    "channelId": {
+     "__rl": true,
+     "value": "982754114901512212",
+     "mode": "list",
+     "cachedResultName": "jane"
+    },
+    "content": "={{ $json.content }}",
+    "options": {}
+   },
+   "credentials": {
+    "discordBotApi": {
+     "id": "v845fBzdtlCbenJa",
+     "name": "Discord Bot account"
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Webhook OPTIONS pf2e-store-builder": {
+   "main": [
+    [
+     {
+      "node": "IF OPTIONS Preflight",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF OPTIONS Preflight": {
+   "main": [
+    [
+     {
+      "node": "Respond CORS Preflight",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Respond CORS Headers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Webhook: /webhook/pf2e-store-builder": {
+   "main": [
+    [
+     {
+      "node": "Session Validation Node",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Session Validation Node": {
+   "main": [
+    [
+     {
+      "node": "Data Table: Lookup Session",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Data Table: Lookup Session": {
+   "main": [
+    [
+     {
+      "node": "Validate Session & Check Expiration",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Validate Session & Check Expiration": {
+   "main": [
+    [
+     {
+      "node": "IF: Is Authorized?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Is Authorized?": {
+   "main": [
+    [
+     {
+      "node": "Rate Limit: Prepare Check",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Build Unauthorized Response",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Unauthorized Response": {
+   "main": [
+    [
+     {
+      "node": "Respond: 401 Unauthorized",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rate Limit: Prepare Check": {
+   "main": [
+    [
+     {
+      "node": "Get row(s)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get row(s)": {
+   "main": [
+    [
+     {
+      "node": "Rate Limit: Validate",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Rate Limit: Validate": {
+   "main": [
+    [
+     {
+      "node": "IF: Rate Limit Exceeded?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Rate Limit Exceeded?": {
+   "main": [
+    [
+     {
+      "node": "Build Unauthorized Response",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Increment Usage Counter",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Increment Usage Counter": {
+   "main": [
+    [
+     {
+      "node": "Upsert Usage Row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Upsert Usage Row": {
+   "main": [
+    [
+     {
+      "node": "Restore Request Context",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Restore Request Context": {
+   "main": [
+    [
+     {
+      "node": "Prep Store Input",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prep Store Input": {
+   "main": [
+    [
+     {
+      "node": "Build Store Prompt",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Store Prompt": {
+   "main": [
+    [
+     {
+      "node": "Store Writer",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Store Writer": {
+   "main": [
+    [
+     {
+      "node": "Parse & Assemble Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Parse & Assemble Store": {
+   "main": [
+    [
+     {
+      "node": "Audit Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Audit Store": {
+   "main": [
+    [
+     {
+      "node": "IF: Audit Passed?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "IF: Audit Passed?": {
+   "main": [
+    [
+     {
+      "node": "Build Response",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Prep for Discord",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Build Upgrade Prompt",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Upgrade Prompt": {
+   "main": [
+    [
+     {
+      "node": "Store Upgrader",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Store Upgrader": {
+   "main": [
+    [
+     {
+      "node": "Parse & Re-assemble Store",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Parse & Re-assemble Store": {
+   "main": [
+    [
+     {
+      "node": "Build Response",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Prep for Discord",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Response": {
+   "main": [
+    [
+     {
+      "node": "Respond to Webhook",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Prep for Discord": {
+   "main": [
+    [
+     {
+      "node": "Has File?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Has File?": {
+   "main": [
+    [
+     {
+      "node": "Send to Discord",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}

@@ -10,9 +10,31 @@ import { registerSidebar }      from './core/sidebar.js';
 import { startHeartbeat }       from './core/heartbeat.js';
 import { Storage }              from './core/storage.js';
 import { Dnd5eStoreAdapter }    from './adapter.js';
+import { StoreSheet, getStore, migrateLegacyStore } from './store-sheet.js';
+import { registerStoreSockets } from './transactions.js';
 
 const adapter   = new Dnd5eStoreAdapter();
 const MODULE_ID = adapter.module.id;
+
+// Intercept JournalEntry sheet rendering — journals carrying a store flag
+// open the custom store sheet instead of the stock journal sheet.
+Hooks.on('renderJournalSheet', (app) => {
+  try {
+    const journal = app?.document;
+    if (!journal) return;
+    let store = getStore(journal);
+    if (!store) {
+      store = migrateLegacyStore(journal);
+      if (!store) return;
+      if (game.user.isGM) journal.setFlag(MODULE_ID, 'store', store).catch(() => {});
+    }
+    // Defer the swap so we don't recurse during render.
+    app.close({ submit: false });
+    queueMicrotask(() => new StoreSheet(journal).render(true));
+  } catch (err) {
+    console.error(`[${MODULE_ID}] store sheet swap failed`, err);
+  }
+});
 
 const openFn = () => {
   openBuilder(adapter);
@@ -112,6 +134,7 @@ Hooks.once('ready', () => {
   console.log(`D&D Store Generator ready (version: ${currentVersion}).`);
 
   startHeartbeat(MODULE_ID);
+  registerStoreSockets();
 
   if (game.user.isGM && !game.settings.get(MODULE_ID, 'welcomeMessageShown')) {
     const welcomeContent = `
