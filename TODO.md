@@ -159,9 +159,9 @@ item that has all its dependencies satisfied.
 
 ## F. Diplomacy & nations (83–92)
 - [x] 83. **Relations matrix** — Nation sheet gains a grid: every other Nation → `relation: 'ally|friendly|neutral|cold|hostile'` + numeric score (-100..100). (#107)
-- [x] 84. **Treaty objects** — `treaties: [{ partnerNationId, kind, signedOn, expiresOn, terms }]`; kinds = non-aggression / defensive / trade / vassalage.
-- [x] 85. **Treaty expiry events** — auto-schedule calendar events when treaties expire and fire a chat reminder.
-- [x] 86. **Vassal / suzerain links** — a Nation can list `vassalNationIds[]` or set `suzerainNationId`; aggregated stats roll up.
+- [x] 84. **Treaty objects** — `treaties: [{ partnerNationId, kind, signedOn, expiresOn, terms }]`; kinds = non-aggression / defensive / trade / vassalage. (#112)
+- [x] 85. **Treaty expiry events** — auto-schedule calendar events when treaties expire and fire a chat reminder. (#112)
+- [x] 86. **Vassal / suzerain links** — a Nation can list `vassalNationIds[]` or set `suzerainNationId`; aggregated stats roll up. (#112)
 - [ ] 87. **Claims** — `claims: [{ targetSettlementId, kind: 'historical|dynastic|religious' }]` provide casus-belli filtering.
 - [ ] 88. **Declare war flow** — modal dialog: pick target nation, pick claims, posts a chat card, sets relations to hostile, fires `Pf2eNationsAndCitiesMaker.warDeclared`.
 - [ ] 89. **Peace negotiation dialog** — drag claims into "given up / kept / new" buckets; on accept, writes a treaty and resets relations.
