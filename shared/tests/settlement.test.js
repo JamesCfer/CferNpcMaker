@@ -5,6 +5,7 @@ import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
 import { applyDailyTick, applyFestival, applyTax } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
 import { CURRENT_SCHEMA_VERSION, migrateSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
 import { generateHooks } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/hooks.js';
+import { processTreatyExpiry } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/diplomacy.js';
 import { settlementNoteIcon, settlementNoteTooltip } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/scene-notes.js';
 
 describe('sanitizeSettlement defaults', () => {
@@ -107,6 +108,50 @@ describe('sanitizeSettlement defaults', () => {
     const s = sanitizeSettlement({ relations: [{ nationId: 'nation1', score: 500 }, { nationId: 'nation2', score: -500 }] });
     expect(s.relations[0].score).toBe(100);
     expect(s.relations[1].score).toBe(-100);
+  });
+
+  it('defaults treaties to an empty list (#84)', () => {
+    expect(sanitizeSettlement({}).treaties).toEqual([]);
+  });
+
+  it('sanitizes treaty fields with safe defaults', () => {
+    const s = sanitizeSettlement({
+      treaties: [{ partnerNationId: 'nation1', kind: 'trade', terms: 'open borders',
+        signedOn: { year: 1, month: 2, day: 3 }, expiresOn: { year: 2, month: 3, day: 4 } }],
+    });
+    expect(s.treaties).toHaveLength(1);
+    const t = s.treaties[0];
+    expect(t.partnerNationId).toBe('nation1');
+    expect(t.kind).toBe('trade');
+    expect(t.terms).toBe('open borders');
+    expect(t.signedOn).toEqual({ year: 1, month: 2, day: 3 });
+    expect(t.expiresOn).toEqual({ year: 2, month: 3, day: 4 });
+  });
+
+  it('drops treaty entries without a partnerNationId', () => {
+    expect(sanitizeSettlement({ treaties: [{ kind: 'trade' }] }).treaties).toEqual([]);
+  });
+
+  it('rejects an unknown treaty kind and falls back to non-aggression', () => {
+    const s = sanitizeSettlement({ treaties: [{ partnerNationId: 'nation1', kind: 'friendship' }] });
+    expect(s.treaties[0].kind).toBe('non-aggression');
+  });
+
+  it('defaults a treaty with no expiry to a null expiresOn', () => {
+    const s = sanitizeSettlement({ treaties: [{ partnerNationId: 'nation1' }] });
+    expect(s.treaties[0].expiresOn).toBeNull();
+  });
+
+  it('defaults vassalNationIds to an empty list and suzerainNationId to null (#86)', () => {
+    const s = sanitizeSettlement({});
+    expect(s.vassalNationIds).toEqual([]);
+    expect(s.suzerainNationId).toBeNull();
+  });
+
+  it('preserves valid vassalNationIds and suzerainNationId', () => {
+    const s = sanitizeSettlement({ vassalNationIds: ['nation2', 'nation3'], suzerainNationId: 'nation1' });
+    expect(s.vassalNationIds).toEqual(['nation2', 'nation3']);
+    expect(s.suzerainNationId).toBe('nation1');
   });
 });
 
@@ -429,6 +474,58 @@ describe('migrateSettlement', () => {
     const migrated = migrateSettlement({ _schemaVersion: 5, stores: [{ name: 'The Iron Anvil' }] });
     expect(migrated._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.stores[0].jobs).toEqual([]);
+  });
+
+  it('adds empty treaties/vassalNationIds and a null suzerainNationId when upgrading from schema 6', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 6, kind: 'nation' });
+    expect(migrated._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.treaties).toEqual([]);
+    expect(migrated.vassalNationIds).toEqual([]);
+    expect(migrated.suzerainNationId).toBeNull();
+  });
+});
+
+describe('processTreatyExpiry (#85)', () => {
+  globalThis.ChatMessage = { create: async () => {} };
+  globalThis.game = { users: [], journal: { get: () => null } };
+  globalThis.Hooks = { callAll: () => {} };
+
+  function makeDoc(treaties) {
+    const settlement = { _schemaVersion: CURRENT_SCHEMA_VERSION, kind: 'nation', treaties };
+    let stored = settlement;
+    return {
+      name: 'Test Nation',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('drops a treaty once currentDate reaches its expiresOn', async () => {
+    const doc = makeDoc([{ id: 't1', partnerNationId: 'nation2', kind: 'trade', terms: '', signedOn: null, expiresOn: { year: 1, month: 1, day: 10 } }]);
+    await processTreatyExpiry(doc, doc.getStored(), { year: 1, month: 1, day: 10 });
+    expect(doc.getStored().treaties).toEqual([]);
+  });
+
+  it('keeps a treaty that has not yet reached its expiresOn', async () => {
+    const doc = makeDoc([{ id: 't1', partnerNationId: 'nation2', kind: 'trade', terms: '', signedOn: null, expiresOn: { year: 1, month: 2, day: 1 } }]);
+    await processTreatyExpiry(doc, doc.getStored(), { year: 1, month: 1, day: 10 });
+    expect(doc.getStored().treaties).toHaveLength(1);
+  });
+
+  it('keeps a treaty with no expiry indefinitely', async () => {
+    const doc = makeDoc([{ id: 't1', partnerNationId: 'nation2', kind: 'non-aggression', terms: '', signedOn: null, expiresOn: null }]);
+    await processTreatyExpiry(doc, doc.getStored(), { year: 99, month: 12, day: 31 });
+    expect(doc.getStored().treaties).toHaveLength(1);
+  });
+
+  it('posts a chat reminder for each expired treaty', async () => {
+    const posted = [];
+    globalThis.ChatMessage = { create: async (data) => { posted.push(data); } };
+    const doc = makeDoc([{ id: 't1', partnerNationId: 'nation2', kind: 'defensive', terms: '', signedOn: null, expiresOn: { year: 1, month: 1, day: 1 } }]);
+    await processTreatyExpiry(doc, doc.getStored(), { year: 1, month: 1, day: 1 });
+    expect(posted).toHaveLength(1);
+    expect(posted[0].content).toContain('defensive');
   });
 });
 

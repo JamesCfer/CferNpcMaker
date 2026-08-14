@@ -20,6 +20,7 @@ import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settleme
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
+import { processTreatyExpiry }        from './diplomacy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
 import { settlementNoteIcon, settlementNoteTooltip } from './scene-notes.js';
 import { log }                        from './logger.js';
@@ -521,7 +522,11 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = 
     const journals = game.journal?.contents || [];
     for (const j of journals) {
       const s = getSettlement(j);
-      if (!s || s.kind === 'nation') continue;
+      if (!s) continue;
+      if (s.kind === 'nation') {
+        await processTreatyExpiry(j, s, currentDate);
+        continue;
+      }
       if (s.kind === 'army') {
         if (isContractExpired(s, currentDate)) {
           postMercenaryDisbandChatCard(j);

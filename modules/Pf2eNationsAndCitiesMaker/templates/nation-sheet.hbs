@@ -7,9 +7,9 @@
   </div>
 
   <div class="pf2e-nation-summary">
-    <div class="pf2e-nation-stat"><label>Population (sum)</label><span>{{totals.population}}</span></div>
-    <div class="pf2e-nation-stat"><label>Treasury (sum gp)</label><span>{{totals.treasuryGp}}</span></div>
-    <div class="pf2e-nation-stat"><label>Guards (sum)</label><span>{{totals.guards}}</span></div>
+    <div class="pf2e-nation-stat"><label>Population (sum incl. vassals)</label><span>{{totals.population}}</span></div>
+    <div class="pf2e-nation-stat"><label>Treasury (sum gp incl. vassals)</label><span>{{totals.treasuryGp}}</span></div>
+    <div class="pf2e-nation-stat"><label>Guards (sum incl. vassals)</label><span>{{totals.guards}}</span></div>
   </div>
 
   <h3><i class="fa-solid fa-crown"></i> Government</h3>
@@ -90,6 +90,98 @@
   {{else}}
     <em class="pf2e-empty">No other nations exist yet to track relations with.</em>
   {{/if}}
+
+  <h3><i class="fa-solid fa-file-contract"></i> Treaties</h3>
+  {{#if treatiesView.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Partner</th><th>Kind</th><th>Signed</th><th>Expires</th><th>Terms</th><th></th></tr></thead>
+      <tbody>
+        {{#each treatiesView}}
+          <tr>
+            <td>{{partnerName}}</td>
+            <td>{{kind}}</td>
+            <td>{{signedLabel}}</td>
+            <td>{{expiresLabel}}</td>
+            <td>{{terms}}</td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeTreaty" data-treaty-id="{{id}}" title="Break treaty">
+                <i class="fa-solid fa-link-slash"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No treaties signed yet.</em>
+  {{/if}}
+
+  <div class="pf2e-nation-add-city">
+    <select name="treatyPartnerId">
+      {{#if otherNations.length}}
+        {{#each otherNations}}<option value="{{id}}">{{name}}</option>{{/each}}
+      {{else}}
+        <option value="">— no candidate nations —</option>
+      {{/if}}
+    </select>
+    <select name="treatyKind">
+      <option value="non-aggression">Non-aggression</option>
+      <option value="defensive">Defensive</option>
+      <option value="trade">Trade</option>
+      <option value="vassalage">Vassalage</option>
+    </select>
+    <input type="text" name="treatyTerms" placeholder="Terms" />
+    <input type="number" name="treatyDuration" placeholder="Days (0 = no expiry)" min="0" step="1" style="width:11em;" />
+    <button type="button" class="pf2e-settlement-btn" data-action="addTreaty">
+      <i class="fa-solid fa-signature"></i> Sign Treaty
+    </button>
+  </div>
+
+  <h3><i class="fa-solid fa-chess-king"></i> Vassals</h3>
+  {{#if suzerainDoc}}
+    <p class="pf2e-empty">Vassal of <a href="#" data-action="openChildCity" data-city-id="{{suzerainDoc.id}}">{{suzerainDoc.name}}</a>.
+      <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger" data-action="leaveSuzerain" title="Break vassalage">
+        <i class="fa-solid fa-link-slash"></i>
+      </button>
+    </p>
+  {{/if}}
+  {{#if vassals.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Nation</th><th>Population</th><th>Treasury (gp)</th><th>Guards</th><th></th></tr></thead>
+      <tbody>
+        {{#each vassals}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{population}}</td>
+            <td>{{treasuryGp}}</td>
+            <td>{{guards}}</td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeVassal" data-vassal-id="{{id}}" title="Release vassal">
+                <i class="fa-solid fa-link-slash"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No vassal nations yet.</em>
+  {{/if}}
+
+  <div class="pf2e-nation-add-city">
+    <select name="addVassalId">
+      {{#if availableVassalCandidates.length}}
+        {{#each availableVassalCandidates}}<option value="{{id}}">{{name}}</option>{{/each}}
+      {{else}}
+        <option value="">— no candidate nations —</option>
+      {{/if}}
+    </select>
+    <button type="button" class="pf2e-settlement-btn" data-action="addVassal">
+      <i class="fa-solid fa-hand-holding-heart"></i> Add Vassal
+    </button>
+  </div>
 
   <h3><i class="fa-solid fa-scroll"></i> Notes</h3>
   <textarea data-path="notes" rows="8">{{nation.notes}}</textarea>
