@@ -141,6 +141,9 @@
  * @property {number}           priceMultiplier  multiplied into all displayed prices (1.0 = normal) (#62)
  * @property {string[]}         childCityIds
  * @property {NationRelation[]} relations        nation-tier only; standing with every other Nation (#83)
+ * @property {Treaty[]}         treaties         nation-tier only; treaties this nation has signed (#84, #85)
+ * @property {string[]}         vassalNationIds  nation-tier only; nations that owe this nation fealty (#86)
+ * @property {string|null}      suzerainNationId nation-tier only; nation this nation owes fealty to (#86)
  * @property {string|null}      bannerImage      header banner image path; AI-generated or user-picked (#102)
  * @property {string}           notes
  * @property {{ endpoint: string, model: string, prompt: string }} ai
@@ -219,12 +222,15 @@
  */
 
 /**
- * Stub — Treaty shape (Section F diplomacy, not yet implemented).
+ * Treaty between two nations (#84). Lives on the signing nation's own
+ * `treaties` list, same one-sided-tracking philosophy as {@link NationRelation}
+ * — a treaty isn't mirrored onto the partner's document. Expiry is checked
+ * on every `dayAdvanced` tick and posts a chat reminder (#85).
  * @typedef {object} Treaty
  * @property {string}           id
  * @property {string}           partnerNationId
  * @property {string}           kind     non-aggression|defensive|trade|vassalage
- * @property {CalendarDate}     signedOn
- * @property {CalendarDate|null} expiresOn
+ * @property {CalendarDate|null} signedOn
+ * @property {CalendarDate|null} expiresOn  null means the treaty never expires
  * @property {string}           terms
  */

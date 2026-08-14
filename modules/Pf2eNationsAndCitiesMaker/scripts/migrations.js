@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 /** @type {Array<{ from: number, to: number, fn: (s: object) => object }>} */
 const _migrations = [
@@ -46,6 +46,17 @@ const _migrations = [
     fn(s) {
       const stores = Array.isArray(s.stores) ? s.stores.map(st => ({ jobs: [], ...st })) : [];
       return { ...s, _schemaVersion: 6, stores };
+    },
+  },
+  {
+    from: 6, to: 7,
+    fn(s) {
+      return {
+        ...s, _schemaVersion: 7,
+        treaties:         s.treaties ?? [],
+        vassalNationIds:  s.vassalNationIds ?? [],
+        suzerainNationId: s.suzerainNationId ?? null,
+      };
     },
   },
 ];

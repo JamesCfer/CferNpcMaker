@@ -5,6 +5,7 @@
 
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { sanitizeSettlement }                              from './sanitizer.js';
+import { computeArrivalDate }                              from './army.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -22,6 +23,11 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       saveField:       function(ev) { this._onSaveField(ev); },
       saveNotes:       function()   { this._onSaveNotes(); },
       setRelation:     function(ev) { this._onSetRelation(ev); },
+      addTreaty:       function()   { this._onAddTreaty(); },
+      removeTreaty:    function(ev) { this._onRemoveTreaty(ev); },
+      addVassal:       function()   { this._onAddVassal(); },
+      removeVassal:    function(ev) { this._onRemoveVassal(ev); },
+      leaveSuzerain:   function()   { this._onLeaveSuzerain(); },
     },
   };
 
@@ -69,14 +75,54 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .map(j => ({ id: j.id, name: j.name })) || [];
 
-    const relationsView = (game.journal?.contents || [])
+    const otherNations = (game.journal?.contents || [])
       .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
-      .map(j => {
-        const entry = nation.relations.find(r => r.nationId === j.id);
-        return { id: j.id, name: j.name, relation: entry?.relation || 'neutral', score: entry?.score ?? 0 };
-      });
+      .map(j => ({ id: j.id, name: j.name }));
 
-    return { doc: this.document, nation, cities, totals, availableJournals, relationsView };
+    const relationsView = otherNations.map(n => {
+      const entry = nation.relations.find(r => r.nationId === n.id);
+      return { id: n.id, name: n.name, relation: entry?.relation || 'neutral', score: entry?.score ?? 0 };
+    });
+
+    const treatiesView = (nation.treaties || []).map(t => ({
+      ...t,
+      partnerName:  game.journal?.get(t.partnerNationId)?.name || 'Unknown nation',
+      signedLabel:  t.signedOn  ? `${t.signedOn.year}-${t.signedOn.month}-${t.signedOn.day}`   : '—',
+      expiresLabel: t.expiresOn ? `${t.expiresOn.year}-${t.expiresOn.month}-${t.expiresOn.day}` : 'No expiry',
+    }));
+
+    // Vassal roll-up (#86): fold each vassal's own city totals into the nation's summary totals.
+    const vassalDocs = (nation.vassalNationIds || []).map(id => game.journal?.get(id)).filter(Boolean);
+    const vassals = vassalDocs.map(vDoc => {
+      const vs = sanitizeSettlement(getSettlement(vDoc) || {});
+      const vCityTotals = (vs.childCityIds || [])
+        .map(id => game.journal?.get(id))
+        .filter(Boolean)
+        .reduce((acc, c) => {
+          const cs = sanitizeSettlement(getSettlement(c) || {});
+          acc.population += cs.population;
+          acc.treasuryGp += cs.treasury.gp || 0;
+          acc.guards     += cs.military?.totalGuards || 0;
+          return acc;
+        }, { population: 0, treasuryGp: 0, guards: 0 });
+      return { id: vDoc.id, name: vDoc.name, ...vCityTotals };
+    });
+    for (const v of vassals) {
+      totals.population += v.population;
+      totals.treasuryGp += v.treasuryGp;
+      totals.guards     += v.guards;
+    }
+
+    const suzerainDoc = nation.suzerainNationId ? game.journal?.get(nation.suzerainNationId) : null;
+    const availableVassalCandidates = otherNations.filter(n =>
+      !nation.vassalNationIds.includes(n.id) && n.id !== nation.suzerainNationId
+    );
+
+    return {
+      doc: this.document, nation, cities, totals, availableJournals,
+      otherNations, relationsView, treatiesView, vassals, availableVassalCandidates,
+      suzerainDoc: suzerainDoc ? { id: suzerainDoc.id, name: suzerainDoc.name } : null,
+    };
   }
 
   _onRender() {
@@ -137,6 +183,85 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!entry) { entry = { nationId, relation: 'neutral', score: 0 }; s.relations.push(entry); }
       entry[field] = value;
     });
+  }
+
+  _getCalendarState() {
+    try {
+      if (!game.modules?.get('Pf2eCalendarTimeline')?.active) return null;
+      return game.settings.get('Pf2eCalendarTimeline', 'state') || null;
+    } catch (_) { return null; }
+  }
+
+  async _onAddTreaty() {
+    const root = this.element;
+    const partnerNationId = root.querySelector('[name="treatyPartnerId"]')?.value;
+    const kind             = root.querySelector('[name="treatyKind"]')?.value;
+    const terms             = root.querySelector('[name="treatyTerms"]')?.value?.trim() || '';
+    const durationDays     = Number(root.querySelector('[name="treatyDuration"]')?.value) || 0;
+    if (!partnerNationId || !kind) return;
+
+    const calState = this._getCalendarState();
+    const signedOn = calState?.currentDate
+      ? { year: calState.currentDate.year, month: calState.currentDate.month, day: calState.currentDate.day }
+      : { year: 1, month: 1, day: 1 };
+    const expiresOn = durationDays > 0 ? computeArrivalDate(signedOn, durationDays, calState?.calendarDef) : null;
+
+    await this._patch(s => {
+      s.treaties = s.treaties || [];
+      s.treaties.push({
+        id: `treaty-${Math.random().toString(36).slice(2, 10)}`,
+        partnerNationId, kind, terms, signedOn, expiresOn,
+      });
+    });
+  }
+
+  async _onRemoveTreaty(ev) {
+    const id = ev.currentTarget?.dataset?.treatyId;
+    if (!id) return;
+    await this._patch(s => { s.treaties = (s.treaties || []).filter(t => t.id !== id); });
+  }
+
+  async _onAddVassal() {
+    const sel = this.element.querySelector('[name="addVassalId"]');
+    const id = sel?.value;
+    if (!id) return;
+    await this._patch(s => {
+      s.vassalNationIds = s.vassalNationIds || [];
+      if (!s.vassalNationIds.includes(id)) s.vassalNationIds.push(id);
+    });
+    const vassalDoc = game.journal?.get(id);
+    if (vassalDoc) {
+      const vs = foundry.utils.deepClone(getSettlement(vassalDoc) || {});
+      vs.suzerainNationId = this.document.id;
+      vassalDoc.setFlag(FLAG_SCOPE, FLAG_KEY, vs).catch(() => {});
+    }
+  }
+
+  async _onRemoveVassal(ev) {
+    const id = ev.currentTarget?.dataset?.vassalId;
+    if (!id) return;
+    await this._patch(s => { s.vassalNationIds = (s.vassalNationIds || []).filter(x => x !== id); });
+    const vassalDoc = game.journal?.get(id);
+    if (vassalDoc) {
+      const vs = foundry.utils.deepClone(getSettlement(vassalDoc) || {});
+      if (vs.suzerainNationId === this.document.id) {
+        vs.suzerainNationId = null;
+        vassalDoc.setFlag(FLAG_SCOPE, FLAG_KEY, vs).catch(() => {});
+      }
+    }
+  }
+
+  async _onLeaveSuzerain() {
+    const s = sanitizeSettlement(getSettlement(this.document) || {});
+    const suzerainId = s.suzerainNationId;
+    if (!suzerainId) return;
+    await this._patch(cur => { cur.suzerainNationId = null; });
+    const suzerainDoc = game.journal?.get(suzerainId);
+    if (suzerainDoc) {
+      const ss = foundry.utils.deepClone(getSettlement(suzerainDoc) || {});
+      ss.vassalNationIds = (ss.vassalNationIds || []).filter(x => x !== this.document.id);
+      suzerainDoc.setFlag(FLAG_SCOPE, FLAG_KEY, ss).catch(() => {});
+    }
   }
 }
 

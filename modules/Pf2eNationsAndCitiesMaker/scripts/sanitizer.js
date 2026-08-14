@@ -6,9 +6,10 @@
 import { MODULE_ID } from './constants.js';
 import { CURRENT_SCHEMA_VERSION } from './migrations.js';
 
-const KINDS     = new Set(['city', 'town', 'village', 'nation']);
-const SIZES     = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
-const RELATIONS = new Set(['ally', 'friendly', 'neutral', 'cold', 'hostile']);
+const KINDS         = new Set(['city', 'town', 'village', 'nation']);
+const SIZES         = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
+const RELATIONS     = new Set(['ally', 'friendly', 'neutral', 'cold', 'hostile']);
+const TREATY_KINDS  = new Set(['non-aggression', 'defensive', 'trade', 'vassalage']);
 
 function safeNum(n, def, min = -Infinity, max = Infinity) {
   const v = Number(n);
@@ -18,6 +19,13 @@ function safeNum(n, def, min = -Infinity, max = Infinity) {
 
 function safeString(s, def = '') {
   return (typeof s === 'string' && s.trim()) ? s.trim() : def;
+}
+
+function safeCalendarDate(d) {
+  if (!d || typeof d !== 'object') return null;
+  const year = Number(d.year), month = Number(d.month), day = Number(d.day);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+  return { year, month, day };
 }
 
 function shortId() { return Math.random().toString(36).slice(2, 10); }
@@ -183,6 +191,16 @@ export function sanitizeSettlement(raw, formData = {}) {
       relation: RELATIONS.has(r?.relation) ? r.relation : 'neutral',
       score:    safeNum(r?.score, 0, -100, 100),
     })).filter(r => r.nationId) : [],
+    treaties: Array.isArray(s.treaties) ? s.treaties.map(t => ({
+      id:              safeString(t?.id, `treaty-${shortId()}`),
+      partnerNationId: safeString(t?.partnerNationId, ''),
+      kind:            TREATY_KINDS.has(t?.kind) ? t.kind : 'non-aggression',
+      signedOn:        safeCalendarDate(t?.signedOn),
+      expiresOn:       safeCalendarDate(t?.expiresOn),
+      terms:           safeString(t?.terms, ''),
+    })).filter(t => t.partnerNationId) : [],
+    vassalNationIds:  Array.isArray(s.vassalNationIds) ? s.vassalNationIds.filter(x => typeof x === 'string') : [],
+    suzerainNationId: (typeof s.suzerainNationId === 'string' && s.suzerainNationId) ? s.suzerainNationId : null,
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
     bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
     notes: safeString(s.notes, ''),
