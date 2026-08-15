@@ -82,4 +82,44 @@
   <button type="button" class="pf2e-settlement-btn" data-action="addReligion">
     <i class="fa-solid fa-plus"></i> Add Religion
   </button>
+
+  <h4><i class="fa-solid fa-people-arrows"></i> Factions
+    <span class="pf2e-faction-total {{#if (neqNum factionsTotal 100)}}pf2e-faction-total--warn{{/if}}">
+      {{factionsTotal}}% of influence assigned
+    </span>
+  </h4>
+  {{#if settlement.factions.length}}
+    <ul class="pf2e-faction-list">
+      {{#each settlement.factions}}
+        <li class="pf2e-faction-card">
+          <input type="text" class="pf2e-faction-name"
+                 data-settlement-path="factions.{{@index}}.name" value="{{name}}" />
+          <select data-settlement-path="factions.{{@index}}.type">
+            <option value="church"   {{#if (eqStr type "church")}}selected{{/if}}>Church</option>
+            <option value="guild"    {{#if (eqStr type "guild")}}selected{{/if}}>Guild</option>
+            <option value="nobles"   {{#if (eqStr type "nobles")}}selected{{/if}}>Nobles</option>
+            <option value="criminal" {{#if (eqStr type "criminal")}}selected{{/if}}>Criminal</option>
+            <option value="crown"    {{#if (eqStr type "crown")}}selected{{/if}}>Crown</option>
+          </select>
+          <label class="pf2e-faction-label">Influence
+            <input type="number" class="pf2e-faction-influence"
+                   data-settlement-path="factions.{{@index}}.influence" value="{{influence}}" min="0" max="100" />
+          </label>
+          <div class="pf2e-demographic-bar-wrap">
+            <div class="pf2e-demographic-bar" style="width:{{influence}}%;"></div>
+          </div>
+          <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                  data-action="removeFaction" data-faction-id="{{id}}" title="Remove faction">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </li>
+      {{/each}}
+    </ul>
+  {{else}}
+    <em class="pf2e-empty">No factions tracked yet.</em>
+  {{/if}}
+
+  <button type="button" class="pf2e-settlement-btn" data-action="addFaction">
+    <i class="fa-solid fa-plus"></i> Add Faction
+  </button>
 </div>

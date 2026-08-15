@@ -153,6 +153,50 @@ describe('sanitizeSettlement defaults', () => {
     expect(s.vassalNationIds).toEqual(['nation2', 'nation3']);
     expect(s.suzerainNationId).toBe('nation1');
   });
+
+  it('defaults claims to an empty list (#87)', () => {
+    expect(sanitizeSettlement({}).claims).toEqual([]);
+  });
+
+  it('sanitizes claim fields with safe defaults', () => {
+    const s = sanitizeSettlement({
+      claims: [{ targetSettlementId: 'city1', kind: 'dynastic', notes: 'former royal seat' }],
+    });
+    expect(s.claims).toHaveLength(1);
+    const c = s.claims[0];
+    expect(c.targetSettlementId).toBe('city1');
+    expect(c.kind).toBe('dynastic');
+    expect(c.notes).toBe('former royal seat');
+  });
+
+  it('drops claim entries without a targetSettlementId', () => {
+    expect(sanitizeSettlement({ claims: [{ kind: 'dynastic' }] }).claims).toEqual([]);
+  });
+
+  it('rejects an unknown claim kind and falls back to historical', () => {
+    const s = sanitizeSettlement({ claims: [{ targetSettlementId: 'city1', kind: 'imaginary' }] });
+    expect(s.claims[0].kind).toBe('historical');
+  });
+
+  it('defaults factions to an empty list (#90)', () => {
+    expect(sanitizeSettlement({}).factions).toEqual([]);
+  });
+
+  it('sanitizes faction fields with safe defaults', () => {
+    const s = sanitizeSettlement({ factions: [{ name: 'Thieves Guild', type: 'criminal', influence: '40' }] });
+    expect(s.factions).toEqual([{ id: expect.any(String), name: 'Thieves Guild', type: 'criminal', influence: 40 }]);
+  });
+
+  it('rejects an unknown faction type and falls back to guild', () => {
+    const s = sanitizeSettlement({ factions: [{ type: 'cabal' }] });
+    expect(s.factions[0].type).toBe('guild');
+  });
+
+  it('clamps faction influence to 0..100', () => {
+    const s = sanitizeSettlement({ factions: [{ influence: 500 }, { influence: -20 }] });
+    expect(s.factions[0].influence).toBe(100);
+    expect(s.factions[1].influence).toBe(0);
+  });
 });
 
 describe('computeNext', () => {

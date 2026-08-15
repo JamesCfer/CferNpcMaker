@@ -10,6 +10,8 @@ const KINDS         = new Set(['city', 'town', 'village', 'nation']);
 const SIZES         = new Set(['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis']);
 const RELATIONS     = new Set(['ally', 'friendly', 'neutral', 'cold', 'hostile']);
 const TREATY_KINDS  = new Set(['non-aggression', 'defensive', 'trade', 'vassalage']);
+const CLAIM_KINDS   = new Set(['historical', 'dynastic', 'religious']);
+const FACTION_TYPES = new Set(['church', 'guild', 'nobles', 'criminal', 'crown']);
 
 function safeNum(n, def, min = -Infinity, max = Infinity) {
   const v = Number(n);
@@ -181,6 +183,12 @@ export function sanitizeSettlement(raw, formData = {}) {
       templeStoreId: r?.templeStoreId || null,
       influence:     safeNum(r?.influence, 0, 0, 100),
     })) : [],
+    factions: Array.isArray(s.factions) ? s.factions.map(f => ({
+      id:        safeString(f?.id, `fac-${shortId()}`),
+      name:      safeString(f?.name, 'New Faction'),
+      type:      FACTION_TYPES.has(f?.type) ? f.type : 'guild',
+      influence: safeNum(f?.influence, 0, 0, 100),
+    })) : [],
     demographics: Array.isArray(s.demographics) ? s.demographics.map(d => ({
       ancestry: safeString(d?.ancestry, 'Human'),
       pct:      safeNum(d?.pct, 0, 0, 100),
@@ -201,6 +209,12 @@ export function sanitizeSettlement(raw, formData = {}) {
     })).filter(t => t.partnerNationId) : [],
     vassalNationIds:  Array.isArray(s.vassalNationIds) ? s.vassalNationIds.filter(x => typeof x === 'string') : [],
     suzerainNationId: (typeof s.suzerainNationId === 'string' && s.suzerainNationId) ? s.suzerainNationId : null,
+    claims: Array.isArray(s.claims) ? s.claims.map(c => ({
+      id:                 safeString(c?.id, `claim-${shortId()}`),
+      targetSettlementId: safeString(c?.targetSettlementId, ''),
+      kind:               CLAIM_KINDS.has(c?.kind) ? c.kind : 'historical',
+      notes:              safeString(c?.notes, ''),
+    })).filter(c => c.targetSettlementId) : [],
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
     bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
     notes: safeString(s.notes, ''),

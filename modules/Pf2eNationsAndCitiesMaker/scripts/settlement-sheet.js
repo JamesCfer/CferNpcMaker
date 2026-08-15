@@ -135,6 +135,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       removeTradeRoute:    function(ev) { this._onRemoveTradeRoute(ev); },
       addReligion:         function()   { this._onAddReligion(); },
       removeReligion:      function(ev) { this._onRemoveReligion(ev); },
+      addFaction:          function()   { this._onAddFaction(); },
+      removeFaction:       function(ev) { this._onRemoveFaction(ev); },
       addDemographic:      function()   { this._onAddDemographic(); },
       removeDemographic:   function(ev) { this._onRemoveDemographic(ev); },
       levelUpActor:        function(ev) { this._onLevelUpActor(ev); },
@@ -334,6 +336,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       showIncome,
       districts: settlement.districts || [],
       districtFilter,
+      factionsTotal: (settlement.factions || []).reduce((sum, f) => sum + Number(f.influence || 0), 0),
     };
   }
 
@@ -871,6 +874,24 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const id = ev.currentTarget?.dataset?.religionId;
     if (!id) return;
     this._patch(s => { s.religions = (s.religions || []).filter(r => r.id !== id); });
+  }
+
+  /* ── factions (#90) ────────────────────────────────────────── */
+
+  _onAddFaction() {
+    this._patch(s => {
+      s.factions = s.factions || [];
+      s.factions.push({
+        id: `fac-${Math.random().toString(36).slice(2, 10)}`,
+        name: 'New Faction', type: 'guild', influence: 0,
+      });
+    });
+  }
+
+  _onRemoveFaction(ev) {
+    const id = ev.currentTarget?.dataset?.factionId;
+    if (!id) return;
+    this._patch(s => { s.factions = (s.factions || []).filter(f => f.id !== id); });
   }
 
   /* ── districts (#45) ──────────────────────────────────── */

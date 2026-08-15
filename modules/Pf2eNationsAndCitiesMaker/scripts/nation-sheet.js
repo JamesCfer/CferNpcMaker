@@ -6,6 +6,7 @@
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { sanitizeSettlement }                              from './sanitizer.js';
 import { computeArrivalDate }                              from './army.js';
+import { gmWhisper }                                        from './diplomacy.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -28,6 +29,9 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       addVassal:       function()   { this._onAddVassal(); },
       removeVassal:    function(ev) { this._onRemoveVassal(ev); },
       leaveSuzerain:   function()   { this._onLeaveSuzerain(); },
+      addClaim:        function()   { this._onAddClaim(); },
+      removeClaim:     function(ev) { this._onRemoveClaim(ev); },
+      sendGift:        function()   { this._onSendGift(); },
     },
   };
 
@@ -118,10 +122,24 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       !nation.vassalNationIds.includes(n.id) && n.id !== nation.suzerainNationId
     );
 
+    // Claim targets (#87): any non-nation settlement this nation doesn't already hold as a city.
+    const claimCandidates = (game.journal?.contents || [])
+      .filter(j => {
+        const s = getSettlement(j);
+        return s && s.kind !== 'nation' && !nation.childCityIds.includes(j.id);
+      })
+      .map(j => ({ id: j.id, name: j.name }));
+
+    const claimsView = (nation.claims || []).map(c => ({
+      ...c,
+      targetName: game.journal?.get(c.targetSettlementId)?.name || 'Unknown settlement',
+    }));
+
     return {
       doc: this.document, nation, cities, totals, availableJournals,
       otherNations, relationsView, treatiesView, vassals, availableVassalCandidates,
       suzerainDoc: suzerainDoc ? { id: suzerainDoc.id, name: suzerainDoc.name } : null,
+      claimCandidates, claimsView,
     };
   }
 
@@ -262,6 +280,72 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       ss.vassalNationIds = (ss.vassalNationIds || []).filter(x => x !== this.document.id);
       suzerainDoc.setFlag(FLAG_SCOPE, FLAG_KEY, ss).catch(() => {});
     }
+  }
+
+  async _onAddClaim() {
+    const root = this.element;
+    const targetSettlementId = root.querySelector('[name="claimTargetId"]')?.value;
+    const kind  = root.querySelector('[name="claimKind"]')?.value;
+    const notes = root.querySelector('[name="claimNotes"]')?.value?.trim() || '';
+    if (!targetSettlementId || !kind) return;
+
+    await this._patch(s => {
+      s.claims = s.claims || [];
+      s.claims.push({
+        id: `claim-${Math.random().toString(36).slice(2, 10)}`,
+        targetSettlementId, kind, notes,
+      });
+    });
+  }
+
+  async _onRemoveClaim(ev) {
+    const id = ev.currentTarget?.dataset?.claimId;
+    if (!id) return;
+    await this._patch(s => { s.claims = (s.claims || []).filter(c => c.id !== id); });
+  }
+
+  /** Transfers gp to a target nation and nudges relation scores both ways (#92). */
+  async _onSendGift() {
+    const root = this.element;
+    const targetNationId = root.querySelector('[name="giftTargetId"]')?.value;
+    const amount = Number(root.querySelector('[name="giftAmount"]')?.value) || 0;
+    if (!targetNationId || amount <= 0) return;
+
+    const targetDoc = game.journal?.get(targetNationId);
+    if (!targetDoc) return;
+
+    const nation = sanitizeSettlement(getSettlement(this.document) || {});
+    if (amount > (nation.treasury.gp || 0)) return;
+
+    const RELATION_BUMP = 5;
+
+    await this._patch(s => {
+      s.treasury = s.treasury || { cp: 0, sp: 0, gp: 0, pp: 0 };
+      s.treasury.gp = (s.treasury.gp || 0) - amount;
+      s.relations = s.relations || [];
+      let entry = s.relations.find(r => r.nationId === targetNationId);
+      if (!entry) { entry = { nationId: targetNationId, relation: 'neutral', score: 0 }; s.relations.push(entry); }
+      entry.score = Math.min(100, entry.score + RELATION_BUMP);
+    });
+
+    const ts = foundry.utils.deepClone(getSettlement(targetDoc) || {});
+    ts.treasury = ts.treasury || {};
+    ts.treasury.gp = (ts.treasury.gp || 0) + amount;
+    ts.relations = ts.relations || [];
+    let targetEntry = ts.relations.find(r => r.nationId === this.document.id);
+    if (!targetEntry) { targetEntry = { nationId: this.document.id, relation: 'neutral', score: 0 }; ts.relations.push(targetEntry); }
+    targetEntry.score = Math.min(100, targetEntry.score + RELATION_BUMP);
+    await targetDoc.setFlag(FLAG_SCOPE, FLAG_KEY, ts);
+
+    ChatMessage.create({
+      content: `<h3><i class="fa-solid fa-hand-holding-dollar"></i> Diplomatic Gift</h3>
+        <p><strong>${this.document.name}</strong> sends <strong>${amount} gp</strong> to
+        <strong>${targetDoc.name}</strong>, improving relations.</p>`,
+      whisper: gmWhisper(),
+    }).catch(() => {});
+    Hooks.callAll('Pf2eNationsAndCitiesMaker.giftSent', {
+      nationId: this.document.id, targetNationId, amount,
+    });
   }
 }
 

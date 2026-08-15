@@ -162,12 +162,12 @@ item that has all its dependencies satisfied.
 - [x] 84. **Treaty objects** — `treaties: [{ partnerNationId, kind, signedOn, expiresOn, terms }]`; kinds = non-aggression / defensive / trade / vassalage. (#112)
 - [x] 85. **Treaty expiry events** — auto-schedule calendar events when treaties expire and fire a chat reminder. (#112)
 - [x] 86. **Vassal / suzerain links** — a Nation can list `vassalNationIds[]` or set `suzerainNationId`; aggregated stats roll up. (#112)
-- [ ] 87. **Claims** — `claims: [{ targetSettlementId, kind: 'historical|dynastic|religious' }]` provide casus-belli filtering.
+- [x] 87. **Claims** — `claims: [{ targetSettlementId, kind: 'historical|dynastic|religious' }]` provide casus-belli filtering.
 - [ ] 88. **Declare war flow** — modal dialog: pick target nation, pick claims, posts a chat card, sets relations to hostile, fires `Pf2eNationsAndCitiesMaker.warDeclared`.
 - [ ] 89. **Peace negotiation dialog** — drag claims into "given up / kept / new" buckets; on accept, writes a treaty and resets relations.
-- [ ] 90. **Faction influence per city** — `factions: [{ name, type: 'church|guild|nobles|criminal|crown', influence: 0..100 }]`; total must be 100.
+- [x] 90. **Faction influence per city** — `factions: [{ name, type: 'church|guild|nobles|criminal|crown', influence: 0..100 }]`; total must be 100.
 - [ ] 91. **Succession** — monarchy / dynasty support: `heir: { actorId, name }`; on a calendar `rulerDied` event, swap the leader to the heir.
-- [ ] 92. **Diplomatic gifts** — chat-button action that transfers gp between nations and bumps their relation score.
+- [x] 92. **Diplomatic gifts** — chat-button action that transfers gp between nations and bumps their relation score.
 
 ## G. Calendar features (93–101)
 - [x] 93. **Custom calendar editor UI** — modal that edits `calendarDef` (months, daysPerMonth, weekdays, monthNames).

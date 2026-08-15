@@ -337,6 +337,20 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-religion-influence { width: 5em; padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
 .pf2e-religion-label select { padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; max-width: 11em; }
 
+/* ── faction section (#90) ───────────────────────────────────── */
+.pf2e-faction-total { font-size: 0.7em; text-transform: none; font-weight: 700; color: #6a4520; margin-left: 0.5em; }
+.pf2e-faction-total--warn { color: #6a2218; }
+.pf2e-faction-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35em; }
+.pf2e-faction-card {
+  display: flex; gap: 0.3em; align-items: center; flex-wrap: wrap;
+  border: 1px solid #d8b888; border-radius: 4px; padding: 0.35em; background: #fffbef;
+}
+.pf2e-faction-name { flex: 2; min-width: 8em; padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; font-weight: 700; }
+.pf2e-faction-card select { padding: 0.25em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-faction-label { display: flex; flex-direction: column; font-size: 0.73em; text-transform: uppercase; color: #6a4520; font-weight: 700; gap: 0.15em; }
+.pf2e-faction-influence { width: 5em; padding: 0.2em; border: 1px solid #c2a070; background: #fffbef; border-radius: 3px; }
+.pf2e-faction-card .pf2e-demographic-bar-wrap { flex: 1; min-width: 6em; }
+
 /* ── notes / empty ───────────────────────────────────────── */
 .pf2e-settlement-notes textarea {
   width: 100%; min-height: 350px; padding: 0.5em; border: 1px solid #c2a070;
@@ -533,6 +547,7 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-store-card,
 .pf2e-high-contrast .pf2e-leader-card,
 .pf2e-high-contrast .pf2e-religion-card,
+.pf2e-high-contrast .pf2e-faction-card,
 .pf2e-high-contrast .pf2e-statblock-treasury,
 .pf2e-high-contrast .pf2e-statblock-production,
 .pf2e-high-contrast .pf2e-statblock-demographics,
@@ -549,6 +564,8 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 .pf2e-high-contrast .pf2e-statblock-cell label,
 .pf2e-high-contrast .pf2e-store-info label,
 .pf2e-high-contrast .pf2e-religion-label,
+.pf2e-high-contrast .pf2e-faction-label,
+.pf2e-high-contrast .pf2e-faction-total,
 .pf2e-high-contrast .pf2e-demographic-pct-label,
 .pf2e-high-contrast .pf2e-store-schedule > label,
 .pf2e-high-contrast .pf2e-schedule-grid th,

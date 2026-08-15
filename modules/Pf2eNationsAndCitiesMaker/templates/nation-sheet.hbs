@@ -91,6 +91,20 @@
     <em class="pf2e-empty">No other nations exist yet to track relations with.</em>
   {{/if}}
 
+  <div class="pf2e-nation-add-city">
+    <select name="giftTargetId">
+      {{#if otherNations.length}}
+        {{#each otherNations}}<option value="{{id}}">{{name}}</option>{{/each}}
+      {{else}}
+        <option value="">— no candidate nations —</option>
+      {{/if}}
+    </select>
+    <input type="number" name="giftAmount" placeholder="gp" min="1" step="1" style="width:7em;" />
+    <button type="button" class="pf2e-settlement-btn" data-action="sendGift">
+      <i class="fa-solid fa-hand-holding-dollar"></i> Send Gift
+    </button>
+  </div>
+
   <h3><i class="fa-solid fa-file-contract"></i> Treaties</h3>
   {{#if treatiesView.length}}
     <table class="pf2e-nation-cities">
@@ -180,6 +194,49 @@
     </select>
     <button type="button" class="pf2e-settlement-btn" data-action="addVassal">
       <i class="fa-solid fa-hand-holding-heart"></i> Add Vassal
+    </button>
+  </div>
+
+  <h3><i class="fa-solid fa-scroll fa-flip-horizontal"></i> Claims</h3>
+  {{#if claimsView.length}}
+    <table class="pf2e-nation-cities">
+      <thead><tr><th>Target</th><th>Kind</th><th>Notes</th><th></th></tr></thead>
+      <tbody>
+        {{#each claimsView}}
+          <tr>
+            <td>{{targetName}}</td>
+            <td>{{kind}}</td>
+            <td>{{notes}}</td>
+            <td>
+              <button type="button" class="pf2e-icon-btn pf2e-icon-btn--danger"
+                      data-action="removeClaim" data-claim-id="{{id}}" title="Drop claim">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <em class="pf2e-empty">No claims staked yet.</em>
+  {{/if}}
+
+  <div class="pf2e-nation-add-city">
+    <select name="claimTargetId">
+      {{#if claimCandidates.length}}
+        {{#each claimCandidates}}<option value="{{id}}">{{name}}</option>{{/each}}
+      {{else}}
+        <option value="">— no candidate settlements —</option>
+      {{/if}}
+    </select>
+    <select name="claimKind">
+      <option value="historical">Historical</option>
+      <option value="dynastic">Dynastic</option>
+      <option value="religious">Religious</option>
+    </select>
+    <input type="text" name="claimNotes" placeholder="Notes" />
+    <button type="button" class="pf2e-settlement-btn" data-action="addClaim">
+      <i class="fa-solid fa-flag"></i> Stake Claim
     </button>
   </div>
 

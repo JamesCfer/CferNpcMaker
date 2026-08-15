@@ -8,7 +8,7 @@
 import { FLAG_SCOPE, FLAG_KEY } from './constants.js';
 import { cmpDate } from './army.js';
 
-function gmWhisper() {
+export function gmWhisper() {
   return game.users?.filter(u => u.isGM).map(u => u.id) ?? [];
 }
 
