@@ -259,8 +259,8 @@ jobs:
                 delay=$((delay * 2))
                 continue
               fi
-              echo "ERROR: Foundry VTT API returned HTTP $http_code"
-              return 1
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
             done
           }
           VERSION="${{ steps.version.outputs.version }}"
@@ -408,8 +408,8 @@ jobs:
                 delay=$((delay * 2))
                 continue
               fi
-              echo "ERROR: Foundry VTT API returned HTTP $http_code"
-              return 1
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
             done
           }
           VERSION="${{ steps.version.outputs.version }}"
@@ -557,8 +557,8 @@ jobs:
                 delay=$((delay * 2))
                 continue
               fi
-              echo "ERROR: Foundry VTT API returned HTTP $http_code"
-              return 1
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
             done
           }
           VERSION="${{ steps.version.outputs.version }}"
@@ -706,8 +706,8 @@ jobs:
                 delay=$((delay * 2))
                 continue
               fi
-              echo "ERROR: Foundry VTT API returned HTTP $http_code"
-              return 1
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
             done
           }
           VERSION="${{ steps.version.outputs.version }}"
@@ -855,8 +855,8 @@ jobs:
                 delay=$((delay * 2))
                 continue
               fi
-              echo "ERROR: Foundry VTT API returned HTTP $http_code"
-              return 1
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
             done
           }
           VERSION="${{ steps.version.outputs.version }}"
