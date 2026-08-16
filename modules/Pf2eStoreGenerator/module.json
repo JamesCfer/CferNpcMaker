@@ -11,9 +11,6 @@
     "minimum": "13",
     "verified": "14"
   },
-  "systems": [
-    "pf2e"
-  ],
   "esmodules": [
     "scripts/preload-templates.js",
     "scripts/entry.js"
@@ -21,7 +18,6 @@
   "styles": [
     "styles/builder.css"
   ],
-  "templateDir": "templates",
   "languages": [
     {
       "lang": "en",
@@ -29,5 +25,14 @@
       "path": "lang/en.json"
     }
   ],
-  "socket": true
+  "socket": true,
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf2e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  }
 }

@@ -11,7 +11,6 @@
     "minimum": "13",
     "verified": "14"
   },
-  "systems": ["hero6e"],
   "esmodules": [
     "scripts/preload-templates.js",
     "scripts/entry.js"
@@ -19,8 +18,20 @@
   "styles": [
     "styles/builder.css"
   ],
-  "templateDir": "templates",
   "languages": [
-    { "lang": "en", "name": "English", "path": "lang/en.json" }
-  ]
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "hero6e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  }
 }
