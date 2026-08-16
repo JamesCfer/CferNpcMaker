@@ -16,6 +16,13 @@ on:
           - minor
         default: auto
 
+# Only one release may be in flight. A newer version bump (or manual dispatch)
+# cancels any still-pending staggered run so stale versions never queue up
+# behind their 3-hour sleeps.
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 jobs:
 
   # ── Build all packages once, upload as artifacts ─────────────────────────────
