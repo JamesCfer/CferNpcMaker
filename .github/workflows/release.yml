@@ -241,6 +241,10 @@ jobs:
                 echo "Foundry VTT release published."
                 return 0
               fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
               if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
                 echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
                 sleep "$delay"
@@ -384,6 +388,10 @@ jobs:
               echo "Response body: $body"
               if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
                 echo "Foundry VTT release published."
+                return 0
+              fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
                 return 0
               fi
               if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
@@ -531,6 +539,10 @@ jobs:
                 echo "Foundry VTT release published."
                 return 0
               fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
               if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
                 echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
                 sleep "$delay"
@@ -676,6 +688,10 @@ jobs:
                 echo "Foundry VTT release published."
                 return 0
               fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
               if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
                 echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
                 sleep "$delay"
@@ -819,6 +835,10 @@ jobs:
               echo "Response body: $body"
               if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
                 echo "Foundry VTT release published."
+                return 0
+              fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
                 return 0
               fi
               if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
