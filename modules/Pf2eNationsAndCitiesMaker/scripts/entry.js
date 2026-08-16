@@ -56,7 +56,7 @@ try {
   }
 } catch (_) { /* deferred to init below */ }
 
-class ResetWelcomeMessageMenu {
+class ResetWelcomeMessageMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     foundry.applications.api.DialogV2.confirm({
       window:      { title: game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.Name') },
@@ -74,7 +74,7 @@ class ResetWelcomeMessageMenu {
   }
 }
 
-class ClearSettlementsMenu {
+class ClearSettlementsMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     foundry.applications.api.DialogV2.confirm({
       window:      { title: game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.Name') },
@@ -99,7 +99,7 @@ class FixtureSheetMenu {
   }
 }
 
-class CreateArmyMenu {
+class CreateArmyMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     foundry.applications.api.DialogV2.prompt({
       window: { title: game.i18n.localize('SettlementBuilder.Settings.CreateArmy.Name') },
@@ -121,7 +121,7 @@ class CreateArmyMenu {
   }
 }
 
-class HireMercenariesMenu {
+class HireMercenariesMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
       ui.notifications.warn(game.i18n.localize('SettlementBuilder.Settings.HireMercenaries.NotActive'));
@@ -213,7 +213,7 @@ async function importPrebuilt(list, getFn, SheetClass, dialogTitle) {
   if (journal) new SheetClass(journal).render(true);
 }
 
-class ImportPrebuiltSettlementMenu {
+class ImportPrebuiltSettlementMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     importPrebuilt(
       PREBUILT_SETTLEMENTS, getPrebuiltSettlement, SettlementSheet,
@@ -223,7 +223,7 @@ class ImportPrebuiltSettlementMenu {
   }
 }
 
-class ImportPrebuiltNationMenu {
+class ImportPrebuiltNationMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     importPrebuilt(
       PREBUILT_NATIONS, getPrebuiltNation, NationSheet,
@@ -233,7 +233,7 @@ class ImportPrebuiltNationMenu {
   }
 }
 
-class ResetCalendarMenu {
+class ResetCalendarMenu extends foundry.applications.api.ApplicationV2 {
   render() {
     if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
       ui.notifications.warn(game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.NotActive'));
