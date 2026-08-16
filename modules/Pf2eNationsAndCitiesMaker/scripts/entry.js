@@ -390,7 +390,7 @@ Hooks.once('init', () => {
 
 // Intercept JournalEntry.sheet rendering — when the journal carries a
 // settlement flag, open our custom sheet instead of the stock journal sheet.
-Hooks.on('renderJournalSheet', (app, html) => {
+const swapToSettlementSheet = (app, html) => {
   try {
     const journal = app?.document;
     if (!journal) return;
@@ -406,7 +406,10 @@ Hooks.on('renderJournalSheet', (app, html) => {
   } catch (err) {
     log('error', 'sheet swap failed', err);
   }
-});
+};
+// Foundry v12 fires renderJournalSheet (AppV1); v13+ fires renderJournalEntrySheet (AppV2).
+Hooks.on('renderJournalSheet', swapToSettlementSheet);
+Hooks.on('renderJournalEntrySheet', swapToSettlementSheet);
 
 // Reverse-link (#110): NPCs generated through a settlement bridge carry a
 // homeSettlementId flag (set in integrations.js). Show a button on their
