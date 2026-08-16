@@ -1083,9 +1083,7 @@ jobs:
 
   # ── Release 8 of 9: Pf2eStoreGenerator ──────────────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eStoreGenerator to exist and
-  # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
-  # intentionally skipped — add it once the Foundry package id is registered
-  # and a release token secret is set.
+  # MODULES_RELEASE_PAT to have push access.
   release-pf2e-store:
     needs: [build, release-pf2e-calendar]
     runs-on: ubuntu-latest
@@ -1186,11 +1184,64 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eStoreGenerator/module.json'], ['Pf2eStoreGenerator.zip', 'Pf2eStoreGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
+
+      - name: Notify Foundry PF2e Store Package
+        if: steps.push.outputs.repo_exists == 'true'
+        env:
+          FOUNDRYVTT_PF2E_STORE_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_PF2E_STORE_RELEASE_TOKEN }}
+        run: |
+          # Retry on transient Foundry API errors with exponential backoff.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
+            done
+          }
+          VERSION="${{ steps.version.outputs.version }}"
+          PAYLOAD="{
+              \"id\": \"Pf2eStoreGenerator\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Pf2eStoreGenerator/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Pf2eStoreGenerator/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"14\"
+                }
+              }
+            }"
+          notify_foundry "$FOUNDRYVTT_PF2E_STORE_RELEASE_TOKEN" "$PAYLOAD"
+
   # ── Release 9 of 9: Dnd5eStoreGenerator ─────────────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Dnd5eStoreGenerator to exist and
-  # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
-  # intentionally skipped — add it once the Foundry package id is registered
-  # and a release token secret is set.
+  # MODULES_RELEASE_PAT to have push access.
   release-dnd5e-store:
     needs: [build, release-pf2e-store]
     if: ${{ !cancelled() && needs.build.result == 'success' }}
@@ -1291,3 +1342,57 @@ jobs:
             }
             for (const [name, path] of [['module.json', 'Dnd5eStoreGenerator/module.json'], ['Dnd5eStoreGenerator.zip', 'Dnd5eStoreGenerator.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Notify Foundry D&D 5e Store Package
+        if: steps.push.outputs.repo_exists == 'true'
+        env:
+          FOUNDRYVTT_DND5E_STORE_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_DND5E_STORE_RELEASE_TOKEN }}
+        run: |
+          # Retry on transient Foundry API errors with exponential backoff.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
+            done
+          }
+          VERSION="${{ steps.version.outputs.version }}"
+          PAYLOAD="{
+              \"id\": \"Dnd5eStoreGenerator\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/Dnd5eStoreGenerator/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/Dnd5eStoreGenerator/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"14\"
+                }
+              }
+            }"
+          notify_foundry "$FOUNDRYVTT_DND5E_STORE_RELEASE_TOKEN" "$PAYLOAD"
