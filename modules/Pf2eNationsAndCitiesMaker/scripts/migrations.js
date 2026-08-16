@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 /** @type {Array<{ from: number, to: number, fn: (s: object) => object }>} */
 const _migrations = [
@@ -57,6 +57,12 @@ const _migrations = [
         vassalNationIds:  s.vassalNationIds ?? [],
         suzerainNationId: s.suzerainNationId ?? null,
       };
+    },
+  },
+  {
+    from: 7, to: 8,
+    fn(s) {
+      return { ...s, _schemaVersion: 8, heir: s.heir ?? { actorId: null, name: '' } };
     },
   },
 ];

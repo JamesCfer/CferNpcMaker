@@ -5,7 +5,7 @@ import { computeNext, DEFAULT_CALENDAR, GENERIC_FANTASY_CALENDAR,
 import { applyDailyTick, applyFestival, applyTax } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/economy.js';
 import { CURRENT_SCHEMA_VERSION, migrateSettlement } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/migrations.js';
 import { generateHooks } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/hooks.js';
-import { processTreatyExpiry } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/diplomacy.js';
+import { processTreatyExpiry, declareWar, negotiatePeace, applySuccession } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/diplomacy.js';
 import { settlementNoteIcon, settlementNoteTooltip } from '../../modules/Pf2eNationsAndCitiesMaker/scripts/scene-notes.js';
 
 describe('sanitizeSettlement defaults', () => {
@@ -176,6 +176,15 @@ describe('sanitizeSettlement defaults', () => {
   it('rejects an unknown claim kind and falls back to historical', () => {
     const s = sanitizeSettlement({ claims: [{ targetSettlementId: 'city1', kind: 'imaginary' }] });
     expect(s.claims[0].kind).toBe('historical');
+  });
+
+  it('defaults heir to a null actorId and empty name (#91)', () => {
+    expect(sanitizeSettlement({}).heir).toEqual({ actorId: null, name: '' });
+  });
+
+  it('preserves a set heir', () => {
+    const s = sanitizeSettlement({ heir: { actorId: 'actor1', name: 'Princess Yvaine' } });
+    expect(s.heir).toEqual({ actorId: 'actor1', name: 'Princess Yvaine' });
   });
 
   it('defaults factions to an empty list (#90)', () => {
@@ -527,6 +536,17 @@ describe('migrateSettlement', () => {
     expect(migrated.vassalNationIds).toEqual([]);
     expect(migrated.suzerainNationId).toBeNull();
   });
+
+  it('adds a blank heir when upgrading from schema 7 (#91)', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 7, kind: 'nation' });
+    expect(migrated._schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.heir).toEqual({ actorId: null, name: '' });
+  });
+
+  it('leaves an existing heir untouched', () => {
+    const migrated = migrateSettlement({ _schemaVersion: 7, heir: { actorId: 'actor1', name: 'Old Heir' } });
+    expect(migrated.heir).toEqual({ actorId: 'actor1', name: 'Old Heir' });
+  });
 });
 
 describe('processTreatyExpiry (#85)', () => {
@@ -570,6 +590,132 @@ describe('processTreatyExpiry (#85)', () => {
     await processTreatyExpiry(doc, doc.getStored(), { year: 1, month: 1, day: 1 });
     expect(posted).toHaveLength(1);
     expect(posted[0].content).toContain('defensive');
+  });
+});
+
+describe('declareWar (#88)', () => {
+  globalThis.game = { users: [], journal: { get: () => null } };
+  globalThis.Hooks = { callAll: () => {} };
+  globalThis.ChatMessage = { create: async () => {} };
+
+  function makeDoc(id, claims = [], relations = []) {
+    const settlement = { _schemaVersion: CURRENT_SCHEMA_VERSION, kind: 'nation', claims, relations };
+    let stored = settlement;
+    return {
+      id, name: `Nation ${id}`,
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('sets both nations relations to hostile', async () => {
+    const doc = makeDoc('n1');
+    const target = makeDoc('n2');
+    await declareWar(doc, target);
+    expect(doc.getStored().relations).toEqual([{ nationId: 'n2', relation: 'hostile', score: -80 }]);
+    expect(target.getStored().relations).toEqual([{ nationId: 'n1', relation: 'hostile', score: -80 }]);
+  });
+
+  it('posts a chat card citing the chosen claims', async () => {
+    const posted = [];
+    globalThis.ChatMessage = { create: async (data) => { posted.push(data); } };
+    const doc = makeDoc('n1', [{ id: 'c1', targetSettlementId: 'city1', kind: 'dynastic', notes: 'stolen throne' }]);
+    const target = makeDoc('n2');
+    await declareWar(doc, target, ['c1']);
+    expect(posted[0].content).toContain('dynastic');
+    expect(posted[0].content).toContain('stolen throne');
+  });
+
+  it('fires warDeclared with the cited claim ids', async () => {
+    globalThis.ChatMessage = { create: async () => {} };
+    let fired = null;
+    globalThis.Hooks = { callAll: (name, payload) => { if (name === 'Pf2eNationsAndCitiesMaker.warDeclared') fired = payload; } };
+    const doc = makeDoc('n1', [{ id: 'c1', targetSettlementId: 'city1', kind: 'historical' }]);
+    const target = makeDoc('n2');
+    await declareWar(doc, target, ['c1']);
+    expect(fired).toEqual({ nationId: 'n1', targetNationId: 'n2', claimIds: ['c1'] });
+    globalThis.Hooks = { callAll: () => {} };
+  });
+});
+
+describe('negotiatePeace (#89)', () => {
+  globalThis.game = { users: [], journal: { get: () => null } };
+  globalThis.Hooks = { callAll: () => {} };
+  globalThis.ChatMessage = { create: async () => {} };
+
+  function makeDoc(id, claims = [], relations = []) {
+    const settlement = { _schemaVersion: CURRENT_SCHEMA_VERSION, kind: 'nation', claims, relations, treaties: [] };
+    let stored = settlement;
+    return {
+      id, name: `Nation ${id}`,
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('drops claims not chosen to be kept and signs a non-aggression treaty', async () => {
+    const doc = makeDoc('n1', [
+      { id: 'c1', targetSettlementId: 'city1', kind: 'historical' },
+      { id: 'c2', targetSettlementId: 'city2', kind: 'dynastic' },
+    ]);
+    const target = makeDoc('n2');
+    const { kept, givenUp } = await negotiatePeace(doc, target, ['c1']);
+    expect(kept.map(c => c.id)).toEqual(['c1']);
+    expect(givenUp.map(c => c.id)).toEqual(['c2']);
+    expect(doc.getStored().claims.map(c => c.id)).toEqual(['c1']);
+    expect(doc.getStored().treaties).toHaveLength(1);
+    expect(doc.getStored().treaties[0].kind).toBe('non-aggression');
+  });
+
+  it('resets relations on both nations to neutral', async () => {
+    const doc = makeDoc('n1', [], [{ nationId: 'n2', relation: 'hostile', score: -80 }]);
+    const target = makeDoc('n2', [], [{ nationId: 'n1', relation: 'hostile', score: -80 }]);
+    await negotiatePeace(doc, target);
+    expect(doc.getStored().relations).toEqual([{ nationId: 'n2', relation: 'neutral', score: 0 }]);
+    expect(target.getStored().relations).toEqual([{ nationId: 'n1', relation: 'neutral', score: 0 }]);
+  });
+});
+
+describe('applySuccession (#91)', () => {
+  globalThis.game = { users: [], journal: { get: () => null } };
+  globalThis.Hooks = { callAll: () => {} };
+  globalThis.ChatMessage = { create: async () => {} };
+
+  function makeDoc(kind, government, heir) {
+    const settlement = { _schemaVersion: CURRENT_SCHEMA_VERSION, kind, government, heir };
+    let stored = settlement;
+    return {
+      id: 'n1', name: 'Test Nation',
+      getFlag: () => stored,
+      setFlag: async (_scope, _key, data) => { stored = data; },
+      getStored: () => stored,
+    };
+  }
+
+  it('promotes the heir to head of state and clears the heir slot', async () => {
+    const doc = makeDoc('nation',
+      { type: 'Monarchy', leaderName: 'King Aldric', leaderActorId: null },
+      { actorId: 'actor9', name: 'Princess Yvaine' });
+    await applySuccession(doc);
+    expect(doc.getStored().government.leaderName).toBe('Princess Yvaine');
+    expect(doc.getStored().government.leaderActorId).toBe('actor9');
+    expect(doc.getStored().heir).toEqual({ actorId: null, name: '' });
+  });
+
+  it('does nothing when there is no heir', async () => {
+    const doc = makeDoc('nation',
+      { type: 'Monarchy', leaderName: 'King Aldric', leaderActorId: null },
+      { actorId: null, name: '' });
+    await applySuccession(doc);
+    expect(doc.getStored().government.leaderName).toBe('King Aldric');
+  });
+
+  it('does nothing for a non-nation settlement', async () => {
+    const doc = makeDoc('town', { leaderName: 'Mayor Jill' }, { actorId: null, name: 'Someone' });
+    await applySuccession(doc);
+    expect(doc.getStored().government.leaderName).toBe('Mayor Jill');
   });
 });
 

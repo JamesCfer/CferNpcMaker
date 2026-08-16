@@ -156,6 +156,7 @@
  * @property {string[]}         vassalNationIds  nation-tier only; nations that owe this nation fealty (#86)
  * @property {string|null}      suzerainNationId nation-tier only; nation this nation owes fealty to (#86)
  * @property {Claim[]}          claims           nation-tier only; casus-belli claims on other settlements (#87)
+ * @property {{ actorId: string|null, name: string }} heir  nation-tier only; ascends on a `rulerDied` calendar event (#91)
  * @property {string|null}      bannerImage      header banner image path; AI-generated or user-picked (#102)
  * @property {string}           notes
  * @property {{ endpoint: string, model: string, prompt: string }} ai
@@ -248,8 +249,9 @@
  */
 
 /**
- * A nation's claim on a settlement (#87) — casus belli material for a future
- * declare-war flow. Lives on the claiming nation's own `claims` list.
+ * A nation's claim on a settlement (#87) — casus belli material cited by the
+ * declare-war flow (#88) and given up or kept during peace negotiation (#89).
+ * Lives on the claiming nation's own `claims` list.
  * @typedef {object} Claim
  * @property {string} id
  * @property {string} targetSettlementId
