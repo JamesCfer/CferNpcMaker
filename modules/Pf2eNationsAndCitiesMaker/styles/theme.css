@@ -1,0 +1,53 @@
+/* ── PF2e theme: parchment, gold & ink ─────────────────── */
+
+.application.npc-builder .window-content {
+  background: #f6efe1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><rect width="6" height="6" fill="%23f6efe1"/><circle cx="3" cy="3" r="0.3" fill="%23d8c89c"/></svg>');
+  color: #2c1f10;
+}
+.application.npc-builder .window-header {
+  background: linear-gradient(180deg, #6d4a1f, #4a2f10);
+  color: #f4e6c8;
+  border-bottom: 2px solid #9b6923;
+}
+
+.application.npc-builder .builder-tabs { background: #4a2f10; border-bottom: 2px solid #9b6923; }
+.application.npc-builder .builder-tab { color: #d8c89c; }
+.application.npc-builder .builder-tab.is-active,
+.application.npc-builder .builder-tab[data-tab="builder"].is-active,
+.application.npc-builder .builder-tab[data-tab="home"].is-active {
+  color: #fff; border-bottom-color: #e0a63c; background: rgba(224, 166, 60, 0.14);
+}
+
+.application.npc-builder h1, .application.npc-builder h2, .application.npc-builder h3,
+.application.npc-builder label, .application.npc-builder .form-label {
+  font-family: "Eczar", Georgia, "Times New Roman", serif;
+  color: #5a2f0a;
+  letter-spacing: 0.02em;
+}
+
+.application.npc-builder input[type="text"], .application.npc-builder input[type="number"],
+.application.npc-builder textarea, .application.npc-builder select {
+  background: #fdf6e7; color: #2c1f10;
+  border: 1px solid #b08a5a; border-radius: 4px;
+}
+.application.npc-builder input:focus, .application.npc-builder textarea:focus,
+.application.npc-builder select:focus { border-color: #9b6923; box-shadow: 0 0 4px rgba(155, 105, 35, 0.6); outline: none; }
+
+.application.npc-builder .btn-primary, .application.npc-builder button[data-action="generate"] {
+  background: linear-gradient(180deg, #b8884a, #8a5a1a);
+  border: 1px solid #6b4a14; color: #fff; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.application.npc-builder .btn-primary:hover:not(:disabled),
+.application.npc-builder button[data-action="generate"]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c8985a, #9a6a2a);
+}
+
+.application.npc-builder .npc-panel-history {
+  background: #efe3c8;
+  border-left: 2px solid #9b6923;
+}
+.application.npc-builder .feedback-section {
+  background: #efe3c8; border-top: 2px solid #9b6923;
+}
+.application.npc-builder .auth-banner { border-bottom: 2px solid #9b6923; }

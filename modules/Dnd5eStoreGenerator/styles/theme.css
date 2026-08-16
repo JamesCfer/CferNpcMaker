@@ -1,0 +1,57 @@
+/* ── D&D 5e theme: dark leather & dragon red ───────────── */
+
+.application.npc-builder .window-content {
+  background: #191411 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="%23191411"/><circle cx="4" cy="4" r="0.4" fill="%23241b15"/></svg>');
+  color: #e6dcc8;
+}
+.application.npc-builder .window-header {
+  background: linear-gradient(180deg, #58180d, #330d06);
+  color: #f2e3c2;
+  border-bottom: 2px solid #a4131c;
+}
+
+.application.npc-builder .builder-tabs { background: #330d06; border-bottom: 2px solid #a4131c; }
+.application.npc-builder .builder-tab { color: #c9a67a; }
+.application.npc-builder .builder-tab.is-active,
+.application.npc-builder .builder-tab[data-tab="builder"].is-active,
+.application.npc-builder .builder-tab[data-tab="home"].is-active {
+  color: #fff; border-bottom-color: #e13b34; background: rgba(225, 59, 52, 0.14);
+}
+
+.application.npc-builder h1, .application.npc-builder h2, .application.npc-builder h3,
+.application.npc-builder label, .application.npc-builder .form-label {
+  font-family: "Modesto Condensed", "MrsEavesSmallCaps", Palatino, "Book Antiqua", serif;
+  color: #e13b34;
+  letter-spacing: 0.04em;
+}
+
+.application.npc-builder input[type="text"], .application.npc-builder input[type="number"],
+.application.npc-builder textarea, .application.npc-builder select {
+  background: #241d18; color: #e6dcc8;
+  border: 1px solid #58180d; border-radius: 4px;
+}
+.application.npc-builder select option { background: #241d18; color: #e6dcc8; }
+.application.npc-builder input:focus, .application.npc-builder textarea:focus,
+.application.npc-builder select:focus { border-color: #a4131c; box-shadow: 0 0 4px rgba(164, 19, 28, 0.7); outline: none; }
+.application.npc-builder ::placeholder { color: #8a7a66; }
+
+.application.npc-builder .btn-primary, .application.npc-builder button[data-action="generate"] {
+  background: linear-gradient(180deg, #a4131c, #58180d);
+  border: 1px solid #330d06; color: #fff; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.application.npc-builder .btn-primary:hover:not(:disabled),
+.application.npc-builder button[data-action="generate"]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c2232d, #6b1d10);
+}
+
+.application.npc-builder .npc-panel-history {
+  background: #211a15;
+  border-left: 2px solid #a4131c;
+  color: #e6dcc8;
+}
+.application.npc-builder .feedback-section {
+  background: #211a15; border-top: 2px solid #a4131c;
+}
+.application.npc-builder .auth-banner { border-bottom: 2px solid #a4131c; }
+.application.npc-builder .usage-meter { background: rgba(255, 255, 255, 0.08); border-color: #58180d; }

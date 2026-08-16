@@ -1,0 +1,56 @@
+/* ── Hero System theme: four-color comic ───────────────── */
+
+.application.npc-builder .window-content {
+  background: #eef3fb url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="%23eef3fb"/><circle cx="5" cy="5" r="0.8" fill="%23d7e2f2"/></svg>');
+  color: #10121a;
+}
+.application.npc-builder .window-header {
+  background: linear-gradient(180deg, #1663c7, #0d3f85);
+  color: #ffd23f;
+  border-bottom: 3px solid #10121a;
+}
+
+.application.npc-builder .builder-tabs { background: #0d3f85; border-bottom: 3px solid #10121a; }
+.application.npc-builder .builder-tab { color: #bcd3f2; }
+.application.npc-builder .builder-tab.is-active,
+.application.npc-builder .builder-tab[data-tab="builder"].is-active,
+.application.npc-builder .builder-tab[data-tab="home"].is-active {
+  color: #ffd23f; border-bottom-color: #ffd23f; background: rgba(255, 210, 63, 0.12);
+}
+
+.application.npc-builder h1, .application.npc-builder h2, .application.npc-builder h3,
+.application.npc-builder label, .application.npc-builder .form-label {
+  font-family: Impact, "Arial Black", "Franklin Gothic Bold", sans-serif;
+  color: #0d3f85;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.application.npc-builder input[type="text"], .application.npc-builder input[type="number"],
+.application.npc-builder textarea, .application.npc-builder select {
+  background: #fff; color: #10121a;
+  border: 2px solid #10121a; border-radius: 4px;
+}
+.application.npc-builder input:focus, .application.npc-builder textarea:focus,
+.application.npc-builder select:focus { border-color: #1663c7; box-shadow: 3px 3px 0 rgba(22, 99, 199, 0.35); outline: none; }
+
+.application.npc-builder .btn-primary, .application.npc-builder button[data-action="generate"] {
+  background: #1663c7;
+  border: 2px solid #10121a; color: #ffd23f; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  box-shadow: 3px 3px 0 #10121a;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.application.npc-builder .btn-primary:hover:not(:disabled),
+.application.npc-builder button[data-action="generate"]:hover:not(:disabled) {
+  background: #1e78e8; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #10121a;
+}
+
+.application.npc-builder .npc-panel-history {
+  background: #dfe9f8;
+  border-left: 3px solid #10121a;
+}
+.application.npc-builder .feedback-section {
+  background: #dfe9f8; border-top: 3px solid #10121a;
+}
+.application.npc-builder .auth-banner { border-bottom: 3px solid #10121a; }
