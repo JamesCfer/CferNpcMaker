@@ -1,103 +1,154 @@
-/* ── Custom store sheet ─────────────────────────────────── */
+/* ── PF2e Store Sheet — parchment, gold & ink (matches the settlement sheets) ── */
+
+.cfer-store-sheet--pf2e {
+  font-family: "Signika", "Roboto", sans-serif;
+  background: #f6efe1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6"><rect width="6" height="6" fill="%23f6efe1"/><circle cx="3" cy="3" r="0.3" fill="%23d8c89c"/></svg>');
+  color: #2c1f10;
+}
+.cfer-store-sheet--pf2e .window-header {
+  background: linear-gradient(180deg, #6d4a1f, #4a2f10);
+  color: #f4e6c8;
+  border-bottom: 2px solid #9b6923;
+}
 
 .cfer-store-sheet-window { overflow: hidden; }
 
 .cfer-store {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.7em;
   height: 100%;
-  padding: 10px;
+  padding: 0.75em 1em;
   overflow: hidden;
 }
+
+/* ── header ─────────────────────────────────────────────── */
 
 .cfer-store-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 1em;
   flex-wrap: wrap;
+  padding-bottom: 0.5em;
+  border-bottom: 2px solid #9b6923;
 }
 
-.cfer-store-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.cfer-store-title h2 { margin: 0; border: none; }
-.cfer-store-title > i { font-size: 1.3em; opacity: 0.8; }
+.cfer-store-title { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; }
+.cfer-store-title h2 { margin: 0; border: none; color: #5a2f0a; font-weight: 700; }
+.cfer-store-title > i { color: #9b6923; font-size: 1.4em; }
 
 .cfer-store-type-pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: rgba(155, 105, 35, 0.15);
-  border: 1px solid rgba(155, 105, 35, 0.4);
-  font-size: 0.85em;
-  white-space: nowrap;
-  text-transform: capitalize;
+  background: #9b6923; color: #fff;
+  padding: 0.15em 0.7em; border-radius: 999px;
+  font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em;
+  white-space: nowrap; text-transform: capitalize;
 }
 
-.cfer-store-header-actions { display: flex; gap: 6px; }
-.cfer-store-header-actions button.is-active { box-shadow: inset 0 0 4px rgba(155, 105, 35, 0.8); }
+.cfer-store-closed-pill {
+  background: #7a1f1f; color: #f4d8d8;
+  padding: 0.15em 0.7em; border-radius: 999px;
+  font-size: 0.8em; font-weight: 600; white-space: nowrap;
+}
+
+.cfer-store-mul-pill {
+  background: #f4eadb; color: #5a3d18; border: 1px solid #b08a5a;
+  padding: 0.15em 0.7em; border-radius: 999px;
+  font-size: 0.8em; font-weight: 600; white-space: nowrap;
+}
+
+.cfer-store-header-actions { display: flex; gap: 0.4em; flex-wrap: wrap; }
+.cfer-store-header-actions button {
+  background: #fff8e8; border: 1px solid #b08a5a; color: #5a3d18;
+  border-radius: 4px; padding: 0.25em 0.7em; cursor: pointer;
+  font-weight: 600; font-size: 0.85em; white-space: nowrap;
+  transition: background 0.12s;
+}
+.cfer-store-header-actions button:hover { background: #ecdcb8; }
+.cfer-store-header-actions button.is-active {
+  background: #9b6923; color: #fff; border-color: #6b4a14;
+}
+
+/* ── description & shopkeeper ───────────────────────────── */
 
 .cfer-store-description {
   position: relative;
-  padding: 6px 30px 6px 10px;
-  border-left: 3px solid rgba(155, 105, 35, 0.5);
-  background: rgba(0, 0, 0, 0.03);
+  padding: 0.4em 2em 0.4em 0.75em;
+  border-left: 3px solid #9b6923;
+  background: rgba(155, 105, 35, 0.07);
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+  color: #4a3720;
 }
 .cfer-store-description p { margin: 0; }
-.cfer-store-description .cfer-icon-btn { position: absolute; top: 4px; right: 4px; }
-.cfer-store-description--empty { border-left-style: dashed; }
+.cfer-store-description .cfer-icon-btn { position: absolute; top: 0.25em; right: 0.25em; }
+.cfer-store-description--empty { border-left-style: dashed; font-style: normal; }
 
 .cfer-store-owner {
   display: flex;
-  gap: 10px;
+  gap: 0.7em;
   align-items: flex-start;
-  padding: 6px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  padding: 0.45em 0.75em;
+  border: 1px solid #c9ab7c;
   border-radius: 6px;
-  background: rgba(155, 105, 35, 0.06);
+  background: #fdf6e7;
+  box-shadow: 0 1px 2px rgba(90, 61, 24, 0.12);
 }
 .cfer-store-owner[role="button"] { cursor: pointer; }
-.cfer-store-owner > i { font-size: 1.4em; margin-top: 2px; opacity: 0.7; }
-.cfer-store-owner-text p { margin: 2px 0 0; font-size: 0.92em; opacity: 0.85; }
+.cfer-store-owner[role="button"]:hover { border-color: #9b6923; }
+.cfer-store-owner > i { font-size: 1.5em; margin-top: 2px; color: #9b6923; }
+.cfer-store-owner-text strong { color: #5a2f0a; }
+.cfer-store-owner-text p { margin: 2px 0 0; font-size: 0.9em; color: #4a3720; }
 
-.cfer-store-main {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
+.cfer-store-owner-portrait {
+  width: 44px; height: 44px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #9b6923;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
 }
+
+/* ── main layout ────────────────────────────────────────── */
+
+.cfer-store-main { display: flex; gap: 0.8em; flex: 1; min-height: 0; }
 .cfer-store-main > section, .cfer-store-main > aside { min-height: 0; overflow-y: auto; }
 
 .cfer-store-inventory {
   flex: 1;
   border: 1px dashed transparent;
   border-radius: 6px;
-  padding: 4px;
+  padding: 0.3em;
 }
 .cfer-store-inventory.drag-over {
-  border-color: rgba(155, 105, 35, 0.8);
-  background: rgba(155, 105, 35, 0.08);
+  border-color: #9b6923;
+  background: rgba(155, 105, 35, 0.1);
 }
 
 .cfer-store-inventory-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.6em;
 }
-.cfer-store-inventory-head h3 { margin: 0 0 4px; border: none; }
-.cfer-drop-hint { font-size: 0.8em; opacity: 0.6; font-style: italic; }
+.cfer-store-inventory-head h3 {
+  margin: 0 0 0.2em; border: none;
+  color: #5a2f0a; font-weight: 700;
+}
+.cfer-store-inventory-head h3 i { color: #9b6923; }
+.cfer-drop-hint { font-size: 0.78em; color: #8a7350; font-style: italic; }
+
+/* ── shelf groups & rows ────────────────────────────────── */
 
 .cfer-store-group-label {
-  margin: 8px 0 2px;
-  font-size: 0.8em;
+  margin: 0.7em 0 0.15em;
+  font-size: 0.78em;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.6;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.08em;
+  color: #8a5a1a;
+  border-bottom: 1px solid #d8c89c;
+  padding-bottom: 0.1em;
 }
 
 .cfer-store-rows { list-style: none; margin: 0; padding: 0; }
@@ -105,97 +156,117 @@
 .cfer-store-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 6px;
+  gap: 0.5em;
+  padding: 0.22em 0.4em;
   border-radius: 4px;
   cursor: grab;
+  border-bottom: 1px solid rgba(216, 200, 156, 0.5);
 }
-.cfer-store-row:hover { background: rgba(155, 105, 35, 0.1); }
+.cfer-store-row:hover { background: rgba(155, 105, 35, 0.12); }
 .cfer-store-row:active { cursor: grabbing; }
 
 .cfer-store-row-img {
-  width: 26px;
-  height: 26px;
+  width: 28px; height: 28px;
   object-fit: cover;
-  border: none;
+  border: 1px solid #c9ab7c;
   border-radius: 4px;
+  background: #fff8e8;
   flex: 0 0 auto;
 }
-.cfer-store-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cfer-store-row-name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #2c1f10; font-weight: 500;
+}
 a.cfer-store-row-name { cursor: pointer; }
-.cfer-store-row-level { flex: 0 0 32px; text-align: center; font-size: 0.85em; opacity: 0.7; }
-.cfer-store-row-price { flex: 0 0 92px; text-align: right; font-size: 0.9em; white-space: nowrap; }
-.cfer-store-row-qty { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; font-size: 0.9em; }
+a.cfer-store-row-name:hover { color: #8a5a1a; text-shadow: none; }
+
+.cfer-store-row-level {
+  flex: 0 0 34px; text-align: center;
+  font-size: 0.78em; font-weight: 700;
+  color: #fff; background: #7a5a2a;
+  border-radius: 3px; padding: 0.1em 0;
+}
+.cfer-store-row-price {
+  flex: 0 0 96px; text-align: right;
+  font-size: 0.88em; white-space: nowrap;
+  color: #6b4a14; font-weight: 600;
+}
+a.cfer-store-row-price { cursor: pointer; text-decoration: underline dotted; }
+.cfer-store-row-price.is-adjusted { font-style: italic; color: #1f4a7a; }
+
+.cfer-store-row-qty {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 2px;
+  font-size: 0.85em; color: #4a3720;
+}
 .cfer-store-row-remove { opacity: 0; }
-.cfer-store-row:hover .cfer-store-row-remove { opacity: 0.8; }
-
-.cfer-icon-btn {
-  background: none;
-  border: none;
-  padding: 1px 5px;
-  line-height: 1;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-.cfer-icon-btn:hover { text-shadow: 0 0 6px rgba(155, 105, 35, 0.9); }
-
-.cfer-store-browser {
-  flex: 0 0 320px;
-  border-left: 1px solid rgba(0, 0, 0, 0.15);
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.cfer-store-browser-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
-.cfer-store-browser-head h3 { margin: 0; border: none; font-size: 1em; }
-.cfer-store-browser input[type="search"] { flex: 0 0 auto; }
-.cfer-store-browser-rows { flex: 1; overflow-y: auto; min-height: 0; }
-
-.cfer-store-empty { padding: 12px 6px; opacity: 0.7; }
-.cfer-muted { opacity: 0.6; font-size: 0.85em; }
-
-/* ── merchant additions: buy/sell, pills, portrait ───────── */
-
-.cfer-store.is-closed .cfer-store-inventory { opacity: 0.75; }
-
-.cfer-store-closed-pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: rgba(160, 30, 30, 0.15);
-  border: 1px solid rgba(160, 30, 30, 0.5);
-  font-size: 0.85em;
-  white-space: nowrap;
-}
-
-.cfer-store-mul-pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: rgba(30, 90, 160, 0.12);
-  border: 1px solid rgba(30, 90, 160, 0.4);
-  font-size: 0.85em;
-  white-space: nowrap;
-}
+.cfer-store-row:hover .cfer-store-row-remove { opacity: 0.85; }
 
 .cfer-store-row-buy {
   flex: 0 0 auto;
-  padding: 1px 8px;
-  font-size: 0.85em;
-  line-height: 1.4;
-  border-radius: 4px;
+  background: linear-gradient(180deg, #b8884a, #8a5a1a);
+  border: 1px solid #6b4a14; color: #fff;
+  border-radius: 4px; padding: 0.12em 0.6em;
+  font-size: 0.8em; font-weight: 700; white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.cfer-store-row-buy:hover { background: linear-gradient(180deg, #c8985a, #9a6a2a); }
+
+.cfer-icon-btn {
+  background: none; border: none;
+  padding: 1px 5px; line-height: 1;
+  cursor: pointer; flex: 0 0 auto;
+  color: #6b4a14;
+}
+.cfer-icon-btn:hover { color: #9b6923; text-shadow: 0 0 4px rgba(155, 105, 35, 0.6); }
+
+/* ── special orders ─────────────────────────────────────── */
+
+.cfer-store-orders-label { margin-top: 1.1em; color: #6b2a6b; border-bottom-color: #c9a6c9; }
+.cfer-store-orders-label i { margin-right: 0.3em; }
+
+.cfer-store-order-row {
+  background: rgba(107, 42, 107, 0.05);
+  border-bottom-color: rgba(107, 42, 107, 0.2);
+  cursor: default;
+}
+.cfer-store-order-row.is-mine { background: rgba(107, 42, 107, 0.12); }
+.cfer-store-order-status {
+  flex: 0 0 auto; font-size: 0.78em; font-style: italic; color: #6b2a6b;
   white-space: nowrap;
 }
 
-a.cfer-store-row-price { cursor: pointer; text-decoration: underline dotted; }
-.cfer-store-row-price.is-adjusted { font-style: italic; }
+/* ── catalog (compendium browser) ───────────────────────── */
 
-.cfer-store-owner-portrait {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  flex: 0 0 auto;
+.cfer-store-browser {
+  flex: 0 0 320px;
+  border-left: 2px solid #9b6923;
+  padding-left: 0.75em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
 }
+.cfer-store-browser-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5em; }
+.cfer-store-browser-head h3 {
+  margin: 0; border: none; font-size: 1em;
+  color: #5a2f0a; font-weight: 700; text-transform: capitalize;
+}
+.cfer-store-browser-head h3 i { color: #9b6923; }
+.cfer-store-browser input[type="search"] {
+  flex: 0 0 auto;
+  background: #fff8e8;
+  border: 1px solid #b08a5a;
+  color: #2c1f10;
+  border-radius: 4px;
+}
+.cfer-store-browser-rows { flex: 1; overflow-y: auto; min-height: 0; }
 
+.cfer-store-empty { padding: 0.9em 0.4em; color: #8a7350; }
+.cfer-muted { color: #8a7350; font-size: 0.85em; }
+
+.cfer-store.is-closed .cfer-store-inventory { opacity: 0.72; filter: saturate(0.6); }
+
+.cfer-store-owner-portrait,
+.cfer-store-receipt i { flex: 0 0 auto; }
 .cfer-store-receipt i { opacity: 0.7; margin-right: 4px; }
