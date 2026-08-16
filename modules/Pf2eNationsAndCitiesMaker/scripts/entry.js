@@ -20,7 +20,7 @@ import { PREBUILT_SETTLEMENTS, getPrebuiltSettlement } from './prebuilt-settleme
 import { PREBUILT_NATIONS, getPrebuiltNation }          from './prebuilt-nations.js';
 import { sanitizeSettlement }                           from './sanitizer.js';
 import { applyDailyTick, applyTax, applyFestival, applyPlague, applyFamine } from './economy.js';
-import { processTreatyExpiry }        from './diplomacy.js';
+import { processTreatyExpiry, applySuccession } from './diplomacy.js';
 import { getTemplate, randomName, randomSettlement } from './templates.js';
 import { settlementNoteIcon, settlementNoteTooltip } from './scene-notes.js';
 import { log }                        from './logger.js';
@@ -559,16 +559,17 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = 
 
 Hooks.on('Pf2eCalendarTimeline.eventFired', async (event = {}) => {
   try {
-    const handled = new Set(['tax', 'festival', 'plague', 'famine']);
+    const handled = new Set(['tax', 'festival', 'plague', 'famine', 'rulerDied']);
     if (!handled.has(event.kind)) return;
     const ids = event.payload?.targetSettlementIds || [];
     for (const id of ids) {
       const j = game.journal?.get(id);
       if (!j) continue;
-      if (event.kind === 'tax')      await applyTax(j, event.payload);
-      if (event.kind === 'festival') await applyFestival(j, event.payload);
-      if (event.kind === 'plague')   await applyPlague(j, event.payload);
-      if (event.kind === 'famine')   await applyFamine(j, event.payload);
+      if (event.kind === 'tax')       await applyTax(j, event.payload);
+      if (event.kind === 'festival')  await applyFestival(j, event.payload);
+      if (event.kind === 'plague')    await applyPlague(j, event.payload);
+      if (event.kind === 'famine')    await applyFamine(j, event.payload);
+      if (event.kind === 'rulerDied') await applySuccession(j);
     }
   } catch (err) {
     log('error', 'eventFired handler failed', err);

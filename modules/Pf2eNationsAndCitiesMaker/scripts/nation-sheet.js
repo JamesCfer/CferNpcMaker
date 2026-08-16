@@ -6,7 +6,7 @@
 import { MODULE_ID, FLAG_SCOPE, FLAG_KEY, getSettlement } from './constants.js';
 import { sanitizeSettlement }                              from './sanitizer.js';
 import { computeArrivalDate }                              from './army.js';
-import { gmWhisper }                                        from './diplomacy.js';
+import { gmWhisper, declareWar, negotiatePeace }             from './diplomacy.js';
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
@@ -32,6 +32,8 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       addClaim:        function()   { this._onAddClaim(); },
       removeClaim:     function(ev) { this._onRemoveClaim(ev); },
       sendGift:        function()   { this._onSendGift(); },
+      declareWar:      function()   { this._onDeclareWar(); },
+      negotiatePeace:  function()   { this._onNegotiatePeace(); },
     },
   };
 
@@ -346,6 +348,110 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     Hooks.callAll('Pf2eNationsAndCitiesMaker.giftSent', {
       nationId: this.document.id, targetNationId, amount,
     });
+  }
+
+  /** Declare war (#88): pick a target nation and, optionally, the claims to cite as casus belli. */
+  async _onDeclareWar() {
+    const nation = sanitizeSettlement(getSettlement(this.document) || {});
+    const otherNations = (game.journal?.contents || [])
+      .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!otherNations.length) { ui.notifications?.warn?.('No other nations exist to declare war on.'); return; }
+
+    const claims = nation.claims || [];
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Target nation
+          <select name="targetId" style="width:100%;margin-top:0.25em;">
+            ${otherNations.map(n => `<option value="${n.id}">${n.name}</option>`).join('')}
+          </select>
+        </label>
+        ${claims.length ? `
+        <fieldset>
+          <legend>Cite claims (optional)</legend>
+          ${claims.map(c => `
+            <label style="display:block;">
+              <input type="checkbox" name="claim" value="${c.id}" /> ${c.kind}${c.notes ? ` — ${c.notes}` : ''}
+            </label>`).join('')}
+        </fieldset>` : '<p>No claims staked — this war has no formal casus belli.</p>'}
+      </div>`;
+    const picked = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Declare War' },
+      content: html,
+      ok: {
+        label: 'Declare War',
+        icon:  'fa-solid fa-flag-checkered',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            targetId: root.querySelector('[name="targetId"]')?.value || null,
+            claimIds: Array.from(root.querySelectorAll('[name="claim"]:checked')).map(el => el.value),
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked?.targetId) return;
+
+    const targetDoc = game.journal?.get(picked.targetId);
+    if (!targetDoc) return;
+
+    await declareWar(this.document, targetDoc, picked.claimIds);
+    ui.notifications?.info?.(`${this.document.name} has declared war on ${targetDoc.name}.`);
+    this.render(false);
+  }
+
+  /** Peace negotiation (#89): pick the other party and which claims to keep — the rest are given up. */
+  async _onNegotiatePeace() {
+    const nation = sanitizeSettlement(getSettlement(this.document) || {});
+    const hostileIds = new Set((nation.relations || [])
+      .filter(r => r.relation === 'hostile' || r.relation === 'cold').map(r => r.nationId));
+    const otherNations = (game.journal?.contents || [])
+      .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
+      .map(j => ({ id: j.id, name: j.name }));
+    if (!otherNations.length) { ui.notifications?.warn?.('No other nations to negotiate with.'); return; }
+
+    const claims = nation.claims || [];
+    const html = `
+      <div style="display:flex;flex-direction:column;gap:0.5em;">
+        <label>Other party
+          <select name="targetId" style="width:100%;margin-top:0.25em;">
+            ${otherNations.map(n => `<option value="${n.id}" ${hostileIds.has(n.id) ? 'selected' : ''}>${n.name}${hostileIds.has(n.id) ? ' (hostile)' : ''}</option>`).join('')}
+          </select>
+        </label>
+        ${claims.length ? `
+        <fieldset>
+          <legend>Claims to keep (unchecked claims are given up)</legend>
+          ${claims.map(c => `
+            <label style="display:block;">
+              <input type="checkbox" name="keepClaim" value="${c.id}" checked /> ${c.kind}${c.notes ? ` — ${c.notes}` : ''}
+            </label>`).join('')}
+        </fieldset>` : ''}
+      </div>`;
+    const picked = await foundry.applications.api.DialogV2.prompt({
+      window: { title: 'Negotiate Peace' },
+      content: html,
+      ok: {
+        label: 'Sign Peace',
+        icon:  'fa-solid fa-dove',
+        callback: (_e, _b, dlg) => {
+          const root = dlg.element;
+          return {
+            targetId:     root.querySelector('[name="targetId"]')?.value || null,
+            keepClaimIds: Array.from(root.querySelectorAll('[name="keepClaim"]:checked')).map(el => el.value),
+          };
+        },
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked?.targetId) return;
+
+    const targetDoc = game.journal?.get(picked.targetId);
+    if (!targetDoc) return;
+
+    await negotiatePeace(this.document, targetDoc, picked.keepClaimIds);
+    ui.notifications?.info?.(`${this.document.name} has signed peace with ${targetDoc.name}.`);
+    this.render(false);
   }
 }
 

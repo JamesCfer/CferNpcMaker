@@ -20,6 +20,9 @@
     <label>Head of state
       <input type="text" data-path="government.leaderName" data-action="saveField" value="{{nation.government.leaderName}}" />
     </label>
+    <label>Heir
+      <input type="text" data-path="heir.name" data-action="saveField" value="{{nation.heir.name}}" placeholder="Heir's name" />
+    </label>
   </div>
 
   <h3><i class="fa-solid fa-city"></i> Cities</h3>
@@ -90,6 +93,15 @@
   {{else}}
     <em class="pf2e-empty">No other nations exist yet to track relations with.</em>
   {{/if}}
+
+  <div class="pf2e-nation-add-city">
+    <button type="button" class="pf2e-settlement-btn" data-action="declareWar">
+      <i class="fa-solid fa-flag-checkered"></i> Declare War
+    </button>
+    <button type="button" class="pf2e-settlement-btn" data-action="negotiatePeace">
+      <i class="fa-solid fa-dove"></i> Negotiate Peace
+    </button>
+  </div>
 
   <div class="pf2e-nation-add-city">
     <select name="giftTargetId">

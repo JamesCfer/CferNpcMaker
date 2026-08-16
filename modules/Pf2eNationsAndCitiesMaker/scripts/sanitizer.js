@@ -215,6 +215,10 @@ export function sanitizeSettlement(raw, formData = {}) {
       kind:               CLAIM_KINDS.has(c?.kind) ? c.kind : 'historical',
       notes:              safeString(c?.notes, ''),
     })).filter(c => c.targetSettlementId) : [],
+    heir: {
+      actorId: (typeof s.heir?.actorId === 'string' && s.heir.actorId) ? s.heir.actorId : null,
+      name:    safeString(s.heir?.name, ''),
+    },
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
     bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
     notes: safeString(s.notes, ''),
