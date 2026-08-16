@@ -486,19 +486,6 @@
    }
   },
   {
-   "id": "fetch-wiki",
-   "name": "Fetch Wiki Data",
-   "type": "n8n-nodes-base.code",
-   "typeVersion": 2,
-   "position": [
-    1260,
-    -20
-   ],
-   "parameters": {
-    "jsCode": "// Look the item up in the 5eTools dataset (community mirror).\nconst name = $('Prep Wiki Input').first().json.name.toLowerCase();\nasync function fetchJson(url) {\n  const resp = await $helpers.httpRequest({ url, json: false });\n  return typeof resp === 'string' ? JSON.parse(resp) : resp;\n}\nlet pool = [];\ntry {\n  const items = await fetchJson('https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/items.json');\n  const bases = await fetchJson('https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/items-base.json');\n  pool = [...(items.item || []), ...(bases.baseitem || [])];\n} catch (e) {\n  return [{ json: { _wikiError: 'The 5eTools dataset is unreachable right now (' + e.message + ').' } }];\n}\nlet best = pool.find(i => (i.name || '').toLowerCase() === name);\nif (!best) best = pool.find(i => (i.name || '').toLowerCase().startsWith(name));\nif (!best) best = pool.find(i => (i.name || '').toLowerCase().includes(name));\nif (!best) return [{ json: { _wikiError: 'No 5eTools entry found for \"' + $('Prep Wiki Input').first().json.name + '\".' } }];\nconst compact = { ...best };\nif (Array.isArray(compact.entries)) compact.entries = compact.entries.slice(0, 20);\nconst source = {\n  name: best.name,\n  raw:  JSON.stringify(compact).slice(0, 6000),\n  book: best.source || '',\n};\nreturn [{ json: { name: $('Prep Wiki Input').first().json.name, wikiSource: source } }];"
-   }
-  },
-  {
    "id": "if-found",
    "name": "IF: Wiki Entry Found?",
    "type": "n8n-nodes-base.if",
@@ -637,6 +624,50 @@
       ]
      }
     }
+   }
+  },
+  {
+   "id": "cache-get",
+   "name": "Search Wiki Cache",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    1260,
+    -20
+   ],
+   "parameters": {
+    "operation": "get",
+    "dataTableId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "wiki_items_dnd5e"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "name_lower",
+       "condition": "like",
+       "keyValue": "={{ '%' + $('Prep Wiki Input').first().json.name.toLowerCase() + '%' }}"
+      }
+     ]
+    },
+    "returnAll": false,
+    "limit": 5
+   },
+   "alwaysOutputData": true
+  },
+  {
+   "id": "pick-best",
+   "name": "Fetch Wiki Data",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1420,
+    -20
+   ],
+   "parameters": {
+    "jsCode": "const name = $('Prep Wiki Input').first().json.name;\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nif (!rows.length) return [{ json: { _wikiError: 'No cached wiki entry found for \"' + name + '\". Try the exact wiki name.' } }];\nconst lower = name.toLowerCase();\nconst best = rows.find(r => r.name_lower === lower) || rows[0];\nreturn [{ json: { name, wikiSource: { name: best.name, raw: best.data || '{}', book: best.book || '' } } }];"
    }
   }
  ],
@@ -831,7 +862,7 @@
    "main": [
     [
      {
-      "node": "Fetch Wiki Data",
+      "node": "Search Wiki Cache",
       "type": "main",
       "index": 0
      }
@@ -905,6 +936,17 @@
     [
      {
       "node": "Respond to Webhook",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Search Wiki Cache": {
+   "main": [
+    [
+     {
+      "node": "Fetch Wiki Data",
       "type": "main",
       "index": 0
      }

@@ -1,0 +1,647 @@
+{
+ "name": "Wiki Cache Seeder (run to refresh)",
+ "nodes": [
+  {
+   "id": "wh",
+   "name": "Webhook: /webhook/wiki-cache-seed",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    -1400,
+    0
+   ],
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "wiki-cache-seed",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "webhookId": "wiki-cache-seed-post"
+  },
+  {
+   "id": "check",
+   "name": "Check Seed Token",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -1200,
+    0
+   ],
+   "parameters": {
+    "jsCode": "const q = $json.query || {};\nif ((q.token || '') !== 'estari-wiki-seed-8843') throw new Error('Bad seed token');\nreturn [{ json: { start: true } }];"
+   }
+  },
+  {
+   "id": "mk-pf2e",
+   "name": "Create PF2e Table",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -1000,
+    0
+   ],
+   "parameters": {
+    "resource": "table",
+    "operation": "create",
+    "tableName": "wiki_items_pf2e",
+    "columns": {
+     "column": [
+      {
+       "name": "name",
+       "type": "string"
+      },
+      {
+       "name": "name_lower",
+       "type": "string"
+      },
+      {
+       "name": "level",
+       "type": "number"
+      },
+      {
+       "name": "price",
+       "type": "string"
+      },
+      {
+       "name": "price_cp",
+       "type": "number"
+      },
+      {
+       "name": "rarity",
+       "type": "string"
+      },
+      {
+       "name": "category",
+       "type": "string"
+      },
+      {
+       "name": "url",
+       "type": "string"
+      },
+      {
+       "name": "data",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {
+     "createIfNotExists": true
+    }
+   }
+  },
+  {
+   "id": "mk-5e",
+   "name": "Create 5e Table",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -800,
+    0
+   ],
+   "parameters": {
+    "resource": "table",
+    "operation": "create",
+    "tableName": "wiki_items_dnd5e",
+    "columns": {
+     "column": [
+      {
+       "name": "name",
+       "type": "string"
+      },
+      {
+       "name": "name_lower",
+       "type": "string"
+      },
+      {
+       "name": "rarity",
+       "type": "string"
+      },
+      {
+       "name": "price",
+       "type": "string"
+      },
+      {
+       "name": "price_cp",
+       "type": "number"
+      },
+      {
+       "name": "book",
+       "type": "string"
+      },
+      {
+       "name": "data",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {
+     "createIfNotExists": true
+    }
+   }
+  },
+  {
+   "id": "wipe-pf2e",
+   "name": "Wipe PF2e Rows",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -600,
+    0
+   ],
+   "alwaysOutputData": true,
+   "parameters": {
+    "operation": "deleteRows",
+    "dataTableId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "wiki_items_pf2e"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "name_lower",
+       "condition": "like",
+       "keyValue": "%"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "wipe-5e",
+   "name": "Wipe 5e Rows",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    -400,
+    0
+   ],
+   "alwaysOutputData": true,
+   "parameters": {
+    "operation": "deleteRows",
+    "dataTableId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "wiki_items_dnd5e"
+    },
+    "matchType": "allConditions",
+    "filters": {
+     "conditions": [
+      {
+       "keyName": "name_lower",
+       "condition": "like",
+       "keyValue": "%"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "fetch-aon",
+   "name": "Fetch AoN Items",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    -200,
+    0
+   ],
+   "parameters": {
+    "jsCode": "// Page through every AoN equipment/weapon/armor/shield entry.\n// HTTP shim: $helpers (main process) / this.helpers (task runner) / global fetch.\nconst __helpers = (typeof $helpers !== 'undefined' && $helpers) ? $helpers\n  : ((typeof this !== 'undefined' && this && this.helpers) ? this.helpers : null);\nasync function __request(opts) {\n  if (__helpers && __helpers.httpRequest) return __helpers.httpRequest(opts);\n  if (typeof fetch === 'function') {\n    const r = await fetch(opts.url, { method: opts.method || 'GET', headers: opts.headers || {}, body: opts.body });\n    return await r.text();\n  }\n  throw new Error('No HTTP capability in this Code node runtime.');\n}\nfunction priceCp(raw) {\n  let cp = 0;\n  const re = /(\\d+)\\s*(pp|gp|sp|cp)/gi;\n  let m;\n  while ((m = re.exec(String(raw || '')))) cp += Number(m[1]) * ({ pp: 1000, gp: 100, sp: 10, cp: 1 })[m[2].toLowerCase()];\n  return cp;\n}\nconst all = [];\nlet from = 0;\nwhile (from < 10000) {\n  const body = JSON.stringify({\n    from, size: 1000,\n    _source: ['name', 'category', 'item_category', 'level', 'price_raw', 'rarity', 'trait_raw', 'bulk_raw', 'usage', 'text', 'url'],\n    query: { bool: { filter: [{ terms: { category: ['equipment', 'weapon', 'armor', 'shield'] } }] } },\n  });\n  const resp = await __request({\n    method: 'POST', url: 'https://elasticsearch.aonprd.com/aon/_search',\n    headers: { 'Content-Type': 'application/json' }, body, json: false,\n  });\n  const parsed = typeof resp === 'string' ? JSON.parse(resp) : resp;\n  const hits = parsed?.hits?.hits || [];\n  for (const h of hits) {\n    const s = h._source || {};\n    if (!s.name) continue;\n    all.push({ json: {\n      name: String(s.name).slice(0, 200),\n      name_lower: String(s.name).toLowerCase().slice(0, 200),\n      level: Number(s.level) || 0,\n      price: String(s.price_raw || '').slice(0, 60),\n      price_cp: priceCp(s.price_raw),\n      rarity: String(s.rarity || 'common'),\n      category: String(s.item_category || s.category || '').slice(0, 60),\n      url: s.url ? 'https://2e.aonprd.com' + s.url : '',\n      data: JSON.stringify({\n        name: s.name, category: s.category, itemCategory: s.item_category,\n        level: s.level, price: s.price_raw, rarity: s.rarity,\n        traits: s.trait_raw || [], bulk: s.bulk_raw || '', usage: s.usage || '',\n        text: String(s.text || '').slice(0, 4000),\n      }),\n    } });\n  }\n  if (hits.length < 1000) break;\n  from += 1000;\n}\nif (!all.length) throw new Error('AoN scrape returned nothing — aborting so the cache is not wiped empty.');\nreturn all;"
+   }
+  },
+  {
+   "id": "ins-pf2e",
+   "name": "Insert PF2e Rows",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    0,
+    0
+   ],
+   "parameters": {
+    "operation": "insert",
+    "dataTableId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "wiki_items_pf2e"
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "name": "={{ $json.name }}",
+      "name_lower": "={{ $json.name_lower }}",
+      "level": "={{ $json.level }}",
+      "price": "={{ $json.price }}",
+      "price_cp": "={{ $json.price_cp }}",
+      "rarity": "={{ $json.rarity }}",
+      "category": "={{ $json.category }}",
+      "url": "={{ $json.url }}",
+      "data": "={{ $json.data }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "name",
+       "displayName": "name",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "name_lower",
+       "displayName": "name_lower",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "level",
+       "displayName": "level",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "price",
+       "displayName": "price",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "price_cp",
+       "displayName": "price_cp",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "rarity",
+       "displayName": "rarity",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "category",
+       "displayName": "category",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "url",
+       "displayName": "url",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "data",
+       "displayName": "data",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ],
+     "attemptToConvertTypes": false,
+     "convertFieldsToString": false
+    }
+   }
+  },
+  {
+   "id": "agg-pf2e",
+   "name": "PF2e Done",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    200,
+    0
+   ],
+   "parameters": {
+    "jsCode": "return [{ json: { done: true, count: $input.all().length } }];"
+   }
+  },
+  {
+   "id": "fetch-5et",
+   "name": "Fetch 5eTools Items",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    400,
+    0
+   ],
+   "parameters": {
+    "jsCode": "// Pull the full 5eTools item dataset (community mirror).\n// HTTP shim: $helpers (main process) / this.helpers (task runner) / global fetch.\nconst __helpers = (typeof $helpers !== 'undefined' && $helpers) ? $helpers\n  : ((typeof this !== 'undefined' && this && this.helpers) ? this.helpers : null);\nasync function __request(opts) {\n  if (__helpers && __helpers.httpRequest) return __helpers.httpRequest(opts);\n  if (typeof fetch === 'function') {\n    const r = await fetch(opts.url, { method: opts.method || 'GET', headers: opts.headers || {}, body: opts.body });\n    return await r.text();\n  }\n  throw new Error('No HTTP capability in this Code node runtime.');\n}\nasync function fetchJson(url) {\n  const resp = await __request({ url, json: false });\n  return typeof resp === 'string' ? JSON.parse(resp) : resp;\n}\nconst RARITY_MAP = { none: '', common: 'common', uncommon: 'uncommon', rare: 'rare', 'very rare': 'veryRare', legendary: 'legendary', artifact: 'artifact' };\nconst items = await fetchJson('https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/items.json');\nconst bases = await fetchJson('https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/items-base.json');\nconst pool = [...(items.item || []), ...(bases.baseitem || [])];\nconst all = [];\nfor (const i of pool) {\n  if (!i.name) continue;\n  const cp = Number(i.value) || 0;\n  const compact = { ...i };\n  if (Array.isArray(compact.entries)) compact.entries = compact.entries.slice(0, 20);\n  all.push({ json: {\n    name: String(i.name).slice(0, 200),\n    name_lower: String(i.name).toLowerCase().slice(0, 200),\n    rarity: RARITY_MAP[String(i.rarity || '').toLowerCase()] ?? '',\n    price: cp ? (cp >= 100 ? (cp / 100) + ' gp' : (cp / 10) + ' sp') : '',\n    price_cp: cp,\n    book: String(i.source || '').slice(0, 30),\n    data: JSON.stringify(compact).slice(0, 5000),\n  } });\n}\nif (!all.length) throw new Error('5eTools scrape returned nothing — aborting so the cache is not wiped empty.');\nreturn all;"
+   }
+  },
+  {
+   "id": "ins-5e",
+   "name": "Insert 5e Rows",
+   "type": "n8n-nodes-base.dataTable",
+   "typeVersion": 1,
+   "position": [
+    600,
+    0
+   ],
+   "parameters": {
+    "operation": "insert",
+    "dataTableId": {
+     "__rl": true,
+     "mode": "name",
+     "value": "wiki_items_dnd5e"
+    },
+    "columns": {
+     "mappingMode": "defineBelow",
+     "value": {
+      "name": "={{ $json.name }}",
+      "name_lower": "={{ $json.name_lower }}",
+      "rarity": "={{ $json.rarity }}",
+      "price": "={{ $json.price }}",
+      "price_cp": "={{ $json.price_cp }}",
+      "book": "={{ $json.book }}",
+      "data": "={{ $json.data }}"
+     },
+     "matchingColumns": [],
+     "schema": [
+      {
+       "id": "name",
+       "displayName": "name",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "name_lower",
+       "displayName": "name_lower",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "rarity",
+       "displayName": "rarity",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "price",
+       "displayName": "price",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "price_cp",
+       "displayName": "price_cp",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "number",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "book",
+       "displayName": "book",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      },
+      {
+       "id": "data",
+       "displayName": "data",
+       "required": false,
+       "defaultMatch": false,
+       "display": true,
+       "type": "string",
+       "canBeUsedToMatch": true
+      }
+     ],
+     "attemptToConvertTypes": false,
+     "convertFieldsToString": false
+    }
+   }
+  },
+  {
+   "id": "agg-5e",
+   "name": "5e Done",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    800,
+    0
+   ],
+   "parameters": {
+    "jsCode": "return [{ json: { done: true, count: $input.all().length } }];"
+   }
+  },
+  {
+   "id": "summary",
+   "name": "Build Summary",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1000,
+    0
+   ],
+   "parameters": {
+    "jsCode": "return [{ json: {\n  ok: true,\n  pf2e: $('Fetch AoN Items').all().length,\n  dnd5e: $('Fetch 5eTools Items').all().length,\n  message: 'Wiki cache seeded.',\n} }];"
+   }
+  },
+  {
+   "id": "resp",
+   "name": "Respond to Webhook",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.1,
+   "position": [
+    1200,
+    0
+   ],
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ $json }}",
+    "options": {
+     "responseCode": 200
+    }
+   }
+  }
+ ],
+ "connections": {
+  "Webhook: /webhook/wiki-cache-seed": {
+   "main": [
+    [
+     {
+      "node": "Check Seed Token",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Check Seed Token": {
+   "main": [
+    [
+     {
+      "node": "Create PF2e Table",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Create PF2e Table": {
+   "main": [
+    [
+     {
+      "node": "Create 5e Table",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Create 5e Table": {
+   "main": [
+    [
+     {
+      "node": "Wipe PF2e Rows",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Wipe PF2e Rows": {
+   "main": [
+    [
+     {
+      "node": "Wipe 5e Rows",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Wipe 5e Rows": {
+   "main": [
+    [
+     {
+      "node": "Fetch AoN Items",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch AoN Items": {
+   "main": [
+    [
+     {
+      "node": "Insert PF2e Rows",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Insert PF2e Rows": {
+   "main": [
+    [
+     {
+      "node": "PF2e Done",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "PF2e Done": {
+   "main": [
+    [
+     {
+      "node": "Fetch 5eTools Items",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Fetch 5eTools Items": {
+   "main": [
+    [
+     {
+      "node": "Insert 5e Rows",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Insert 5e Rows": {
+   "main": [
+    [
+     {
+      "node": "5e Done",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "5e Done": {
+   "main": [
+    [
+     {
+      "node": "Build Summary",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Summary": {
+   "main": [
+    [
+     {
+      "node": "Respond to Webhook",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}
