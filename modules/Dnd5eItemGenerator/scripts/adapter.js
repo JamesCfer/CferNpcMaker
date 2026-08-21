@@ -12,6 +12,7 @@
  */
 
 import { SystemAdapter, postToN8n, ActorCreationError } from './core/adapter.js';
+import { injectSheetImageButton }     from './core/sheet-image-button.js';
 import { N8N_BASE, devUrl }               from './core/n8n.js';
 import { detectModuleFolder }             from './core/utils.js';
 import { sanitizeItemDataDnd5e,
@@ -124,26 +125,12 @@ export class Dnd5eItemAdapter extends SystemAdapter {
 
       const root = html instanceof HTMLElement ? html : html?.[0];
       if (!root) return;
-      if (root.querySelector('.npc-builder-sheet-image-btn')) return;
-
-      const anchor =
-        root.querySelector('.sheet-header') ||
-        root.querySelector('.item-header') ||
-        root.querySelector('.window-content');
-
-      if (anchor) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'npc-builder-sheet-image-btn';
-        btn.innerHTML = '<i class="fa-solid fa-image"></i> Generate Image <span class="btn-cost-badge">4 uses</span>';
-        btn.title = 'Generate an AI icon for this item (costs 4 NPC uses)';
-        btn.addEventListener('click', (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          getApp()._generateImage(null, item.toObject(), 'dnd5e');
-        });
-        anchor.appendChild(btn);
-      }
+      injectSheetImageButton({
+        root,
+        doc:     item,
+        title:   'Generate an AI icon for this item (costs 4 NPC uses)',
+        onClick: () => getApp()._generateImage(null, item.toObject(), 'dnd5e'),
+      });
     };
 
     Hooks.on('renderItemSheet5e', inject);
