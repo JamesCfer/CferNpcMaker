@@ -12,8 +12,8 @@ const SECONDS_PER_DAY = 86400;
 
 export function registerSimpleCalendarBridge() {
   game.settings.register(MODULE_ID, 'syncWithSimpleCalendar', {
-    name: 'Sync with Simple Calendar',
-    hint: 'When the Simple Calendar module is active, advance this calendar (and fire its events) whenever Simple Calendar\'s date changes.',
+    name: 'PfCalendar.Settings.SyncWithSimpleCalendar.Name',
+    hint: 'PfCalendar.Settings.SyncWithSimpleCalendar.Hint',
     scope: 'world', config: true, type: Boolean, default: true,
   });
 

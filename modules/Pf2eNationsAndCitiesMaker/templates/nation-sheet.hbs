@@ -252,6 +252,35 @@
     </button>
   </div>
 
+  <h3><i class="fa-solid fa-map"></i> World Map</h3>
+  <div class="pf2e-nation-add-city">
+    {{#if nation.sceneId}}
+      <button type="button" data-action="openScene" title="Open linked scene"><i class="fa-solid fa-map"></i> {{sceneName}}</button>
+      <button type="button" data-action="unlinkScene" class="pf2e-icon-btn" title="Unlink scene"><i class="fa-solid fa-link-slash"></i></button>
+    {{else}}
+      <button type="button" data-action="linkScene"><i class="fa-solid fa-map-location-dot"></i> Link Scene</button>
+    {{/if}}
+    <label>Border colour
+      <input type="color" data-path="borderColor" data-action="saveField" value="{{nation.borderColor}}" />
+    </label>
+    {{#if nation.borderDrawingId}}
+      <button type="button" data-action="drawBorder" title="Redraw the nation's border">
+        <i class="fa-solid fa-draw-polygon"></i> Redraw Border
+      </button>
+      <button type="button" data-action="clearBorder" class="pf2e-icon-btn pf2e-icon-btn--danger" title="Remove border">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    {{else}}
+      <button type="button" data-action="drawBorder" {{#unless nation.sceneId}}disabled{{/unless}}
+              title="Link a scene, then draw the nation's border on the map">
+        <i class="fa-solid fa-draw-polygon"></i> Draw Border
+      </button>
+    {{/if}}
+  </div>
+  {{#unless nation.sceneId}}
+    <em class="pf2e-empty">Link a world map scene before drawing a border.</em>
+  {{/unless}}
+
   <h3><i class="fa-solid fa-scroll"></i> Notes</h3>
   <textarea data-path="notes" rows="8">{{nation.notes}}</textarea>
   <button type="button" class="pf2e-settlement-btn" data-action="saveNotes">

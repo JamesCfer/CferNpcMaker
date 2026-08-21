@@ -184,7 +184,7 @@ item that has all its dependencies satisfied.
 - [x] 102. **Settlement banner image picker** — file picker on the header; falls back to AI-generated banner when set.
 - [x] 103. **Procedural town SVG** — render a top-down layout: city wall, streets, shop dots sized by population; click a dot to scroll to that store card.
 - [x] 104. **World-map scene pins** — when a settlement has `sceneId`, the scene note uses the module icon and tooltip shows kind + population.
-- [ ] 105. **Nation border overlay** — Nation sheet lets the GM draw a region on the world map; the region is rendered with the nation's colour.
+- [x] 105. **Nation border overlay** — Nation sheet lets the GM draw a region on the world map; the region is rendered with the nation's colour.
 - [x] 106. **Scene-link button** — header button to set/clear `sceneId`; opens the linked scene when clicked.
 - [x] 107. **Settlement icon by kind** — village / town / city / nation get distinct icons on the journal directory.
 - [x] 108. **Embed thumbnail in chat cards** — generation-success / tax-fired chat cards include the banner thumbnail.
@@ -209,7 +209,7 @@ item that has all its dependencies satisfied.
 
 ## K. Accessibility & localisation (123–128)
 - [ ] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.
-- [ ] 124. **i18n pass (Calendar)** — same.
+- [x] 124. **i18n pass (Calendar)** — same.
 - [x] 125. **High-contrast theme variant** — toggle in module settings; overrides the parchment palette with strong-contrast colours.
 - [x] 126. **Keyboard navigation** — Tab order through sheet tabs, Enter on store header toggles compact view, Esc closes the sheet. (#103)
 - [x] 127. **ARIA roles** — `role="tablist"` / `role="tabpanel"` on sheet tabs; `aria-busy` on generating buttons; visible focus rings.

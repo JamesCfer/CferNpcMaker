@@ -18,12 +18,12 @@ const WEATHER_ICONS = {
 
 const { HandlebarsApplicationMixin, ApplicationV2 } = foundry.applications.api;
 
-const TAX_TYPES = [
-  { value: 'income',   label: 'Income tax' },
-  { value: 'poll',     label: 'Poll tax' },
-  { value: 'trade',    label: 'Trade tax' },
-  { value: 'property', label: 'Property tax' },
-  { value: 'festival', label: 'Festival / payout' },
+const TAX_TYPE_KEYS = [
+  { value: 'income',   key: 'PfCalendar.TaxType.Income' },
+  { value: 'poll',     key: 'PfCalendar.TaxType.Poll' },
+  { value: 'trade',    key: 'PfCalendar.TaxType.Trade' },
+  { value: 'property', key: 'PfCalendar.TaxType.Property' },
+  { value: 'festival', key: 'PfCalendar.TaxType.Festival' },
 ];
 
 /**
@@ -113,6 +113,8 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.viewMonth = s.currentDate.month;
   }
 
+  get title() { return game.i18n.localize('PfCalendar.Window.Title'); }
+
   async _prepareContext() {
     const state = getState();
     const cal   = state.calendarDef || DEFAULT_CALENDAR;
@@ -161,7 +163,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       currentLabel: formatDate(current, cal),
       currentWeekday: cal.weekdays[weekdayIndex(current, cal)],
       grid, weekdays: cal.weekdays,
-      taxTypes: TAX_TYPES,
+      taxTypes: TAX_TYPE_KEYS.map(t => ({ value: t.value, label: game.i18n.localize(t.key) })),
       settlementJournals,
       upcoming,
       biomes: BIOMES.map(b => ({ value: b, selected: b === biome })),
@@ -183,7 +185,12 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _advance(days) {
     const { days: normDays, cal, toDate, fired } = await advanceCalendarByDays(days);
-    ui.notifications?.info?.(`Advanced ${normDays} day${normDays === 1 ? '' : 's'} → ${formatDate(toDate, cal)}. ${fired.length} event(s) fired.`);
+    ui.notifications?.info?.(game.i18n.format('PfCalendar.Advance.Result', {
+      count: normDays,
+      dayLabel: game.i18n.localize(normDays === 1 ? 'PfCalendar.Advance.Day' : 'PfCalendar.Advance.Days'),
+      date: formatDate(toDate, cal),
+      fired: fired.length,
+    }));
     this.viewYear  = toDate.year;
     this.viewMonth = toDate.month;
     this.render(false);
@@ -191,9 +198,12 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _advancePrompt() {
     const res = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Advance Time' },
-      content: `<label>Days <input name="days" type="number" min="1" value="1" /></label>`,
-      ok: { label: 'Advance', callback: (_e, _b, dlg) => Number(dlg.element.querySelector('[name="days"]').value) || 1 },
+      window: { title: game.i18n.localize('PfCalendar.Advance.Prompt.Title') },
+      content: `<label>${game.i18n.localize('PfCalendar.Advance.Prompt.DaysLabel')} <input name="days" type="number" min="1" value="1" /></label>`,
+      ok: {
+        label: game.i18n.localize('PfCalendar.Advance.Prompt.Confirm'),
+        callback: (_e, _b, dlg) => Number(dlg.element.querySelector('[name="days"]').value) || 1,
+      },
       rejectClose: false,
     }).catch(() => null);
     if (res) this._advance(res);
@@ -201,14 +211,14 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _advanceWithTravelPrompt() {
     const res = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Advance With Travel' },
+      window: { title: game.i18n.localize('PfCalendar.Advance.WithTravel.Title') },
       content: `
         <div style="display:flex;flex-direction:column;gap:0.5em;">
-          <label>Days <input name="days" type="number" min="1" value="1" /></label>
-          <label>Party size <input name="partySize" type="number" min="1" value="4" /></label>
+          <label>${game.i18n.localize('PfCalendar.Advance.WithTravel.DaysLabel')} <input name="days" type="number" min="1" value="1" /></label>
+          <label>${game.i18n.localize('PfCalendar.Advance.WithTravel.PartySizeLabel')} <input name="partySize" type="number" min="1" value="4" /></label>
         </div>`,
       ok: {
-        label: 'Advance',
+        label: game.i18n.localize('PfCalendar.Advance.WithTravel.Confirm'),
         callback: (_e, _b, dlg) => ({
           days:      Number(dlg.element.querySelector('[name="days"]').value)      || 1,
           partySize: Number(dlg.element.querySelector('[name="partySize"]').value) || 1,
@@ -310,29 +320,29 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await patchState(s => { s.calendarDef = foundry.utils.deepClone(preset.def); });
     this.viewMonth = Math.min(this.viewMonth, preset.def.monthsPerYear);
     this.render(false);
-    ui.notifications?.info?.(`Calendar preset loaded: ${preset.label}`);
+    ui.notifications?.info?.(game.i18n.format('PfCalendar.Preset.Loaded', { label: preset.label }));
   }
 
   async _onEditCalendar() {
     const cal = getState().calendarDef || DEFAULT_CALENDAR;
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.6em;">
-        <label>Days per month (comma-separated, one number per month)
+        <label>${game.i18n.localize('PfCalendar.EditCalendar.DaysPerMonthLabel')}
           <input type="text" name="daysPerMonth" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.daysPerMonth.join(', '))}" />
         </label>
-        <label>Month names (comma-separated)
+        <label>${game.i18n.localize('PfCalendar.EditCalendar.MonthNamesLabel')}
           <input type="text" name="monthNames" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.monthNames.join(', '))}" />
         </label>
-        <label>Weekday names (comma-separated)
+        <label>${game.i18n.localize('PfCalendar.EditCalendar.WeekdaysLabel')}
           <input type="text" name="weekdays" style="width:100%;margin-top:0.25em;" value="${escapeHtml(cal.weekdays.join(', '))}" />
         </label>
-        <p style="font-size:0.85em;opacity:0.8;margin:0;">Month count follows the days-per-month list; missing month names are auto-numbered, extras are dropped.</p>
+        <p style="font-size:0.85em;opacity:0.8;margin:0;">${game.i18n.localize('PfCalendar.EditCalendar.Hint')}</p>
       </div>`;
     const result = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Edit Custom Calendar' },
+      window: { title: game.i18n.localize('PfCalendar.EditCalendar.Title') },
       content: html,
       ok: {
-        label: 'Save',
+        label: game.i18n.localize('PfCalendar.EditCalendar.Save'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           const daysPerMonth = (root.querySelector('[name="daysPerMonth"]')?.value || '')
@@ -348,7 +358,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => null);
     if (!result) return;
     if (!result.daysPerMonth.length || !result.weekdays.length) {
-      ui.notifications?.warn?.('A custom calendar needs at least one month and one weekday.');
+      ui.notifications?.warn?.(game.i18n.localize('PfCalendar.EditCalendar.InvalidWarning'));
       return;
     }
     const monthsPerYear = result.daysPerMonth.length;
@@ -358,7 +368,7 @@ export class CalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     this.viewMonth = Math.min(this.viewMonth, monthsPerYear);
     this.render(false);
-    ui.notifications?.info?.('Custom calendar saved.');
+    ui.notifications?.info?.(game.i18n.localize('PfCalendar.EditCalendar.Success'));
   }
 }
 

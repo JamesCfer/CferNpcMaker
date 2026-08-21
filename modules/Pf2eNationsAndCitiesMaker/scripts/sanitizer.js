@@ -221,6 +221,8 @@ export function sanitizeSettlement(raw, formData = {}) {
     },
     sceneId: (typeof s.sceneId === 'string' && s.sceneId) ? s.sceneId : null,
     bannerImage: (typeof s.bannerImage === 'string' && s.bannerImage) ? s.bannerImage : null,
+    borderColor: /^#[0-9a-fA-F]{6}$/.test(s.borderColor) ? s.borderColor : '#8b1a1a',
+    borderDrawingId: (typeof s.borderDrawingId === 'string' && s.borderDrawingId) ? s.borderDrawingId : null,
     notes: safeString(s.notes, ''),
     ai: {
       endpoint: safeString(s.ai?.endpoint, 'city-builder'),
