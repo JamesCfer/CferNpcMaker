@@ -68,6 +68,23 @@ describe('sanitizeSettlement defaults', () => {
     expect(sanitizeSettlement({ bannerImage: 'worlds/foo/banner.webp' }).bannerImage).toBe('worlds/foo/banner.webp');
   });
 
+  it('defaults borderColor and rejects malformed hex values', () => {
+    expect(sanitizeSettlement({}).borderColor).toBe('#8b1a1a');
+    expect(sanitizeSettlement({ borderColor: 'not-a-colour' }).borderColor).toBe('#8b1a1a');
+  });
+
+  it('preserves a valid borderColor hex value', () => {
+    expect(sanitizeSettlement({ borderColor: '#2f6b3a' }).borderColor).toBe('#2f6b3a');
+  });
+
+  it('defaults borderDrawingId to null', () => {
+    expect(sanitizeSettlement({}).borderDrawingId).toBeNull();
+  });
+
+  it('preserves a valid borderDrawingId', () => {
+    expect(sanitizeSettlement({ borderDrawingId: 'drawing123' }).borderDrawingId).toBe('drawing123');
+  });
+
   it('defaults a store jobs list to empty', () => {
     expect(sanitizeSettlement({ stores: [{}] }).stores[0].jobs).toEqual([]);
   });

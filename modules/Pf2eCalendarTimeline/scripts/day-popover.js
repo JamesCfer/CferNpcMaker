@@ -33,7 +33,7 @@ export class DayEventsPopover extends HandlebarsApplicationMixin(ApplicationV2) 
 
   get title() {
     const cal = getState().calendarDef || DEFAULT_CALENDAR;
-    return `Events — ${formatDate(this.date, cal)}`;
+    return game.i18n.format('PfCalendar.DayPopover.Title', { date: formatDate(this.date, cal) });
   }
 
   async _prepareContext() {
@@ -50,9 +50,12 @@ export class DayEventsPopover extends HandlebarsApplicationMixin(ApplicationV2) 
     const event = (getState().events || []).find(e => e.id === id);
     if (!event) return;
     const label = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Edit Event Label' },
-      content: `<label>Label <input type="text" name="label" value="${escapeHtml(event.label ?? '')}" /></label>`,
-      ok: { label: 'Save', callback: (_e, _b, dlg) => dlg.element.querySelector('[name="label"]').value.trim() },
+      window: { title: game.i18n.localize('PfCalendar.DayPopover.EditLabel.Title') },
+      content: `<label>${game.i18n.localize('PfCalendar.DayPopover.EditLabel.FieldLabel')} <input type="text" name="label" value="${escapeHtml(event.label ?? '')}" /></label>`,
+      ok: {
+        label: game.i18n.localize('PfCalendar.DayPopover.EditLabel.Save'),
+        callback: (_e, _b, dlg) => dlg.element.querySelector('[name="label"]').value.trim(),
+      },
       rejectClose: false,
     }).catch(() => null);
     if (!label) return;
