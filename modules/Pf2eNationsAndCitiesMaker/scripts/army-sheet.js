@@ -176,37 +176,36 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
   _onOpenStationedAt() {
     const army = sanitizeArmy(getSettlement(this.document) || {});
     const journal = army.stationedAt && game.journal?.get(army.stationedAt);
-    if (!journal) { ui.notifications?.warn?.('This army is not stationed at a settlement.'); return; }
+    if (!journal) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.OpenStationedAt.NotStationed')); return; }
     journal.sheet.render(true);
   }
 
   async _onRecruitUnits() {
     const army = sanitizeArmy(getSettlement(this.document) || {});
     const settlementDoc = army.stationedAt && game.journal?.get(army.stationedAt);
-    if (!settlementDoc) { ui.notifications?.warn?.('Station this army at a settlement before recruiting.'); return; }
+    if (!settlementDoc) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Recruit.NotStationed')); return; }
 
     const settlement = getSettlement(settlementDoc) || {};
     const pop = Number(settlement.population) || 0;
     const gp = Number(settlement.treasury?.gp) || 0;
 
     const html = `
-      <p>Recruiting from <strong>${settlementDoc.name}</strong> — pool: ${pop.toLocaleString()} population,
-      ${gp.toLocaleString()} gp.</p>
+      <p>${game.i18n.format('PfNations.Army.Recruit.PoolInfo', { name: settlementDoc.name, pop: pop.toLocaleString(), gp: gp.toLocaleString() })}</p>
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Unit type
+        <label>${game.i18n.localize('PfNations.Army.Recruit.TypeLabel')}
           <select name="type" style="width:100%;margin-top:0.25em;">
             ${UNIT_TYPES.map(t => `<option value="${t}">${t} (${UNIT_COSTS[t].gp} gp, ${UNIT_COSTS[t].pop} pop each)</option>`).join('')}
           </select>
         </label>
-        <label>Count
+        <label>${game.i18n.localize('PfNations.Army.Recruit.CountLabel')}
           <input type="number" name="count" value="1" min="1" step="1" style="width:100%;margin-top:0.25em;" />
         </label>
       </div>`;
     const result = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Recruit Units' },
+      window: { title: game.i18n.localize('PfNations.Army.Recruit.Title') },
       content: html,
       ok: {
-        label: 'Recruit',
+        label: game.i18n.localize('PfNations.Army.Recruit.Confirm'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           return {
@@ -221,7 +220,9 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const cost = recruitmentCost(result.type, result.count);
     if (cost.pop > pop || cost.gp > gp) {
-      ui.notifications?.warn?.(`${settlementDoc.name} can't afford ${result.count} ${result.type} (needs ${cost.gp} gp, ${cost.pop} pop).`);
+      ui.notifications?.warn?.(game.i18n.format('PfNations.Army.Recruit.CannotAfford', {
+        name: settlementDoc.name, count: result.count, type: result.type, gp: cost.gp, pop: cost.pop,
+      }));
       return;
     }
 
@@ -238,17 +239,17 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
       else a.units.push({ type: result.type, count: result.count, level: 1, equipment: '', morale: 100 });
     });
 
-    ui.notifications?.info?.(`Recruited ${result.count} ${result.type} for ${cost.gp} gp.`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Army.Recruit.Success', { count: result.count, type: result.type, gp: cost.gp }));
   }
 
   async _onSendArmy() {
     const army = sanitizeArmy(getSettlement(this.document) || {});
     if (army.mode !== 'field') {
-      ui.notifications?.warn?.('Switch this army to Field mode before sending it on campaign.');
+      ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.March.NotField'));
       return;
     }
     if (!game.modules?.get('Pf2eCalendarTimeline')?.active) {
-      ui.notifications?.warn?.('Enable Pf2eCalendarTimeline to compute travel time.');
+      ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.March.NoCalendar'));
       return;
     }
 
@@ -258,19 +259,19 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
         return s && ['city', 'town', 'village'].includes(s.kind) && j.id !== army.stationedAt;
       })
       .map(j => ({ id: j.id, name: j.name }));
-    if (!candidates.length) { ui.notifications?.warn?.('No other settlements to march to.'); return; }
+    if (!candidates.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.March.NoDestinations')); return; }
 
     const html = `
-      <label>Destination
+      <label>${game.i18n.localize('PfNations.Army.March.DestinationLabel')}
         <select name="destination" style="width:100%;margin-top:0.25em;">
           ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
         </select>
       </label>`;
     const destination = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Send Army' },
+      window: { title: game.i18n.localize('PfNations.Army.March.Title') },
       content: html,
       ok: {
-        label: 'March',
+        label: game.i18n.localize('PfNations.Army.March.Confirm'),
         callback: (_e, _b, dlg) => dlg.element.querySelector('[name="destination"]')?.value || null,
       },
       rejectClose: false,
@@ -282,7 +283,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const arrivalDate = computeArrivalDate(calState.currentDate, travelDays, calState.calendarDef);
 
     await this._patch(a => { a.destination = destination; a.arrivalDate = arrivalDate; });
-    ui.notifications?.info?.(`${this.document.name} is marching — arriving in ${travelDays} day(s).`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Army.March.Result', { name: this.document.name, days: travelDays }));
   }
 
   _onCancelMarch() {
@@ -310,8 +311,8 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onDisbandCompany() {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window:      { title: 'Disband Mercenary Company' },
-      content:     `<p>Disband ${this.document.name} early? Their contract will not be refunded.</p>`,
+      window:      { title: game.i18n.localize('PfNations.Army.Disband.Title') },
+      content:     `<p>${game.i18n.format('PfNations.Army.Disband.Content', { name: this.document.name })}</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return;
@@ -320,31 +321,31 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onResolveBattle() {
     const attackerArmy = sanitizeArmy(getSettlement(this.document) || {});
-    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.('This army has no units to fight with.'); return; }
+    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Battle.NoUnits')); return; }
 
     const candidates = (game.journal?.contents || [])
       .filter(j => { const s = getSettlement(j); return s?.kind === 'army' && j.id !== this.document.id; })
       .map(j => ({ id: j.id, name: j.name }));
-    if (!candidates.length) { ui.notifications?.warn?.('No other armies to battle.'); return; }
+    if (!candidates.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Battle.NoOtherArmies')); return; }
 
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Defending army
+        <label>${game.i18n.localize('PfNations.Army.Battle.DefenderLabel')}
           <select name="defenderId" style="width:100%;margin-top:0.25em;">
             ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
         </label>
-        <label>Terrain
+        <label>${game.i18n.localize('PfNations.Army.TerrainLabel')}
           <select name="terrain" style="width:100%;margin-top:0.25em;">
             ${TERRAIN_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
           </select>
         </label>
       </div>`;
     const picked = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Resolve Battle' },
+      window: { title: game.i18n.localize('PfNations.Army.Battle.Title') },
       content: html,
       ok: {
-        label: 'Resolve',
+        label: game.i18n.localize('PfNations.Army.Battle.Confirm'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           return {
@@ -360,7 +361,7 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const defenderDoc = game.journal?.get(picked.defenderId);
     if (!defenderDoc) return;
     const defenderArmy = sanitizeArmy(getSettlement(defenderDoc) || {});
-    if (!totalUnitCount(defenderArmy)) { ui.notifications?.warn?.('The defending army has no units.'); return; }
+    if (!totalUnitCount(defenderArmy)) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Battle.DefenderNoUnits')); return; }
 
     const result = resolveBattle(
       attackerArmy, defenderArmy, picked.terrain,
@@ -370,37 +371,39 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     postBattleChatCard(this.document, defenderDoc, result);
 
     const winnerName = result.winner === 'draw' ? 'Neither side' : (result.winner === 'attacker' ? this.document.name : defenderDoc.name);
-    ui.notifications?.info?.(`Battle resolved — ${result.winner === 'draw' ? 'a stalemate' : `${winnerName} prevailed`}.`);
+    ui.notifications?.info?.(result.winner === 'draw'
+      ? game.i18n.localize('PfNations.Army.Battle.Draw')
+      : game.i18n.format('PfNations.Army.Battle.Result', { winner: winnerName }));
     this.render(false);
   }
 
   async _onSiegeSettlement() {
     const attackerArmy = sanitizeArmy(getSettlement(this.document) || {});
-    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.('This army has no units to besiege with.'); return; }
+    if (!totalUnitCount(attackerArmy)) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Siege.NoUnits')); return; }
 
     const candidates = (game.journal?.contents || [])
       .filter(j => { const s = getSettlement(j); return s && ['city', 'town', 'village'].includes(s.kind); })
       .map(j => ({ id: j.id, name: j.name }));
-    if (!candidates.length) { ui.notifications?.warn?.('No settlements to besiege.'); return; }
+    if (!candidates.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Army.Siege.NoTargets')); return; }
 
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Target settlement
+        <label>${game.i18n.localize('PfNations.Army.Siege.TargetLabel')}
           <select name="targetId" style="width:100%;margin-top:0.25em;">
             ${candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
           </select>
         </label>
-        <label>Terrain
+        <label>${game.i18n.localize('PfNations.Army.TerrainLabel')}
           <select name="terrain" style="width:100%;margin-top:0.25em;">
             ${TERRAIN_TYPES.map(t => `<option value="${t}" ${t === 'urban' ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
         </label>
       </div>`;
     const picked = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Siege Settlement' },
+      window: { title: game.i18n.localize('PfNations.Army.Siege.Title') },
       content: html,
       ok: {
-        label: 'Attack',
+        label: game.i18n.localize('PfNations.Army.Siege.Confirm'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           return {
@@ -423,8 +426,8 @@ export class ArmySheet extends HandlebarsApplicationMixin(ApplicationV2) {
     postSiegeChatCard(this.document, targetDoc, result, occupierNationName);
 
     ui.notifications?.info?.(result.occupied
-      ? `${targetDoc.name} has fallen! ${result.damage} damage dealt.`
-      : `Siege dealt ${result.damage} damage to ${targetDoc.name} (${result.hpAfter}/${settlement.stats?.maxHp ?? '?'} HP left).`);
+      ? game.i18n.format('PfNations.Army.Siege.Fallen', { name: targetDoc.name, damage: result.damage })
+      : game.i18n.format('PfNations.Army.Siege.Damage', { damage: result.damage, name: targetDoc.name, hp: result.hpAfter, maxHp: settlement.stats?.maxHp ?? '?' }));
     this.render(false);
   }
 }

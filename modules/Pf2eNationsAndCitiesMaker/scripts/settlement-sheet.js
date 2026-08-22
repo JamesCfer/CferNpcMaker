@@ -269,12 +269,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const tabs = [
-      { key: 'overview',   label: 'Overview',     icon: 'fa-solid fa-flag' },
-      { key: 'stores',     label: 'Stores',       icon: 'fa-solid fa-store' },
-      { key: 'guards',     label: 'Guards & Military', icon: 'fa-solid fa-shield-halved' },
-      { key: 'leadership', label: 'Leadership',   icon: 'fa-solid fa-crown' },
-      { key: 'production', label: 'Production',   icon: 'fa-solid fa-wheat-awn' },
-      { key: 'notes',      label: 'Notes',        icon: 'fa-solid fa-scroll' },
+      { key: 'overview',   label: game.i18n.localize('PfNations.Settlement.Tabs.Overview'),    icon: 'fa-solid fa-flag' },
+      { key: 'stores',     label: game.i18n.localize('PfNations.Settlement.Tabs.Stores'),       icon: 'fa-solid fa-store' },
+      { key: 'guards',     label: game.i18n.localize('PfNations.Settlement.Tabs.Guards'),       icon: 'fa-solid fa-shield-halved' },
+      { key: 'leadership', label: game.i18n.localize('PfNations.Settlement.Tabs.Leadership'),   icon: 'fa-solid fa-crown' },
+      { key: 'production', label: game.i18n.localize('PfNations.Settlement.Tabs.Production'),   icon: 'fa-solid fa-wheat-awn' },
+      { key: 'notes',      label: game.i18n.localize('PfNations.Settlement.Tabs.Notes'),        icon: 'fa-solid fa-scroll' },
     ].map(t => ({ ...t, isActive: t.key === this.activeTab }));
 
     const activeKey = this.activeTab;
@@ -307,23 +307,23 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       totalDailyWages,
       weekdayOptions,
       priceTierOptions: [
-        { value: 'low',      label: 'Low (×0.75)' },
-        { value: 'standard', label: 'Standard' },
-        { value: 'high',     label: 'High (×1.5)' },
-        { value: 'luxury',   label: 'Luxury (×2.0)' },
+        { value: 'low',      label: game.i18n.localize('PfNations.Settlement.PriceTier.Low') },
+        { value: 'standard', label: game.i18n.localize('PfNations.Settlement.PriceTier.Standard') },
+        { value: 'high',     label: game.i18n.localize('PfNations.Settlement.PriceTier.High') },
+        { value: 'luxury',   label: game.i18n.localize('PfNations.Settlement.PriceTier.Luxury') },
       ],
       shiftOptions: [
-        { value: 'morning',   label: 'Morning' },
-        { value: 'day',       label: 'Day' },
-        { value: 'evening',   label: 'Evening' },
-        { value: 'night',     label: 'Night' },
-        { value: 'graveyard', label: 'Graveyard' },
+        { value: 'morning',   label: game.i18n.localize('PfNations.Settlement.Shift.Morning') },
+        { value: 'day',       label: game.i18n.localize('PfNations.Settlement.Shift.Day') },
+        { value: 'evening',   label: game.i18n.localize('PfNations.Settlement.Shift.Evening') },
+        { value: 'night',     label: game.i18n.localize('PfNations.Settlement.Shift.Night') },
+        { value: 'graveyard', label: game.i18n.localize('PfNations.Settlement.Shift.Graveyard') },
       ],
       jobStatusOptions: [
-        { value: 'open',      label: 'Open' },
-        { value: 'claimed',   label: 'Claimed' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'failed',    label: 'Failed' },
+        { value: 'open',      label: game.i18n.localize('PfNations.Settlement.JobStatus.Open') },
+        { value: 'claimed',   label: game.i18n.localize('PfNations.Settlement.JobStatus.Claimed') },
+        { value: 'completed', label: game.i18n.localize('PfNations.Settlement.JobStatus.Completed') },
+        { value: 'failed',    label: game.i18n.localize('PfNations.Settlement.JobStatus.Failed') },
       ],
       tradeGoods,
       priceMultiplier: settlement.priceMultiplier,
@@ -489,7 +489,11 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onTickDay(days = 1) {
     await applyDailyTick(this.document, days);
-    const text = `Ticked ${days} day${days === 1 ? '' : 's'} for ${this.document.name}.`;
+    const text = game.i18n.format('PfNations.Settlement.TickDay.Result', {
+      count: days,
+      dayLabel: game.i18n.localize(days === 1 ? 'PfNations.Settlement.TickDay.Day' : 'PfNations.Settlement.TickDay.Days'),
+      name: this.document.name,
+    });
     ui.notifications?.info?.(text);
     this.announce(text);
     this.render(false);
@@ -498,23 +502,23 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onManualTax() {
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Tax type
+        <label>${game.i18n.localize('PfNations.Settlement.ManualTax.TypeLabel')}
           <select name="taxType" style="width:100%;margin-top:0.25em;">
-            <option value="income">Income</option>
-            <option value="poll">Poll</option>
-            <option value="trade">Trade</option>
-            <option value="property">Property</option>
+            <option value="income">${game.i18n.localize('PfNations.Settlement.ManualTax.TypeIncome')}</option>
+            <option value="poll">${game.i18n.localize('PfNations.Settlement.ManualTax.TypePoll')}</option>
+            <option value="trade">${game.i18n.localize('PfNations.Settlement.ManualTax.TypeTrade')}</option>
+            <option value="property">${game.i18n.localize('PfNations.Settlement.ManualTax.TypeProperty')}</option>
           </select>
         </label>
-        <label>Rate (%)
+        <label>${game.i18n.localize('PfNations.Settlement.ManualTax.RateLabel')}
           <input type="number" name="ratePct" value="5" min="0" max="100" step="1" style="width:100%;margin-top:0.25em;" />
         </label>
       </div>`;
     const result = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Apply Tax' },
+      window: { title: game.i18n.localize('PfNations.Settlement.ManualTax.Title') },
       content: html,
       ok: {
-        label: 'Apply',
+        label: game.i18n.localize('PfNations.Settlement.ManualTax.Confirm'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           return {
@@ -527,7 +531,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }).catch(() => null);
     if (!result) return;
     const { collected } = await applyTax(this.document, result);
-    const text = `Tax collected: ${collected} gp.`;
+    const text = game.i18n.format('PfNations.Settlement.ManualTax.Result', { gp: collected });
     ui.notifications?.info?.(text);
     this.announce(text);
     this.render(false);
@@ -538,10 +542,10 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const hooks = generateHooks(settlement, this.document.name);
     const list = `<ol class="pf2e-hooks-list">${hooks.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ol>`;
     const post = await foundry.applications.api.DialogV2.confirm({
-      window:      { title: `Adventure Hooks — ${this.document.name}` },
+      window:      { title: game.i18n.format('PfNations.Settlement.GenerateHooks.Title', { name: this.document.name }) },
       content:     list,
-      yes:         { label: 'Post to Chat', icon: 'fa-solid fa-comment' },
-      no:          { label: 'Close' },
+      yes:         { label: game.i18n.localize('PfNations.Settlement.GenerateHooks.PostToChat'), icon: 'fa-solid fa-comment' },
+      no:          { label: game.i18n.localize('PfNations.Settlement.GenerateHooks.Close') },
       rejectClose: false,
     }).catch(() => false);
     if (!post) return;
@@ -643,21 +647,21 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!storeId) return;
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Title
+        <label>${game.i18n.localize('PfNations.Settlement.PostJob.TitleFieldLabel')}
           <input type="text" name="title" value="" style="width:100%;margin-top:0.25em;" />
         </label>
-        <label>Description
+        <label>${game.i18n.localize('PfNations.Settlement.PostJob.DescriptionLabel')}
           <textarea name="description" rows="3" style="width:100%;margin-top:0.25em;"></textarea>
         </label>
-        <label>Reward (gp)
+        <label>${game.i18n.localize('PfNations.Settlement.PostJob.RewardLabel')}
           <input type="number" name="reward" value="50" min="0" step="1" style="width:100%;margin-top:0.25em;" />
         </label>
       </div>`;
     const result = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Post Job' },
+      window: { title: game.i18n.localize('PfNations.Settlement.PostJob.Title') },
       content: html,
       ok: {
-        label: 'Post',
+        label: game.i18n.localize('PfNations.Settlement.PostJob.Confirm'),
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
           return {
@@ -687,7 +691,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const { storeId, jobId } = ev.currentTarget?.dataset || {};
     if (!storeId || !jobId) return;
     const pool = (game.actors?.contents || []).filter(a => a.type === 'npc' || a.type === 'character');
-    if (!pool.length) { ui.notifications?.warn?.('No actors available to roll for this job.'); return; }
+    if (!pool.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.RollForJob.NoActors')); return; }
     const winner = pool[Math.floor(Math.random() * pool.length)];
     this._patch(s => {
       const store = this._findStore(s, storeId);
@@ -696,7 +700,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       job.assignedActorId = winner.id;
       job.status = 'claimed';
     });
-    ui.notifications?.info?.(`${winner.name} takes the job.`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Settlement.RollForJob.Winner', { name: winner.name }));
   }
 
   _onRemoveJob(ev) {
@@ -802,19 +806,19 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onRerollAllStores() {
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window:      { title: 'Re-roll All Stores' },
-      content:     '<p>Replace all stores with a newly generated set? Existing store data will be lost.</p>',
-      yes:         { label: 'Re-roll', icon: 'fa-solid fa-dice' },
-      no:          { label: 'Cancel' },
+      window:      { title: game.i18n.localize('PfNations.Settlement.RerollAllStores.Title') },
+      content:     `<p>${game.i18n.localize('PfNations.Settlement.RerollAllStores.Content')}</p>`,
+      yes:         { label: game.i18n.localize('PfNations.Settlement.RerollAllStores.Confirm'), icon: 'fa-solid fa-dice' },
+      no:          { label: game.i18n.localize('PfNations.Settlement.RerollAllStores.Cancel') },
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return;
-    ui.notifications?.info?.('Re-rolling stores…');
+    ui.notifications?.info?.(game.i18n.localize('PfNations.Settlement.RerollAllStores.Starting'));
     try {
       await rerollStores(this.document);
-      ui.notifications?.info?.('Stores re-rolled.');
+      ui.notifications?.info?.(game.i18n.localize('PfNations.Settlement.RerollAllStores.Success'));
     } catch (err) {
-      ui.notifications?.error?.(`Store re-roll failed: ${err.message}`);
+      ui.notifications?.error?.(game.i18n.format('PfNations.Settlement.RerollAllStores.Failed', { error: err.message }));
     }
     this.render(false);
   }
@@ -822,12 +826,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onRerollStore(ev) {
     const storeId = ev.currentTarget?.dataset?.storeId;
     if (!storeId) return;
-    ui.notifications?.info?.('Re-rolling store…');
+    ui.notifications?.info?.(game.i18n.localize('PfNations.Settlement.RerollStore.Starting'));
     try {
       await rerollSingleStore(this.document, storeId);
-      ui.notifications?.info?.('Store re-rolled.');
+      ui.notifications?.info?.(game.i18n.localize('PfNations.Settlement.RerollStore.Success'));
     } catch (err) {
-      ui.notifications?.error?.(`Store re-roll failed: ${err.message}`);
+      ui.notifications?.error?.(game.i18n.format('PfNations.Settlement.RerollStore.Failed', { error: err.message }));
     }
     this.render(false);
   }
@@ -1104,17 +1108,17 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onLinkScene() {
     const scenes = (game.scenes?.contents || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-    if (!scenes.length) { ui.notifications?.warn?.('No scenes exist to link.'); return; }
+    if (!scenes.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.Scene.NoScenesToLink')); return; }
     const options = scenes.map(sc => `<option value="${sc.id}">${escapeHtml(sc.name)}</option>`).join('');
     const sceneId = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Link Scene' },
+      window: { title: game.i18n.localize('PfNations.Settlement.Scene.LinkTitle') },
       content: `<div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Scene
+        <label>${game.i18n.localize('PfNations.Settlement.Scene.SceneLabel')}
           <select name="sceneId" style="width:100%;margin-top:0.25em;">${options}</select>
         </label>
       </div>`,
       ok: {
-        label: 'Link',
+        label: game.i18n.localize('PfNations.Settlement.Scene.Confirm'),
         callback: (_e, _b, dlg) => dlg.element.querySelector('[name="sceneId"]')?.value || null,
       },
       rejectClose: false,
@@ -1126,7 +1130,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   _onOpenScene() {
     const settlement = sanitizeSettlement(getSettlement(this.document) || {});
     const scene = settlement.sceneId ? game.scenes?.get(settlement.sceneId) : null;
-    if (!scene) { ui.notifications?.warn?.('Linked scene no longer exists.'); return; }
+    if (!scene) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.Scene.NotFound')); return; }
     scene.view();
   }
 
@@ -1151,19 +1155,19 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onGenerateBanner() {
     const key = new Storage(MODULE_ID).getKey();
-    if (!key) { ui.notifications?.warn?.('Sign in to the Settlement Builder to generate an AI banner.'); return; }
+    if (!key) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.GenerateBanner.NotSignedIn')); return; }
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window:      { title: 'Generate Banner' },
-      content:     `<p>Generate an AI banner image for <strong>${this.document.name}</strong>? This uses ${IMAGE_COST} NPC uses.</p>`,
-      yes:         { label: 'Generate', icon: 'fa-solid fa-wand-magic-sparkles' },
-      no:          { label: 'Cancel' },
+      window:      { title: game.i18n.localize('PfNations.Settlement.GenerateBanner.Title') },
+      content:     `<p>${game.i18n.format('PfNations.Settlement.GenerateBanner.Content', { name: this.document.name, cost: IMAGE_COST })}</p>`,
+      yes:         { label: game.i18n.localize('PfNations.Settlement.GenerateBanner.Confirm'), icon: 'fa-solid fa-wand-magic-sparkles' },
+      no:          { label: game.i18n.localize('PfNations.Settlement.GenerateBanner.Cancel') },
       rejectClose: false,
     }).catch(() => false);
     if (!confirmed) return;
 
     const settlement = sanitizeSettlement(getSettlement(this.document) || {});
-    ui.notifications?.info?.('Generating banner…');
+    ui.notifications?.info?.(game.i18n.localize('PfNations.Settlement.GenerateBanner.Generating'));
     try {
       const { savedPath, message } = await generateImage({
         npcData:  { name: this.document.name, kind: settlement.kind, biome: settlement.biome, notes: settlement.notes },
@@ -1171,15 +1175,15 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         artStyle: 'wide landscape banner illustration',
         key,
         devMode:  isDevMode(MODULE_ID),
-        onAuthFailed:   () => ui.notifications?.error?.('Session expired — please sign in again.'),
-        onRateLimited:  () => ui.notifications?.warn?.('Monthly image limit reached.'),
+        onAuthFailed:   () => ui.notifications?.error?.(game.i18n.localize('PfNations.Settlement.GenerateBanner.SessionExpired')),
+        onRateLimited:  () => ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.GenerateBanner.RateLimited')),
       });
       if (savedPath) {
         await this._patch(s => { s.bannerImage = savedPath; });
-        ui.notifications?.info?.(message || 'Banner generated.');
+        ui.notifications?.info?.(message || game.i18n.localize('PfNations.Settlement.GenerateBanner.Success'));
       }
     } catch (err) {
-      ui.notifications?.error?.(`Banner generation failed: ${err.message}`);
+      ui.notifications?.error?.(game.i18n.format('PfNations.Settlement.GenerateBanner.Failed', { error: err.message }));
     }
   }
 

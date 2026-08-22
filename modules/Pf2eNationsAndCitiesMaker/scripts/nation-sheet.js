@@ -372,30 +372,30 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const otherNations = (game.journal?.contents || [])
       .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
       .map(j => ({ id: j.id, name: j.name }));
-    if (!otherNations.length) { ui.notifications?.warn?.('No other nations exist to declare war on.'); return; }
+    if (!otherNations.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.DeclareWar.NoOtherNations')); return; }
 
     const claims = nation.claims || [];
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Target nation
+        <label>${game.i18n.localize('PfNations.Nation.DeclareWar.TargetLabel')}
           <select name="targetId" style="width:100%;margin-top:0.25em;">
             ${otherNations.map(n => `<option value="${n.id}">${n.name}</option>`).join('')}
           </select>
         </label>
         ${claims.length ? `
         <fieldset>
-          <legend>Cite claims (optional)</legend>
+          <legend>${game.i18n.localize('PfNations.Nation.DeclareWar.ClaimsLegend')}</legend>
           ${claims.map(c => `
             <label style="display:block;">
               <input type="checkbox" name="claim" value="${c.id}" /> ${c.kind}${c.notes ? ` — ${c.notes}` : ''}
             </label>`).join('')}
-        </fieldset>` : '<p>No claims staked — this war has no formal casus belli.</p>'}
+        </fieldset>` : `<p>${game.i18n.localize('PfNations.Nation.DeclareWar.NoClaims')}</p>`}
       </div>`;
     const picked = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Declare War' },
+      window: { title: game.i18n.localize('PfNations.Nation.DeclareWar.Title') },
       content: html,
       ok: {
-        label: 'Declare War',
+        label: game.i18n.localize('PfNations.Nation.DeclareWar.Confirm'),
         icon:  'fa-solid fa-flag-checkered',
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
@@ -413,7 +413,7 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!targetDoc) return;
 
     await declareWar(this.document, targetDoc, picked.claimIds);
-    ui.notifications?.info?.(`${this.document.name} has declared war on ${targetDoc.name}.`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Nation.DeclareWar.Success', { name: this.document.name, target: targetDoc.name }));
     this.render(false);
   }
 
@@ -425,19 +425,20 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const otherNations = (game.journal?.contents || [])
       .filter(j => j.id !== this.document.id && getSettlement(j)?.kind === 'nation')
       .map(j => ({ id: j.id, name: j.name }));
-    if (!otherNations.length) { ui.notifications?.warn?.('No other nations to negotiate with.'); return; }
+    if (!otherNations.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.NegotiatePeace.NoOtherNations')); return; }
 
     const claims = nation.claims || [];
+    const hostileTag = game.i18n.localize('PfNations.Nation.NegotiatePeace.HostileTag');
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Other party
+        <label>${game.i18n.localize('PfNations.Nation.NegotiatePeace.TargetLabel')}
           <select name="targetId" style="width:100%;margin-top:0.25em;">
-            ${otherNations.map(n => `<option value="${n.id}" ${hostileIds.has(n.id) ? 'selected' : ''}>${n.name}${hostileIds.has(n.id) ? ' (hostile)' : ''}</option>`).join('')}
+            ${otherNations.map(n => `<option value="${n.id}" ${hostileIds.has(n.id) ? 'selected' : ''}>${n.name}${hostileIds.has(n.id) ? ` (${hostileTag})` : ''}</option>`).join('')}
           </select>
         </label>
         ${claims.length ? `
         <fieldset>
-          <legend>Claims to keep (unchecked claims are given up)</legend>
+          <legend>${game.i18n.localize('PfNations.Nation.NegotiatePeace.ClaimsLegend')}</legend>
           ${claims.map(c => `
             <label style="display:block;">
               <input type="checkbox" name="keepClaim" value="${c.id}" checked /> ${c.kind}${c.notes ? ` — ${c.notes}` : ''}
@@ -445,10 +446,10 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         </fieldset>` : ''}
       </div>`;
     const picked = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Negotiate Peace' },
+      window: { title: game.i18n.localize('PfNations.Nation.NegotiatePeace.Title') },
       content: html,
       ok: {
-        label: 'Sign Peace',
+        label: game.i18n.localize('PfNations.Nation.NegotiatePeace.Confirm'),
         icon:  'fa-solid fa-dove',
         callback: (_e, _b, dlg) => {
           const root = dlg.element;
@@ -466,7 +467,7 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!targetDoc) return;
 
     await negotiatePeace(this.document, targetDoc, picked.keepClaimIds);
-    ui.notifications?.info?.(`${this.document.name} has signed peace with ${targetDoc.name}.`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Nation.NegotiatePeace.Success', { name: this.document.name, target: targetDoc.name }));
     this.render(false);
   }
 
@@ -474,17 +475,17 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onLinkScene() {
     const scenes = (game.scenes?.contents || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-    if (!scenes.length) { ui.notifications?.warn?.('No scenes exist to link.'); return; }
+    if (!scenes.length) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.Scene.NoScenesToLink')); return; }
     const options = scenes.map(sc => `<option value="${sc.id}">${escapeHtml(sc.name)}</option>`).join('');
     const sceneId = await foundry.applications.api.DialogV2.prompt({
-      window: { title: 'Link World Map Scene' },
+      window: { title: game.i18n.localize('PfNations.Nation.Scene.LinkTitle') },
       content: `<div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Scene
+        <label>${game.i18n.localize('PfNations.Nation.Scene.SceneLabel')}
           <select name="sceneId" style="width:100%;margin-top:0.25em;">${options}</select>
         </label>
       </div>`,
       ok: {
-        label: 'Link',
+        label: game.i18n.localize('PfNations.Nation.Scene.Confirm'),
         callback: (_e, _b, dlg) => dlg.element.querySelector('[name="sceneId"]')?.value || null,
       },
       rejectClose: false,
@@ -496,7 +497,7 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   _onOpenScene() {
     const nation = sanitizeSettlement(getSettlement(this.document) || {});
     const scene = nation.sceneId ? game.scenes?.get(nation.sceneId) : null;
-    if (!scene) { ui.notifications?.warn?.('Linked scene no longer exists.'); return; }
+    if (!scene) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.Scene.NotFound')); return; }
     scene.view();
   }
 
@@ -507,9 +508,9 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Lets the GM freehand-draw the nation's border on its linked world-map scene (#105). */
   async _onDrawBorder() {
     const nation = sanitizeSettlement(getSettlement(this.document) || {});
-    if (!nation.sceneId) { ui.notifications?.warn?.('Link a world map scene before drawing a border.'); return; }
+    if (!nation.sceneId) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.DrawBorder.NoSceneLinked')); return; }
     const scene = game.scenes?.get(nation.sceneId);
-    if (!scene) { ui.notifications?.warn?.('Linked scene no longer exists.'); return; }
+    if (!scene) { ui.notifications?.warn?.(game.i18n.localize('PfNations.Nation.Scene.NotFound')); return; }
 
     if (nation.borderDrawingId) {
       await scene.drawings?.get(nation.borderDrawingId)?.delete().catch(() => {});
@@ -520,7 +521,7 @@ export class NationSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       canvas.drawings?.activate();
       ui.controls.activate({ control: 'drawings', tool: 'polygon' });
     } catch (_) { /* control API varies by version — GM can still switch tools manually */ }
-    ui.notifications?.info?.('Draw the nation border on the map (double-click to finish the shape).');
+    ui.notifications?.info?.(game.i18n.localize('PfNations.Nation.DrawBorder.Prompt'));
 
     const nationId = this.document.id;
     const sceneId  = scene.id;

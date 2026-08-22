@@ -62,7 +62,7 @@ class ResetWelcomeMessageMenu extends foundry.applications.api.ApplicationV2 {
       window:      { title: game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.Name') },
       content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.ConfirmContent')}</p>`,
       yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ResetWelcome.ConfirmLabel'), icon: 'fa-solid fa-rotate-left' },
-      no:          { label: 'Cancel' },
+      no:          { label: game.i18n.localize('PfNations.Entry.ResetWelcome.Cancel') },
       rejectClose: false,
     }).then(ok => {
       if (ok) {
@@ -80,7 +80,7 @@ class ClearSettlementsMenu extends foundry.applications.api.ApplicationV2 {
       window:      { title: game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.Name') },
       content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.ConfirmContent')}</p>`,
       yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ClearSettlements.ConfirmLabel'), icon: 'fa-solid fa-trash' },
-      no:          { label: 'Cancel' },
+      no:          { label: game.i18n.localize('PfNations.Entry.ClearSettlements.Cancel') },
       rejectClose: false,
     }).then(ok => {
       if (ok) {
@@ -137,17 +137,17 @@ class HireMercenariesMenu extends foundry.applications.api.ApplicationV2 {
 
     const html = `
       <div style="display:flex;flex-direction:column;gap:0.5em;">
-        <label>Paying settlement
+        <label>${game.i18n.localize('PfNations.Entry.HireMercenaries.PayingSettlementLabel')}
           <select name="settlementId" style="width:100%;margin-top:0.25em;">
             ${settlements.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
           </select>
         </label>
-        <label>Company
+        <label>${game.i18n.localize('PfNations.Entry.HireMercenaries.CompanyLabel')}
           <select name="companyId" style="width:100%;margin-top:0.25em;">
             ${MERCENARY_COMPANIES.map(c => `<option value="${c.id}">${c.label} (${c.costPerDay} gp/day)</option>`).join('')}
           </select>
         </label>
-        <label>Contract length (days)
+        <label>${game.i18n.localize('PfNations.Entry.HireMercenaries.ContractLengthLabel')}
           <input type="number" name="days" value="30" min="1" step="1" style="width:100%;margin-top:0.25em;" />
         </label>
       </div>`;
@@ -174,11 +174,11 @@ class HireMercenariesMenu extends foundry.applications.api.ApplicationV2 {
       const calState = game.settings.get('Pf2eCalendarTimeline', 'state');
       const result = await hireMercenaryCompany(settlementDoc, picked.companyId, picked.days, calState);
       if (result?.error === 'insufficient-funds') {
-        ui.notifications.warn(`${settlementDoc.name} can't afford this contract (needs ${result.cost} gp).`);
+        ui.notifications.warn(game.i18n.format('PfNations.Entry.HireMercenaries.CannotAfford', { name: settlementDoc.name, cost: result.cost }));
         return;
       }
       if (result?.journal) {
-        ui.notifications.info(`Hired ${result.journal.name} for ${result.cost} gp — contract runs ${picked.days} day(s).`);
+        ui.notifications.info(game.i18n.format('PfNations.Entry.HireMercenaries.Success', { name: result.journal.name, cost: result.cost, days: picked.days }));
         new ArmySheet(result.journal).render(true);
       }
     }).catch(() => {});
@@ -243,7 +243,7 @@ class ResetCalendarMenu extends foundry.applications.api.ApplicationV2 {
       window:      { title: game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.Name') },
       content:     `<p>${game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.ConfirmContent')}</p>`,
       yes:         { label: game.i18n.localize('SettlementBuilder.Settings.ResetCalendar.ConfirmLabel'), icon: 'fa-solid fa-calendar-xmark' },
-      no:          { label: 'Cancel' },
+      no:          { label: game.i18n.localize('PfNations.Entry.ResetCalendar.Cancel') },
       rejectClose: false,
     }).then(ok => {
       if (!ok) return;
@@ -435,7 +435,7 @@ function injectHomeSettlementLink(app, html) {
     ev.stopPropagation();
     const journal = game.journal?.get(homeId);
     if (journal) journal.sheet.render(true);
-    else ui.notifications?.warn('The home settlement for this NPC no longer exists.');
+    else ui.notifications?.warn(game.i18n.localize('PfNations.Entry.HomeSettlement.Gone'));
   });
   anchor.appendChild(btn);
 }
@@ -487,7 +487,7 @@ Hooks.on('dropCanvasData', (canvas, data) => {
     const next = foundry.utils.deepClone(s);
     next.sceneId = sceneId;
     setSettlement(journal, next);
-    ui.notifications?.info?.(`Linked "${journal.name}" to this scene.`);
+    ui.notifications?.info?.(game.i18n.format('PfNations.Entry.DropCanvas.Linked', { name: journal.name }));
   }).catch(err => log('error', 'dropCanvasData scene link failed', err));
 });
 
@@ -540,13 +540,13 @@ Hooks.on('Pf2eCalendarTimeline.dayAdvanced', async ({ days = 1, currentDate } = 
         if (stationedAt) await applyArmyWages(j, stationedAt, days);
         if (s.supplySource) {
           const supplyResult = await applyArmySupply(j, game.journal?.get(s.supplySource), days);
-          if (supplyResult?.starved) ui.notifications?.warn?.(`${j.name} is starving — cut off from supply.`);
+          if (supplyResult?.starved) ui.notifications?.warn?.(game.i18n.format('PfNations.Entry.ArmyArrival.Starving', { name: j.name }));
         }
         if (s.destination && s.arrivalDate && currentDate && cmpDate(currentDate, s.arrivalDate) >= 0) {
           const dest = game.journal?.get(s.destination);
           await setSettlement(j, { ...s, stationedAt: s.destination, destination: null, arrivalDate: null });
           Hooks.callAll('Pf2eNationsAndCitiesMaker.armyArrived', { armyId: j.id, settlementId: s.destination });
-          if (dest) ui.notifications?.info?.(`${j.name} has arrived at ${dest.name}.`);
+          if (dest) ui.notifications?.info?.(game.i18n.format('PfNations.Entry.ArmyArrival.Arrived', { name: j.name, destination: dest.name }));
         }
         continue;
       }
@@ -632,7 +632,7 @@ Hooks.once('ready', () => {
   const storedVersion = storage.getVersion();
   if (currentVersion && storedVersion && currentVersion !== storedVersion) {
     storage.setKey('');
-    ui.notifications?.info?.('Settlement Builder was updated — please sign in again.');
+    ui.notifications?.info?.(game.i18n.localize('PfNations.Entry.Updated.SignInAgain'));
   }
   if (currentVersion) storage.setVersion(currentVersion);
 

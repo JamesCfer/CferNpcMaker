@@ -26,7 +26,7 @@ export function canGenerateItem() { return itemModuleActive(); }
  */
 export function generateStaffNpc({ settlementDoc, storeId, staff, level = 1, onCreate }) {
   if (!npcModuleActive()) {
-    ui.notifications?.warn('Install & enable Pf2eNpcMaker to generate NPCs for this shop.');
+    ui.notifications?.warn(game.i18n.localize('PfNations.Integrations.NpcModuleRequired'));
     return;
   }
   const settlement = getSettlement(settlementDoc);
@@ -72,7 +72,7 @@ export async function tagHomeSettlement(actor, settlementDoc) {
  */
 export function generateStoreItem({ settlementDoc, storeId, itemType = 'equipment', hint = '', onCreate }) {
   if (!itemModuleActive()) {
-    ui.notifications?.warn('Install & enable Pf2eItemGenerator to generate items for this shop.');
+    ui.notifications?.warn(game.i18n.localize('PfNations.Integrations.ItemModuleRequired'));
     return;
   }
   const settlement = getSettlement(settlementDoc);

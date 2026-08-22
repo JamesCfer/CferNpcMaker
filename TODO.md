@@ -102,7 +102,7 @@ item that has all its dependencies satisfied.
 - [~] 34. **Variation / creativity slider** — ~~float 0–1 sent to the endpoint~~ **REMOVED** (not a feature we want — pulled from the settlement builder).
 - [x] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
 - [x] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
-- [ ] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
+- [x] 37. **`/webhook/nation-builder`** — top-level endpoint that produces a Nation plus 3–6 child city stubs in one call, with auto-linked `childCityIds`.
 - [x] 38. **Cost-aware generation** — show the user the estimated Patreon-use cost before generating (1 use per ~3 stores).
 
 ## B. Settlement sheet UX & polish (39–50)
@@ -208,7 +208,7 @@ item that has all its dependencies satisfied.
 - [x] 122. **Storybook-style sheet preview** — a hidden GM-only "Open sheet with fixture data" macro for QA.
 
 ## K. Accessibility & localisation (123–128)
-- [ ] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.
+- [x] 123. **i18n pass (Settlements)** — wrap every user-facing string in `game.i18n.localize()`, ship `lang/en.json`.
 - [x] 124. **i18n pass (Calendar)** — same.
 - [x] 125. **High-contrast theme variant** — toggle in module settings; overrides the parchment palette with strong-contrast colours.
 - [x] 126. **Keyboard navigation** — Tab order through sheet tabs, Enter on store header toggles compact view, Esc closes the sheet. (#103)
