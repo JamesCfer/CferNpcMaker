@@ -11,8 +11,9 @@ import { sanitizeSettlement }              from './sanitizer.js';
 import { SettlementSheet }                 from './settlement-sheet.js';
 import { NationSheet }                     from './nation-sheet.js';
 
-const MODULE_FOLDER = detectModuleFolder(MODULE_ID);
-const ENDPOINT      = `${N8N_BASE}/webhook/city-builder`;
+const MODULE_FOLDER  = detectModuleFolder(MODULE_ID);
+const ENDPOINT       = `${N8N_BASE}/webhook/city-builder`;
+const NATION_ENDPOINT = `${N8N_BASE}/webhook/nation-builder`;
 
 const KIND_OPTIONS = ['city', 'town', 'village', 'nation'];
 const SIZE_OPTIONS = ['thorp', 'hamlet', 'village', 'town', 'city', 'metropolis'];
@@ -48,9 +49,10 @@ export class SettlementAdapter extends SystemAdapter {
     const governmentHint = (fd.get('governmentHint')?.toString()?.trim()) || '';
     const populationHint = Number(fd.get('populationHint')) || 0;
     const description    = (fd.get('description')?.toString()?.trim()) || '';
-    const includeStores     = fd.get('includeStores')     === 'on';
-    const includeMilitary   = fd.get('includeMilitary')   === 'on';
-    const includeLeadership = fd.get('includeLeadership') === 'on';
+    const includeStores      = fd.get('includeStores')      === 'on';
+    const includeMilitary    = fd.get('includeMilitary')    === 'on';
+    const includeLeadership  = fd.get('includeLeadership')  === 'on';
+    const includeChildCities = fd.get('includeChildCities') === 'on';
     const templateId        = (fd.get('template')?.toString() || 'custom').trim();
 
     if (!description) throw new Error('Please provide a description for the settlement.');
@@ -60,7 +62,7 @@ export class SettlementAdapter extends SystemAdapter {
       kind: KIND_OPTIONS.includes(kindRaw) ? kindRaw : 'town',
       size: SIZE_OPTIONS.includes(sizeRaw) ? sizeRaw : 'town',
       biome, governmentHint, populationHint, description,
-      includeStores, includeMilitary, includeLeadership,
+      includeStores, includeMilitary, includeLeadership, includeChildCities,
       templateId,
     };
   }
@@ -71,7 +73,8 @@ export class SettlementAdapter extends SystemAdapter {
       biome: formData.biome, governmentHint: formData.governmentHint,
       populationHint: formData.populationHint, description: formData.description,
       includeStores: formData.includeStores, includeMilitary: formData.includeMilitary,
-      includeLeadership: formData.includeLeadership, templateId: formData.templateId,
+      includeLeadership: formData.includeLeadership, includeChildCities: formData.includeChildCities,
+      templateId: formData.templateId,
     };
   }
 
@@ -93,22 +96,37 @@ export class SettlementAdapter extends SystemAdapter {
     set('[name="description"]',    entry.description);
     set('[name="template"]',       entry.templateId);
     const setCheck = (sel, val) => { const el = form.querySelector(sel); if (el) el.checked = !!val; };
-    setCheck('[name="includeStores"]',     entry.includeStores);
-    setCheck('[name="includeMilitary"]',   entry.includeMilitary);
-    setCheck('[name="includeLeadership"]', entry.includeLeadership);
+    setCheck('[name="includeStores"]',      entry.includeStores);
+    setCheck('[name="includeMilitary"]',    entry.includeMilitary);
+    setCheck('[name="includeLeadership"]',  entry.includeLeadership);
+    setCheck('[name="includeChildCities"]', entry.includeChildCities ?? true);
   }
 
   /* ── cost hint (#38) ──────────────────────────────────── */
 
   onFormMount(form) {
     const hintEl = form.querySelector('#settlement-cost-hint');
-    if (!hintEl) return;
+    const childCitiesRow = form.querySelector('.settlement-nation-only');
 
     const STORE_COUNTS = { city: 12, town: 6, village: 2, nation: 3, metropolis: 12, hamlet: 2, thorp: 1 };
 
     function updateHint() {
       const kind = form.querySelector('[name="kind"]')?.value || 'town';
+      const includeChildCities = form.querySelector('[name="includeChildCities"]')?.checked ?? true;
+
+      if (childCitiesRow) childCitiesRow.style.display = kind === 'nation' ? '' : 'none';
+
+      if (!hintEl) return;
       const includeStores = form.querySelector('[name="includeStores"]')?.checked ?? true;
+
+      if (kind === 'nation' && includeChildCities) {
+        // Average of 3–6 child cities at ~6 stores each (#37).
+        const storeCount = includeStores ? 4.5 * 6 : 0;
+        const credits = Math.max(1, Math.ceil(storeCount / 3));
+        hintEl.textContent = `~${credits} Patreon credit${credits === 1 ? '' : 's'} · 3–6 child cities`;
+        return;
+      }
+
       if (!includeStores) { hintEl.textContent = ''; return; }
       const storeCount = STORE_COUNTS[kind] ?? 6;
       const credits = Math.ceil(storeCount / 3);
@@ -117,12 +135,17 @@ export class SettlementAdapter extends SystemAdapter {
 
     form.querySelector('[name="kind"]')?.addEventListener('change', updateHint);
     form.querySelector('[name="includeStores"]')?.addEventListener('change', updateHint);
+    form.querySelector('[name="includeChildCities"]')?.addEventListener('change', updateHint);
     updateHint();
   }
 
   /* ── generation ────────────────────────────────────────── */
 
   async generate({ formData, key, devMode }) {
+    if (formData.kind === 'nation' && formData.includeChildCities) {
+      return this._generateNationWithChildCities({ formData, key, devMode });
+    }
+
     const endpoint = devUrl(ENDPOINT, devMode);
     const payload = {
       name:              formData.name,
@@ -201,6 +224,99 @@ export class SettlementAdapter extends SystemAdapter {
   }
 
   /**
+   * Nation-builder flow (#37): one AI call returns a nation plus 3–6 child
+   * city stubs, each of which becomes its own settlement journal auto-linked
+   * via the nation's childCityIds.
+   */
+  async _generateNationWithChildCities({ formData, key, devMode }) {
+    const endpoint = devUrl(NATION_ENDPOINT, devMode);
+    const payload = {
+      name:              formData.name,
+      size:              formData.size,
+      biome:             formData.biome,
+      governmentHint:    formData.governmentHint,
+      populationHint:    formData.populationHint,
+      description:       formData.description,
+      includeMilitary:   formData.includeMilitary,
+      includeLeadership: formData.includeLeadership,
+    };
+
+    let nationData, childCitiesData;
+    try {
+      const { response, responseText } = await postToN8n(endpoint, payload, key);
+      let data;
+      try { data = JSON.parse(responseText); }
+      catch (err) { throw new Error(`Invalid JSON response (${responseText.length} bytes): ${err.message}`); }
+      if (!response.ok) throw new Error(data?.message || `Server returned status ${response.status}`);
+      if (data?.ok === false) throw new Error(data?.message || data?.error || 'Server rejected the request');
+      nationData = data.nation;
+      childCitiesData = Array.isArray(data.childCities) ? data.childCities : [];
+    } catch (netErr) {
+      if (devMode || (game.settings?.get?.(MODULE_ID, 'allowOfflineStub') ?? true)) {
+        console.warn(`[${MODULE_ID}] Nation-builder endpoint unavailable — using offline stub. ${netErr?.message || ''}`);
+        ({ nationData, childCitiesData } = stubNationFromForm(formData));
+      } else {
+        throw netErr;
+      }
+    }
+
+    const childJournals = [];
+    const childSettlements = [];
+    for (const cityRaw of childCitiesData) {
+      const cityFormData = { kind: cityRaw?.kind, size: cityRaw?.size, biome: formData.biome };
+      const city = sanitizeSettlement(cityRaw, cityFormData);
+      const cityJournal = await JournalEntry.create({
+        name: cityRaw?.name || 'New Settlement',
+        flags: {
+          [FLAG_SCOPE]: {
+            [FLAG_KEY]: city,
+            createdBy: MODULE_ID,
+          },
+        },
+      });
+      if (cityJournal) { childJournals.push(cityJournal); childSettlements.push(city); }
+    }
+
+    const nation = sanitizeSettlement(
+      { ...nationData, kind: 'nation', childCityIds: childJournals.map(j => j.id) },
+      formData,
+    );
+
+    const journal = await JournalEntry.create({
+      name: formData.name,
+      flags: {
+        [FLAG_SCOPE]: {
+          [FLAG_KEY]: nation,
+          createdBy: MODULE_ID,
+        },
+      },
+    });
+
+    if (!journal) throw new Error('Failed to create the nation journal entry.');
+
+    const cityList = childJournals.map(j => `<li>${j.name}</li>`).join('');
+    ChatMessage.create({
+      content: `<h3><i class="fa-solid fa-city"></i> ${journal.name} Founded</h3>
+        <p>A new nation has been generated: <strong>${journal.name}</strong>
+        (population ${nation.population.toLocaleString()}) with ${childJournals.length} child settlement(s):</p>
+        <ul>${cityList}</ul>`,
+      whisper: game.users?.filter(u => u.isGM).map(u => u.id) ?? [],
+    }).catch(() => {});
+
+    new NationSheet(journal).render(true);
+
+    return {
+      document: journal,
+      exportData: {
+        content:  JSON.stringify({ nation, childCities: childSettlements }, null, 2),
+        filename: `${journal.name || 'nation'}.json`,
+        mimeType: 'application/json',
+      },
+      message: `Nation "${journal.name}" created with ${childJournals.length} child settlement(s).`,
+    };
+  }
+
+  /**
    * Add a header button to the custom sheet for re-opening the Builder.
    * (The sheets themselves wire most actions; this is just a sidebar entry
    * point for journal directory headers.)
@@ -252,6 +368,29 @@ function stubSettlementFromForm(formData) {
     notes: `Generated offline stub for "${formData.name}".`,
     ai: { endpoint: 'city-builder', model: 'stub', prompt: formData.description },
   };
+}
+
+const CHILD_CITY_NAMES = ['Ashford', 'Millhaven', 'Redwater', 'Stonegate', 'Fernbrook', 'Kingsmarch'];
+const CHILD_CITY_KINDS = ['city', 'town', 'town', 'village', 'village', 'town'];
+
+function stubNationFromForm(formData) {
+  const nationData = stubSettlementFromForm({ ...formData, kind: 'nation' });
+  nationData.ai.endpoint = 'nation-builder';
+
+  const childCount = 3 + Math.floor(Math.random() * 4); // 3–6
+  const childCitiesData = Array.from({ length: childCount }, (_, i) => {
+    const kind = CHILD_CITY_KINDS[i % CHILD_CITY_KINDS.length];
+    const childFormData = {
+      ...formData,
+      kind,
+      size: kind,
+      name: CHILD_CITY_NAMES[i % CHILD_CITY_NAMES.length],
+      populationHint: 0,
+    };
+    return { name: childFormData.name, ...stubSettlementFromForm(childFormData) };
+  });
+
+  return { nationData, childCitiesData };
 }
 
 function stubStore(name, type) {

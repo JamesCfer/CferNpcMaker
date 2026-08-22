@@ -1,0 +1,171 @@
+{
+  "name": "Settlement Builder — nation-builder",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nation-builder",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-auth-check",
+      "name": "Validate API Key",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://foundryrelay.dedicated2.com/webhook/oauth/patreon/validate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ key: $('Webhook').item.json.headers['x-builder-key'] ?? '' }) }}"
+      }
+    },
+    {
+      "id": "node-auth-gate",
+      "name": "Auth Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Validate API Key').item.json.ok }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-reject-auth",
+      "name": "Reject Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 401,
+        "responseBody": "={ \"ok\": false, \"message\": \"Unauthorized. Please sign in with Patreon.\" }"
+      }
+    },
+    {
+      "id": "node-build-prompt",
+      "name": "Build System Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 140],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "systemPrompt",
+              "value": "You are an expert Pathfinder 2e worldbuilder. Generate a Nation JSON object plus 3-6 child cities that strictly follow the schema below.\n\nRules:\n- All names must be fantasy-appropriate and period-accurate (no modern words).\n- childCities must contain between 3 and 6 entries — vary their kind between 'city', 'town' and 'village'.\n- Each child city's population and stats must be consistent with its kind and size.\n- Store counts per child city: city ≤ 12, town ≤ 6, village ≤ 2. Only include stores if includeStores is true.\n- The nation's own population should roughly equal the sum of its child cities' populations plus rural population.\n- Staff names, owner names, and leader names must feel distinct and culturally fitting.\n- Do not invent childCityIds — that field is filled in by the caller after the child journals are created.\n\nRespond with exactly this top-level JSON shape and nothing else:\n{\n  \"nation\": {\n    \"kind\": \"nation\",\n    \"size\": \"metropolis\",\n    \"population\": number,\n    \"biome\": string,\n    \"stats\": { \"hp\": number, \"maxHp\": number, \"damageThreshold\": number, \"hardness\": number,\n               \"fortitude\": number, \"reflex\": number, \"will\": number, \"morale\": number, \"unrest\": number },\n    \"treasury\": { \"cp\": number, \"sp\": number, \"gp\": number, \"pp\": number },\n    \"production\": [string],\n    \"government\": { \"type\": string, \"leaderName\": string },\n    \"leadership\": [{ \"title\": string, \"name\": string, \"role\": string }],\n    \"military\": { \"ranks\": [{ \"rank\": string, \"count\": number, \"leaderName\": string, \"dailyWage\": number }],\n                  \"totalGuards\": number, \"commanderName\": string },\n    \"notes\": string\n  },\n  \"childCities\": [\n    {\n      \"name\": string,\n      \"kind\": \"city|town|village\",\n      \"size\": \"village|town|city|metropolis\",\n      \"population\": number,\n      \"biome\": string,\n      \"stats\": { \"hp\": number, \"maxHp\": number, \"damageThreshold\": number, \"hardness\": number,\n                 \"fortitude\": number, \"reflex\": number, \"will\": number, \"morale\": number, \"unrest\": number },\n      \"treasury\": { \"cp\": number, \"sp\": number, \"gp\": number, \"pp\": number },\n      \"production\": [string],\n      \"government\": { \"type\": string, \"leaderName\": string },\n      \"leadership\": [{ \"title\": string, \"name\": string, \"role\": string }],\n      \"military\": { \"ranks\": [{ \"rank\": string, \"count\": number, \"leaderName\": string, \"dailyWage\": number }],\n                    \"totalGuards\": number, \"commanderName\": string },\n      \"stores\": [\n        { \"name\": string, \"type\": \"blacksmith|armorer|weapons|alchemist|tavern|inn|general|grocer|tailor|jeweler|temple|magic|stable|apothecary|bookbinder|other\",\n          \"owner\": { \"name\": string },\n          \"staff\": [{ \"name\": string, \"role\": string, \"shift\": \"morning|day|evening|night|graveyard\" }],\n          \"hours\": { \"open\": \"HH:MM\", \"close\": \"HH:MM\" },\n          \"inventory\": [{ \"name\": string, \"price\": number, \"stock\": number }],\n          \"income\": { \"balance\": number, \"dailyAvg\": number } }\n      ],\n      \"notes\": string\n    }\n  ]\n}\n\nRespond with valid JSON only. No markdown fences, no commentary.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-ai-generate",
+      "name": "AI Generate Nation",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.8,
+      "position": [1120, 140],
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "modelId": { "__rl": true, "value": "gpt-4o", "mode": "list" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $('Build System Prompt').item.json.systemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ 'Generate a nation called \"' + ($('Webhook').item.json.body.name ?? 'New Nation') + '\" and 3-6 child cities.' + (($('Webhook').item.json.body.description ?? '').length > 0 ? ' Description: ' + $('Webhook').item.json.body.description : '') + (($('Webhook').item.json.body.biome ?? '').length > 0 ? ' Biome: ' + $('Webhook').item.json.body.biome + '.' : '') + ' Nation size: ' + ($('Webhook').item.json.body.size ?? 'metropolis') + '. Population hint: ' + ($('Webhook').item.json.body.populationHint ?? 20000) + '. Government style: ' + ($('Webhook').item.json.body.governmentHint ?? 'unspecified') + '. Include stores in child cities: ' + ($('Webhook').item.json.body.includeStores ?? true) + '. Include military: ' + ($('Webhook').item.json.body.includeMilitary ?? true) + '. Include leadership: ' + ($('Webhook').item.json.body.includeLeadership ?? true) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 6144
+        }
+      }
+    },
+    {
+      "id": "node-parse-response",
+      "name": "Parse JSON Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 140],
+      "parameters": {
+        "jsCode": "const raw = items[0].json.message?.content ?? items[0].json.choices?.[0]?.message?.content ?? '';\nlet parsed;\ntry {\n  const cleaned = raw.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  return [{ json: { ok: false, message: 'AI returned invalid JSON: ' + e.message, raw } }];\n}\nconst childCities = Array.isArray(parsed.childCities) ? parsed.childCities.slice(0, 6) : [];\nreturn [{ json: { ok: true, nation: parsed.nation ?? null, childCities } }];"
+      }
+    },
+    {
+      "id": "node-respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Parse JSON Response').item.json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validate API Key", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate API Key": {
+      "main": [
+        [{ "node": "Auth Gate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Auth Gate": {
+      "main": [
+        [{ "node": "Build System Prompt", "type": "main", "index": 0 }],
+        [{ "node": "Reject Unauthorized", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build System Prompt": {
+      "main": [
+        [{ "node": "AI Generate Nation", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Generate Nation": {
+      "main": [
+        [{ "node": "Parse JSON Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse JSON Response": {
+      "main": [
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "_devNote": "The client (SettlementAdapter._generateNationWithChildCities) creates one JournalEntry per childCities entry, then patches the nation's childCityIds with the resulting journal ids before creating the nation journal — this workflow never invents ids itself. To add a '-dev' mirror (matching #32's pattern for city-builder), duplicate this workflow, rename the Webhook path to 'nation-builder-dev', and wire Webhook directly to 'Build System Prompt' (skipping the Auth Gate)."
+}
