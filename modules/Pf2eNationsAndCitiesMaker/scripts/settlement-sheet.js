@@ -158,7 +158,8 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/city-sheet.hbs` },
+    header: { template: `modules/${MODULE_ID}/templates/partials/settlement-header.hbs` },
+    body:   { template: `modules/${MODULE_ID}/templates/city-sheet.hbs` },
   };
 
   constructor(document, options = {}) {
@@ -170,7 +171,6 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     this.compactStores = false;
     this.districtFilter = null;
     this.collapsedStoreIds = new Set();
-    this._focusTabKey = null;
     this._pendingScrollToStoreId = null;
   }
 
@@ -342,8 +342,13 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender() {
     this.element.classList.toggle('pf2e-high-contrast', !!game.settings.get(MODULE_ID, 'highContrastTheme'));
+    this._applyActiveTab();
 
-    this.element.querySelectorAll('[data-settlement-path]').forEach(input => {
+    // header/body are independent PARTS (#47) — a partial render (e.g. banner-only)
+    // leaves the other part's DOM untouched, so only wire up nodes that survived
+    // from a prior render without being wired yet.
+    this.element.querySelectorAll('[data-settlement-path]:not([data-wired])').forEach(input => {
+      input.dataset.wired = '1';
       const tag  = input.tagName.toLowerCase();
       const type = input.getAttribute('type')?.toLowerCase();
       if (tag === 'select' || type === 'checkbox') {
@@ -354,8 +359,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     });
 
     // District filter select (in-memory, not persisted)
-    const distFilterEl = this.element.querySelector('[data-district-filter]');
+    const distFilterEl = this.element.querySelector('[data-district-filter]:not([data-wired])');
     if (distFilterEl) {
+      distFilterEl.dataset.wired = '1';
       distFilterEl.addEventListener('change', (ev) => {
         this.districtFilter = ev.currentTarget.value || null;
         this.render(false);
@@ -363,24 +369,28 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // Drag-drop actor → staff row or owner field (#40)
-    this.element.querySelectorAll('.pf2e-staff-name, [data-is-owner]').forEach(input => {
+    this.element.querySelectorAll('.pf2e-staff-name:not([data-wired]), [data-is-owner]:not([data-wired])').forEach(input => {
+      input.dataset.wired = '1';
       input.addEventListener('dragover', (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'link'; });
       input.addEventListener('drop', (ev) => this._onDropActorOnStaff(ev));
     });
 
     // Drag-drop PF2e item → store inventory (#41)
-    this.element.querySelectorAll('.pf2e-store-inventory').forEach(section => {
+    this.element.querySelectorAll('.pf2e-store-inventory:not([data-wired])').forEach(section => {
+      section.dataset.wired = '1';
       section.addEventListener('dragover',  (ev) => { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; section.classList.add('drag-over'); });
       section.addEventListener('dragleave', ()   => section.classList.remove('drag-over'));
       section.addEventListener('drop',      (ev) => { section.classList.remove('drag-over'); this._onDropItemOnInventory(ev); });
     });
 
     // Keyboard navigation (#126): roving-tabindex + arrow keys across sheet tabs.
-    const tabNav = this.element.querySelector('.pf2e-settlement-tabs');
+    // Switching tabs is a pure class toggle (#47), so the target button is never
+    // destroyed and can be focused directly instead of re-queried post-render.
+    const tabNav = this.element.querySelector('.pf2e-settlement-tabs:not([data-wired])');
     if (tabNav) {
-      const tabEls = Array.from(tabNav.querySelectorAll('[role="tab"]'));
-      tabEls.forEach(el => el.setAttribute('tabindex', el.classList.contains('is-active') ? '0' : '-1'));
+      tabNav.dataset.wired = '1';
       tabNav.addEventListener('keydown', (ev) => {
+        const tabEls = Array.from(tabNav.querySelectorAll('[role="tab"]'));
         const idx = tabEls.indexOf(document.activeElement);
         if (idx === -1) return;
         let next = null;
@@ -390,13 +400,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         else if (ev.key === 'End') next = tabEls[tabEls.length - 1];
         if (!next) return;
         ev.preventDefault();
-        this._focusTabKey = next.dataset.tab;
         next.click();
+        next.focus();
       });
-    }
-    if (this._focusTabKey) {
-      this.element.querySelector(`.pf2e-settlement-tab[data-tab="${this._focusTabKey}"]`)?.focus();
-      this._focusTabKey = null;
     }
     if (this._pendingAnnouncement) {
       const region = this.element.querySelector('[data-live-region]');
@@ -410,19 +416,39 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // Esc closes the sheet (#126)
-    this.element.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') this.close();
+    if (!this.element.dataset.escWired) {
+      this.element.dataset.escWired = '1';
+      this.element.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') this.close();
+      });
+    }
+  }
+
+  /**
+   * Sync the active-tab CSS class on the nav buttons and tab panels. All tab
+   * panels stay mounted in the `body` PART (#47), so switching tabs is a pure
+   * class toggle that never re-renders and never drops focus mid-edit.
+   */
+  _applyActiveTab() {
+    this.element.querySelectorAll('.pf2e-settlement-tab-panel[data-tab]').forEach(el => {
+      el.classList.toggle('is-active', el.dataset.tab === this.activeTab);
+    });
+    this.element.querySelectorAll('.pf2e-settlement-tab[role="tab"]').forEach(el => {
+      const active = el.dataset.tab === this.activeTab;
+      el.classList.toggle('is-active', active);
+      el.setAttribute('aria-selected', String(active));
+      el.setAttribute('tabindex', active ? '0' : '-1');
     });
   }
 
   /* ── helpers ───────────────────────────────────────────── */
 
-  async _patch(mutator) {
+  async _patch(mutator, parts) {
     const cur  = foundry.utils.deepClone(getSettlement(this.document) || {});
     mutator(cur);
     await this.document.setFlag(FLAG_SCOPE, FLAG_KEY, cur);
     syncSettlementNotes(this.document, cur).catch(() => {});
-    this.render(false);
+    this.render(parts ? { parts } : false);
   }
 
   _writePath(input) {
@@ -457,9 +483,9 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onSwitchTab(ev) {
     const key = ev.currentTarget?.dataset?.tab;
-    if (!key) return;
+    if (!key || key === this.activeTab) return;
     this.activeTab = key;
-    this.render(false);
+    this._applyActiveTab();
   }
 
   _onSwitchStoreTab(ev) {
@@ -1124,7 +1150,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
       rejectClose: false,
     }).catch(() => null);
     if (!sceneId) return;
-    this._patch(s => { s.sceneId = sceneId; });
+    this._patch(s => { s.sceneId = sceneId; }, ['header']);
   }
 
   _onOpenScene() {
@@ -1135,7 +1161,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onUnlinkScene() {
-    this._patch(s => { s.sceneId = null; });
+    this._patch(s => { s.sceneId = null; }, ['header']);
   }
 
   /* ── banner image (#102) ───────────────────────────────── */
@@ -1145,12 +1171,12 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     new FilePicker({
       type: 'image',
       current: settlement.bannerImage || '',
-      callback: (path) => this._patch(s => { s.bannerImage = path; }),
+      callback: (path) => this._patch(s => { s.bannerImage = path; }, ['header']),
     }).render(true);
   }
 
   _onRemoveBanner() {
-    this._patch(s => { s.bannerImage = null; });
+    this._patch(s => { s.bannerImage = null; }, ['header']);
   }
 
   async _onGenerateBanner() {
@@ -1179,7 +1205,7 @@ export class SettlementSheet extends HandlebarsApplicationMixin(ApplicationV2) {
         onRateLimited:  () => ui.notifications?.warn?.(game.i18n.localize('PfNations.Settlement.GenerateBanner.RateLimited')),
       });
       if (savedPath) {
-        await this._patch(s => { s.bannerImage = savedPath; });
+        await this._patch(s => { s.bannerImage = savedPath; }, ['header']);
         ui.notifications?.info?.(message || game.i18n.localize('PfNations.Settlement.GenerateBanner.Success'));
       }
     } catch (err) {

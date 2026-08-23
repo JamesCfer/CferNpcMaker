@@ -34,6 +34,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T15. **Hero 6e Character — "Reformed villain"** — a former supervillain working off a plea deal, powers intact but leashed by a handler and a parole clock. (#103)
 - [x] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
 - [x] T17. **D&D 5e Creature — "Bog hag"** — a swamp-dwelling hag who lures travellers with illusions of safe ground and trades false bargains for years of life.
+- [x] T18. **PF2e Item — "Sunstone signal lantern"** — a brass lantern with a sunstone core that banks daylight and can be spent as bright light or a blinding flare.
+- [ ] T19. **D&D 5e Item — "Tidewalker boots"** — sealskin boots that let the wearer walk on water and shrug off the chill of ocean spray.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -114,7 +116,7 @@ item that has all its dependencies satisfied.
 - [x] 44. **Shift roster as enum** — `shift` becomes `morning|day|evening|night|graveyard`, rendered as colour-coded chips.
 - [x] 45. **District / quarter subdivision** — add `districts: [{ id, name, storeIds[], descriptor, leaderActorId }]`; Stores tab gains a district filter alongside the type filter.
 - [x] 46. **Sheet permissions per section** — `gmOnly` flags on Treasury / Income / Military panels; respect them when a player owns the journal.
-- [ ] 47. **Partial re-render** — switch the sheet to ApplicationV2 PARTS-based rerender so editing one field no longer loses focus.
+- [x] 47. **Partial re-render** — switch the sheet to ApplicationV2 PARTS-based rerender so editing one field no longer loses focus.
 - [x] 48. **Debounced auto-save** — replace `change`-on-blur with debounced auto-save while typing (no extra Save button).
 - [x] 49. **PDF / Markdown handout export** — header button that renders the settlement as a printable handout (inputs collapsed, statblock-style typography).
 - [x] 50. **Compact / expanded sheet toggle** — collapse store cards to one-line summaries (name, owner, balance) for quick scanning.

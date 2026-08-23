@@ -1,108 +1,32 @@
-<div class="pf2e-settlement">
+<div class="pf2e-settlement-body">
 
-  <div class="pf2e-sr-only" aria-live="polite" aria-atomic="true" data-live-region></div>
+  <nav class="pf2e-settlement-tabs" role="tablist">
+    {{#each tabs}}
+      <button type="button"
+              class="pf2e-settlement-tab{{#if isActive}} is-active{{/if}}"
+              data-action="switchTab" data-tab="{{key}}"
+              role="tab" id="pf2e-settlement-tab-{{key}}"
+              aria-selected="{{isActive}}" aria-controls="pf2e-settlement-tabpanel">
+        <i class="{{icon}}"></i> {{label}}
+      </button>
+    {{/each}}
+  </nav>
 
-  {{#if settlement.bannerImage}}
-    <img class="pf2e-settlement-banner" src="{{settlement.bannerImage}}" alt="{{doc.name}} banner" />
-  {{/if}}
+  <section class="pf2e-settlement-tab-body" role="tabpanel" id="pf2e-settlement-tabpanel"
+            aria-labelledby="pf2e-settlement-tab-{{activeTab}}">
 
-  <div class="pf2e-settlement-header">
-    <div class="pf2e-settlement-title">
-      <i class="fa-solid fa-city"></i>
-      <h2>{{doc.name}}</h2>
-      <span class="pf2e-settlement-kind-pill">{{settlement.kind}} · {{settlement.size}}</span>
-      {{#if settlement.stats.occupied}}
-        <span class="pf2e-tag pf2e-tag--danger">
-          <i class="fa-solid fa-flag"></i> {{#if occupierName}}Occupied by {{occupierName}}{{else}}Occupied{{/if}}
-        </span>
-      {{/if}}
-    </div>
-    <div class="pf2e-settlement-header-actions">
-      {{#if calendarActive}}
-        <span class="pf2e-tag pf2e-tag--ok"><i class="fa-solid fa-calendar-check"></i> Calendar linked</span>
-      {{else}}
-        <button type="button" data-action="tickDay"><i class="fa-solid fa-sun"></i> Tick Day</button>
-        <button type="button" data-action="tickWeek"><i class="fa-solid fa-calendar-week"></i> Tick Week</button>
-      {{/if}}
-      <button type="button" data-action="manualTax"><i class="fa-solid fa-coins"></i> Apply Tax</button>
-      <button type="button" data-action="generateHooks"><i class="fa-solid fa-scroll"></i> Adventure Hooks</button>
-      <button type="button" data-action="exportHandout"><i class="fa-solid fa-file-arrow-down"></i> Export Handout</button>
-      {{#if settlement.sceneId}}
-        <button type="button" data-action="openScene" title="Open linked scene"><i class="fa-solid fa-map"></i> {{sceneName}}</button>
-        <button type="button" data-action="unlinkScene" class="pf2e-icon-btn" title="Unlink scene"><i class="fa-solid fa-link-slash"></i></button>
-      {{else}}
-        <button type="button" data-action="linkScene"><i class="fa-solid fa-map-location-dot"></i> Link Scene</button>
-      {{/if}}
-      <button type="button" data-action="editBanner" title="Pick a banner image"><i class="fa-solid fa-image"></i> {{#if settlement.bannerImage}}Change{{else}}Set{{/if}} Banner</button>
-      {{#if settlement.bannerImage}}
-        <button type="button" data-action="removeBanner" class="pf2e-icon-btn" title="Remove banner"><i class="fa-solid fa-trash"></i></button>
-      {{else}}
-        <button type="button" data-action="generateBanner" title="Generate an AI banner"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Banner</button>
-      {{/if}}
-      <button type="button" data-action="openBuilder"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Builder</button>
-    </div>
-  </div>
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/overview-tab.hbs"}}
 
-  <div class="pf2e-settlement-body">
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/stores-tab.hbs"}}
 
-    <nav class="pf2e-settlement-tabs" role="tablist">
-      {{#each tabs}}
-        <button type="button"
-                class="pf2e-settlement-tab{{#if isActive}} is-active{{/if}}"
-                data-action="switchTab" data-tab="{{key}}"
-                role="tab" id="pf2e-settlement-tab-{{key}}"
-                aria-selected="{{isActive}}" aria-controls="pf2e-settlement-tabpanel">
-          <i class="{{icon}}"></i> {{label}}
-        </button>
-      {{/each}}
-    </nav>
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/guards-tab.hbs"}}
 
-    <section class="pf2e-settlement-tab-body" role="tabpanel" id="pf2e-settlement-tabpanel"
-              aria-labelledby="pf2e-settlement-tab-{{activeTab}}">
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/leadership-tab.hbs"}}
 
-      {{#if isOverviewActive}}
-        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/statblock.hbs"
-            settlement=settlement hpPct=hpPct moralePct=moralePct unrestPct=unrestPct
-            sparklineSvg=sparklineSvg}}
-        {{#if townSvg}}
-          <div class="pf2e-town-map">
-            <h4><i class="fa-solid fa-map-location-dot"></i> Town Layout</h4>
-            <p class="pf2e-town-map-hint">Click a dot to jump to that store.</p>
-            {{{townSvg}}}
-          </div>
-        {{/if}}
-      {{/if}}
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/production-tab.hbs"}}
 
-      {{#if isStoresActive}}
-        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/stores-tab.hbs"
-            settlement=settlement storeTabs=storeTabs storeTypeOptions=storeTypeOptions
-            canGenerateNpc=canGenerateNpc canGenerateItem=canGenerateItem}}
-      {{/if}}
+    {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/notes-tab.hbs"}}
 
-      {{#if isGuardsActive}}
-        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/guards-tab.hbs"
-            settlement=settlement canGenerateNpc=canGenerateNpc}}
-      {{/if}}
+  </section>
 
-      {{#if isLeadershipActive}}
-        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/leadership-tab.hbs"
-            settlement=settlement canGenerateNpc=canGenerateNpc}}
-      {{/if}}
-
-      {{#if isProductionActive}}
-        {{> "modules/Pf2eNationsAndCitiesMaker/templates/partials/production-tab.hbs"
-            settlement=settlement tradeGoods=tradeGoods priceMultiplier=priceMultiplier
-            settlementJournals=settlementJournals}}
-      {{/if}}
-
-      {{#if isNotesActive}}
-        <div class="pf2e-settlement-notes">
-          <textarea data-settlement-path="notes" rows="20" placeholder="Freeform notes about this settlement (history, rumours, hooks…)">{{settlement.notes}}</textarea>
-          <button type="button" class="pf2e-settlement-btn" data-action="saveNotes"><i class="fa-solid fa-floppy-disk"></i> Save notes</button>
-        </div>
-      {{/if}}
-
-    </section>
-
-  </div>
 </div>
