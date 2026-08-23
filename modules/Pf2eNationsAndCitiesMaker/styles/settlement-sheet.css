@@ -10,7 +10,8 @@
 
 .pf2e-settlement,
 .pf2e-nation,
-.pf2e-army {
+.pf2e-army,
+.pf2e-settlement-sheet-window {
   display: flex; flex-direction: column;
   padding: 0.75em 1em; gap: 0.75em; height: 100%;
 }
@@ -94,6 +95,11 @@ button[aria-busy="true"] { cursor: progress; opacity: 0.7; }
 }
 
 .pf2e-settlement-tab-body { flex: 1; overflow: auto; min-width: 0; padding-right: 0.25em; }
+
+/* PARTS-based rerender (#47): all tab panels stay mounted; visibility is a pure
+   CSS toggle so switching tabs never re-renders and never drops input focus. */
+.pf2e-settlement-tab-panel { display: none; }
+.pf2e-settlement-tab-panel.is-active { display: block; }
 
 /* ── statblock ───────────────────────────────────────────── */
 .pf2e-statblock { display: flex; flex-direction: column; gap: 0.75em; }

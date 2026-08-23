@@ -1,0 +1,42 @@
+<div class="pf2e-sr-only" aria-live="polite" aria-atomic="true" data-live-region></div>
+
+{{#if settlement.bannerImage}}
+  <img class="pf2e-settlement-banner" src="{{settlement.bannerImage}}" alt="{{doc.name}} banner" />
+{{/if}}
+
+<div class="pf2e-settlement-header">
+  <div class="pf2e-settlement-title">
+    <i class="fa-solid fa-city"></i>
+    <h2>{{doc.name}}</h2>
+    <span class="pf2e-settlement-kind-pill">{{settlement.kind}} · {{settlement.size}}</span>
+    {{#if settlement.stats.occupied}}
+      <span class="pf2e-tag pf2e-tag--danger">
+        <i class="fa-solid fa-flag"></i> {{#if occupierName}}Occupied by {{occupierName}}{{else}}Occupied{{/if}}
+      </span>
+    {{/if}}
+  </div>
+  <div class="pf2e-settlement-header-actions">
+    {{#if calendarActive}}
+      <span class="pf2e-tag pf2e-tag--ok"><i class="fa-solid fa-calendar-check"></i> Calendar linked</span>
+    {{else}}
+      <button type="button" data-action="tickDay"><i class="fa-solid fa-sun"></i> Tick Day</button>
+      <button type="button" data-action="tickWeek"><i class="fa-solid fa-calendar-week"></i> Tick Week</button>
+    {{/if}}
+    <button type="button" data-action="manualTax"><i class="fa-solid fa-coins"></i> Apply Tax</button>
+    <button type="button" data-action="generateHooks"><i class="fa-solid fa-scroll"></i> Adventure Hooks</button>
+    <button type="button" data-action="exportHandout"><i class="fa-solid fa-file-arrow-down"></i> Export Handout</button>
+    {{#if settlement.sceneId}}
+      <button type="button" data-action="openScene" title="Open linked scene"><i class="fa-solid fa-map"></i> {{sceneName}}</button>
+      <button type="button" data-action="unlinkScene" class="pf2e-icon-btn" title="Unlink scene"><i class="fa-solid fa-link-slash"></i></button>
+    {{else}}
+      <button type="button" data-action="linkScene"><i class="fa-solid fa-map-location-dot"></i> Link Scene</button>
+    {{/if}}
+    <button type="button" data-action="editBanner" title="Pick a banner image"><i class="fa-solid fa-image"></i> {{#if settlement.bannerImage}}Change{{else}}Set{{/if}} Banner</button>
+    {{#if settlement.bannerImage}}
+      <button type="button" data-action="removeBanner" class="pf2e-icon-btn" title="Remove banner"><i class="fa-solid fa-trash"></i></button>
+    {{else}}
+      <button type="button" data-action="generateBanner" title="Generate an AI banner"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Banner</button>
+    {{/if}}
+    <button type="button" data-action="openBuilder"><i class="fa-solid fa-wand-magic-sparkles"></i> Open Builder</button>
+  </div>
+</div>
