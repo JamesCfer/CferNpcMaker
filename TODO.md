@@ -35,7 +35,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T16. **PF2e NPC — "Itinerant relic-menders"** — a travelling artificer-priest who repairs and reconsecrates damaged holy relics for a fee, part tinker and part confessor.
 - [x] T17. **D&D 5e Creature — "Bog hag"** — a swamp-dwelling hag who lures travellers with illusions of safe ground and trades false bargains for years of life.
 - [x] T18. **PF2e Item — "Sunstone signal lantern"** — a brass lantern with a sunstone core that banks daylight and can be spent as bright light or a blinding flare.
-- [ ] T19. **D&D 5e Item — "Tidewalker boots"** — sealskin boots that let the wearer walk on water and shrug off the chill of ocean spray.
+- [x] T19. **D&D 5e Item — "Tidewalker boots"** — sealskin boots that let the wearer walk on water and shrug off the chill of ocean spray.
+- [ ] T20. **PF2e Item — "Whisperbell charm"** — a small silver bell charm that lets the wearer send a short silent message to one ally within earshot once per day.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
