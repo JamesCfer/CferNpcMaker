@@ -37,7 +37,7 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T18. **PF2e Item — "Sunstone signal lantern"** — a brass lantern with a sunstone core that banks daylight and can be spent as bright light or a blinding flare.
 - [x] T19. **D&D 5e Item — "Tidewalker boots"** — sealskin boots that let the wearer walk on water and shrug off the chill of ocean spray.
 - [x] T20. **PF2e Item — "Whisperbell charm"** — a small silver bell charm that lets the wearer send a short silent message to one ally within earshot once per day. (#120)
-- [x] T21. **Hero 6e Character — "Weather-warper"** — an elemental controller who bends wind, rain, and lightning into battlefield-control effects, calm and analytical about the collateral damage.
+- [x] T21. **Hero 6e Character — "Weather-warper"** — an elemental controller who bends wind, rain, and lightning into battlefield-control effects, calm and analytical about the collateral damage. (#121)
 - [ ] T22. **D&D 5e Creature — "Ossuary golem"** — a construct stitched together from graveyard bones, animated by a bound spirit that grinds its captors' names into dust.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
