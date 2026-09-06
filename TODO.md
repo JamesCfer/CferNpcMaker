@@ -38,7 +38,7 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T19. **D&D 5e Item — "Tidewalker boots"** — sealskin boots that let the wearer walk on water and shrug off the chill of ocean spray.
 - [x] T20. **PF2e Item — "Whisperbell charm"** — a small silver bell charm that lets the wearer send a short silent message to one ally within earshot once per day. (#120)
 - [x] T21. **Hero 6e Character — "Weather-warper"** — an elemental controller who bends wind, rain, and lightning into battlefield-control effects, calm and analytical about the collateral damage.
-- [x] T22. **PF2e NPC — "Bog-iron smith"** — a taciturn rural smith who forges tools and simple weapons from low-grade bog iron, wary of outsiders and slow to trust. (this update)
+- [x] T22. **PF2e NPC — "Bog-iron smith"** — a taciturn rural smith who forges tools and simple weapons from low-grade bog iron, wary of outsiders and slow to trust. (#123)
 - [ ] T23. **D&D 5e Creature — "Ashfall salamander broodmother"** — a fire-elemental reptile matriarch guarding a volcanic nest, breathing scalding cinders and summoning her hatchlings to swarm intruders.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
