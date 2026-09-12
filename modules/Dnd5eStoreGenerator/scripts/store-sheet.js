@@ -353,7 +353,7 @@ export class StoreSheet extends HandlebarsApplicationMixin(ApplicationV2) {
     const options = [...seen.entries()]
       .map(([id, label]) => ({ id, label, selected: this.browserSource === id }))
       .sort((a, b) => a.label.localeCompare(b.label));
-    options.unshift({ id: '__wiki', label: 'Wiki: 5eTools', selected: this.browserSource === '__wiki' });
+    options.unshift({ id: '__wiki', label: 'Wiki: Item Catalog', selected: this.browserSource === '__wiki' });
     return options;
   }
 
