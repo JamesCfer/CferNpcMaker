@@ -39,7 +39,10 @@
         <div class="auth-unsigned">
           <div class="auth-unsigned-text">
             <i class="fa-brands fa-patreon auth-patreon-icon"></i>
-            <span>Sign in with Patreon to use this module</span>
+            <span>
+              Sign in with Patreon to use this module
+              <small class="auth-unsigned-hint">Free to sign in, and includes {{freePlan.uses}} generation uses a month. <button type="button" class="link-to-home" data-home-target="home-uses">How uses work</button></small>
+            </span>
           </div>
           <div class="auth-unsigned-actions">
             <button type="button" data-action="signin" class="btn-patreon">
@@ -62,10 +65,33 @@
           <button type="button" data-action="signout" class="btn-signout">
             <i class="fa-solid fa-right-from-bracket"></i> Sign Out
           </button>
-          <div class="usage-meter" style="display:none;" role="meter" aria-live="polite">
-            <div class="usage-meter-fill"></div>
-            <span class="usage-meter-label">&mdash;</span>
+          <div class="usage-row" style="display:none;">
+            <div class="usage-meter" role="meter" aria-live="polite">
+              <div class="usage-meter-fill"></div>
+              <span class="usage-meter-label">&mdash;</span>
+            </div>
+            <button type="button" class="usage-help-btn" data-home-target="home-uses"
+                    title="What counts as a use, and how to get more" aria-label="Explain monthly uses">
+              <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+            </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Allowance running out: explain the reset and offer the next tier up -->
+      <div class="uses-upsell" style="display:none;" role="status" aria-live="polite">
+        <div class="uses-upsell-main">
+          <i class="fa-solid fa-bolt uses-upsell-icon" aria-hidden="true"></i>
+          <div class="uses-upsell-text">
+            <span class="uses-upsell-headline"></span>
+            <span class="uses-upsell-detail"></span>
+          </div>
+        </div>
+        <div class="uses-upsell-actions">
+          <button type="button" class="link-to-home" data-home-target="home-uses">See how uses work</button>
+          <a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer" class="btn-patreon-link uses-upsell-cta">
+            <i class="fa-brands fa-patreon"></i> <span class="uses-upsell-cta-label">Get more uses</span>
+          </a>
         </div>
       </div>
 
