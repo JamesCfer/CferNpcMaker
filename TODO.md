@@ -40,7 +40,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T21. **Hero 6e Character — "Weather-warper"** — an elemental controller who bends wind, rain, and lightning into battlefield-control effects, calm and analytical about the collateral damage.
 - [x] T22. **PF2e NPC — "Bog-iron smith"** — a taciturn rural smith who forges tools and simple weapons from low-grade bog iron, wary of outsiders and slow to trust. (#123)
 - [x] T23. **D&D 5e Creature — "Ashfall salamander broodmother"** — a fire-elemental reptile matriarch guarding a volcanic nest, breathing scalding cinders and summoning her hatchlings to swarm intruders.
-- [ ] T24. **PF2e Item — "Tideglass mirror"** — a hand mirror of fused sea-glass that shows a glimpse of the viewer's surroundings from a moment ago, useful for spotting what was lurking just out of sight.
+- [x] T24. **PF2e Item — "Tideglass mirror"** — a hand mirror of fused sea-glass that shows a glimpse of the viewer's surroundings from a moment ago, useful for spotting what was lurking just out of sight.
+- [ ] T25. **D&D 5e Item — "Frostbind gauntlets"** — thick fur-lined gauntlets that let the wearer freeze standing water solid at a touch and shrug off the worst of the cold themselves.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
