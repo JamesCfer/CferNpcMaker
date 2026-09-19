@@ -42,7 +42,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T23. **D&D 5e Creature — "Ashfall salamander broodmother"** — a fire-elemental reptile matriarch guarding a volcanic nest, breathing scalding cinders and summoning her hatchlings to swarm intruders.
 - [x] T24. **PF2e Item — "Tideglass mirror"** — a hand mirror of fused sea-glass that shows a glimpse of the viewer's surroundings from a moment ago, useful for spotting what was lurking just out of sight.
 - [x] T25. **D&D 5e Item — "Frostbind gauntlets"** — thick fur-lined gauntlets that let the wearer freeze standing water solid at a touch and shrug off the worst of the cold themselves.
-- [ ] T26. **Hero 6e Character — "Temporal anchor"** — a precision timeline-manipulator who rewinds a few seconds of combat to undo a single bad outcome, at a steep personal cost.
+- [x] T26. **Hero 6e Character — "Temporal anchor"** — a precision timeline-manipulator who rewinds a few seconds of combat to undo a single bad outcome, at a steep personal cost.
+- [ ] T27. **PF2e Settlement — "Ley-node observatory town"** — a small scholar's settlement built around a natural arcane confluence, its economy and politics shaped by who controls the unstable ley energy.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
