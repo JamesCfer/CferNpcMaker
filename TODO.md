@@ -43,7 +43,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T24. **PF2e Item — "Tideglass mirror"** — a hand mirror of fused sea-glass that shows a glimpse of the viewer's surroundings from a moment ago, useful for spotting what was lurking just out of sight.
 - [x] T25. **D&D 5e Item — "Frostbind gauntlets"** — thick fur-lined gauntlets that let the wearer freeze standing water solid at a touch and shrug off the worst of the cold themselves.
 - [x] T26. **Hero 6e Character — "Temporal anchor"** — a precision timeline-manipulator who rewinds a few seconds of combat to undo a single bad outcome, at a steep personal cost.
-- [ ] T27. **PF2e Settlement — "Ley-node observatory town"** — a small scholar's settlement built around a natural arcane confluence, its economy and politics shaped by who controls the unstable ley energy.
+- [x] T27. **PF2e Settlement — "Ley-node observatory town"** — a small scholar's settlement built around a natural arcane confluence, its economy and politics shaped by who controls the unstable ley energy.
+- [ ] T28. **D&D 5e Creature — "Chained oath-breaker"** — a fallen paladin bound by a curse to a ruined chapel, forced to attack anyone who enters and unable to leave the hallowed ground themselves.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
