@@ -44,7 +44,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T25. **D&D 5e Item — "Frostbind gauntlets"** — thick fur-lined gauntlets that let the wearer freeze standing water solid at a touch and shrug off the worst of the cold themselves.
 - [x] T26. **Hero 6e Character — "Temporal anchor"** — a precision timeline-manipulator who rewinds a few seconds of combat to undo a single bad outcome, at a steep personal cost.
 - [x] T27. **PF2e Settlement — "Ley-node observatory town"** — a small scholar's settlement built around a natural arcane confluence, its economy and politics shaped by who controls the unstable ley energy.
-- [ ] T28. **D&D 5e Creature — "Chained oath-breaker"** — a fallen paladin bound by a curse to a ruined chapel, forced to attack anyone who enters and unable to leave the hallowed ground themselves.
+- [x] T28. **D&D 5e Creature — "Chained oath-breaker"** — a fallen paladin bound by a curse to a ruined chapel, forced to attack anyone who enters and unable to leave the hallowed ground themselves.
+- [ ] T29. **PF2e NPC — "Wandering cartographer"** — an obsessive mapmaker who trades hand-drawn charts of dangerous ground for supplies and travelling company, paranoid about rivals stealing their notes.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
@@ -109,7 +110,7 @@ item that has all its dependencies satisfied.
 ## A. AI backend & generation quality (31–38)
 - [x] 31. **`/webhook/city-builder` endpoint live** — design the n8n workflow, the system prompt, and the JSON-schema-constrained output that maps 1:1 to the `sanitizer.sanitizeSettlement` shape. Cap stores at 12/city, 6/town, 2/village.
 - [x] 32. **`/webhook/city-builder-dev` mirror** — same endpoint with relaxed rate limits, routed via the existing `devMode` setting.
-- [ ] 33. **Prompt-tuning pass #1** — run 50 generations across biomes & sizes, log failures (names too modern, inventory anachronisms, missing fields). Add few-shot examples until 8/10 generations are usable as-is.
+- [x] 33. **Prompt-tuning pass #1** — run 50 generations across biomes & sizes, log failures (names too modern, inventory anachronisms, missing fields). Add few-shot examples until 8/10 generations are usable as-is.
 - [~] 34. **Variation / creativity slider** — ~~float 0–1 sent to the endpoint~~ **REMOVED** (not a feature we want — pulled from the settlement builder).
 - [x] 35. **Bulk store regeneration** — header button on the City sheet that re-rolls just `settlement.stores` (preserving everything else).
 - [x] 36. **Per-store re-roll** — card-level "Re-roll this store" action that hits the AI for a single store of the same `type`.
