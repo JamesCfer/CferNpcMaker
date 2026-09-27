@@ -46,7 +46,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T27. **PF2e Settlement — "Ley-node observatory town"** — a small scholar's settlement built around a natural arcane confluence, its economy and politics shaped by who controls the unstable ley energy.
 - [x] T28. **D&D 5e Creature — "Chained oath-breaker"** — a fallen paladin bound by a curse to a ruined chapel, forced to attack anyone who enters and unable to leave the hallowed ground themselves. (#130)
 - [x] T29. **PF2e NPC — "Wandering cartographer"** — an obsessive mapmaker who trades hand-drawn charts of dangerous ground for supplies and travelling company, paranoid about rivals stealing their notes.
-- [ ] T30. **D&D 5e Creature — "Tollbooth troll"** — a bridge-dwelling troll who extorts a toll from travellers instead of eating them outright, regenerating from wounds if a fee goes unpaid.
+- [x] T30. **D&D 5e Creature — "Tollbooth troll"** — a bridge-dwelling troll who extorts a toll from travellers instead of eating them outright, regenerating from wounds if a fee goes unpaid.
+- [ ] T31. **PF2e Item — "Beacon of the lost road"** — a walking-stick lantern that always points the way back to the last place its bearer felt truly safe.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
