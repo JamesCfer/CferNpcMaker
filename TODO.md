@@ -49,7 +49,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T30. **D&D 5e Creature — "Tollbooth troll"** — a bridge-dwelling troll who extorts a toll from travellers instead of eating them outright, regenerating from wounds if a fee goes unpaid.
 - [x] T31. **PF2e Item — "Beacon of the lost road"** — a walking-stick lantern that always points the way back to the last place its bearer felt truly safe.
 - [x] T32. **PF2e NPC — "Lighthouse keeper"** — a solitary coastal watcher who tends a warning beacon, trades in weather-lore and wreck rumours, and is wary of salvagers.
-- [ ] T33. **D&D 5e Item — "Wardstone lantern-pole"** — an iron-shod marching pole topped with a rune-carved stone that shields a camp from wandering monsters for a night.
+- [x] T33. **D&D 5e Item — "Wardstone lantern-pole"** — an iron-shod marching pole topped with a rune-carved stone that shields a camp from wandering monsters for a night.
+- [ ] T34. **Hero 6e Character — "Disgraced sidekick"** — a former hero's protégé trying to escape a famous mentor's shadow, skilled but underestimated, with a chip on their shoulder.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
