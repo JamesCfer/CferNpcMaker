@@ -51,7 +51,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T32. **PF2e NPC — "Lighthouse keeper"** — a solitary coastal watcher who tends a warning beacon, trades in weather-lore and wreck rumours, and is wary of salvagers.
 - [x] T33. **D&D 5e Item — "Wardstone lantern-pole"** — an iron-shod marching pole topped with a rune-carved stone that shields a camp from wandering monsters for a night.
 - [x] T34. **Hero 6e Character — "Disgraced sidekick"** — a former hero's protégé trying to escape a famous mentor's shadow, skilled but underestimated, with a chip on their shoulder.
-- [ ] T35. **PF2e Settlement — "Salt-marsh causeway village"** — a stilt-and-boardwalk hamlet living off salt-panning, eel traps, and tolls on the only dry road through the fen.
+- [x] T35. **PF2e Settlement — "Salt-marsh causeway village"** — a stilt-and-boardwalk hamlet living off salt-panning, eel traps, and tolls on the only dry road through the fen.
+- [ ] T36. **D&D 5e Item — "Emberglass lens"** — a smoked-glass lens that focuses sunlight into a searing beam to light fires, burn through rope, or scorch a foe, but cracks if used twice in a day.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
