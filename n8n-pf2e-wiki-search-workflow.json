@@ -254,7 +254,7 @@
    ],
    "parameters": {
     "options": {
-     "responseCode": 401,
+     "responseCode": "={{ $json.rateLimitExceeded ? 429 : 401 }}",
      "responseHeaders": {
       "entries": [
        {
