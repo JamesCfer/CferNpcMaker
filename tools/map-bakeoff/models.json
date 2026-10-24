@@ -1,0 +1,6 @@
+[
+  { "key": "seedream-lite", "model": "bytedance-seed/seedream-5-0-lite",   "label": "Seedream 5.0 Lite",      "resolution": "2K", "estUsd": 0.035 },
+  { "key": "seedream-pro",  "model": "bytedance-seed/seedream-5-0-pro",    "label": "Seedream 5.0 Pro",       "resolution": "2K", "estUsd": 0.09 },
+  { "key": "flux2-klein",   "model": "black-forest-labs/flux.2-klein-4b",  "label": "FLUX.2 klein 4B",        "resolution": "2K", "estUsd": 0.056 },
+  { "key": "gemini-flash",  "model": "google/gemini-3.1-flash-image",      "label": "Gemini 3.1 Flash Image", "resolution": "2K", "estUsd": 0.101 }
+]
