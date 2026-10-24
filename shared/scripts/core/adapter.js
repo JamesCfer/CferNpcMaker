@@ -299,20 +299,29 @@ export async function postToN8n(endpoint, payload, key) {
   try { parsedBody = JSON.parse(responseText); } catch (_) {}
   updateUsageFromResponse(response, parsedBody);
 
-  if (response.status === 401 || response.status === 403) {
-    let data; try { data = JSON.parse(responseText); } catch { data = {}; }
-    throw new AuthError(data?.message || 'Unauthorized. Please sign in with Patreon.');
+  // The relay answers "not enough credits" with a 401 that carries
+  // rateLimitExceeded. Treat that as a limit, not a bad session, so the
+  // user is not signed out and sent to Patreon.
+  let errorBody = null;
+  if (response.status === 401 || response.status === 403 || response.status === 429) {
+    errorBody = parsedBody && typeof parsedBody === 'object' ? parsedBody : {};
+  }
+  const isRateLimit = response.status === 429 || errorBody?.rateLimitExceeded === true;
+
+  if ((response.status === 401 || response.status === 403) && !isRateLimit) {
+    throw new AuthError(errorBody?.message || 'Unauthorized. Please sign in with Patreon.');
   }
 
-  if (response.status === 429) {
-    let data; try { data = JSON.parse(responseText); } catch { data = {}; }
+  if (isRateLimit) {
+    const data = errorBody;
     const limit = data?.limit || 0;
-    const tierMap = { 3: 'Free', 15: 'Local Adventurer', 50: 'Standard', 80: 'Champion' };
+    const tierMap = { 3: 'Free', 25: 'Supporter', 100: 'Professional', 200: 'Premium' };
     const tier = limit && tierMap[limit] ? tierMap[limit] : null;
 
     let resetAt = null;
     if (data?.reset)        resetAt = Number(data.reset) * 1000;
     else if (data?.resetAt) resetAt = new Date(data.resetAt).getTime();
+    else if (data?.resetDate) resetAt = new Date(data.resetDate).getTime();
     if (!resetAt || isNaN(resetAt)) {
       const retryAfter = response.headers.get('Retry-After');
       if (retryAfter) {
