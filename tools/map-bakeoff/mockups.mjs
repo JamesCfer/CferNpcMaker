@@ -6,7 +6,8 @@
  *   node tools/map-bakeoff/mockups.mjs mockups --prompts p02-tavern,p05-spaceship
  *   node tools/map-bakeoff/mockups.mjs finals  --pick p02-tavern=2,p05-spaceship=4
  *
- * Needs OPENROUTER_API_KEY. Output goes to tools/map-bakeoff/out/mockups/.
+ * Needs OPENROUTER_API_KEY. Output goes to tools/map-bakeoff/out/mockups/, or out/<name>/ with --out <name>.
+ * Prompts come from prompts.json and towns.json.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,11 +27,11 @@ const FINALS = [
   { key: 'final-seedream-pro', model: 'bytedance-seed/seedream-5-0-pro', resolution: '2K', label: 'High detail (Seedream Pro)' },
 ];
 
-const outDir = path.join(here, 'out', 'mockups');
+const outDir = path.join(here, 'out', args.out || 'mockups');
 fs.mkdirSync(outDir, { recursive: true });
 const statePath = path.join(outDir, 'results.json');
 const state = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : { results: [] };
-const prompts = JSON.parse(fs.readFileSync(path.join(here, 'prompts.json'), 'utf8'));
+const prompts = ['prompts.json', 'towns.json'].flatMap(f => JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')));
 const byId = Object.fromEntries(prompts.map(p => [p.id, p]));
 let spent = 0;
 
@@ -58,6 +59,7 @@ if (step === 'mockups') {
       'The attached image is a rough layout mockup. Redraw it as a finished, highly detailed battle map.',
       'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
       'Ignore and remove any grid lines, text, or labels in the mockup.',
+      ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
       buildPrompt(p),
     ].join(' ');
     for (const m of FINALS) jobs.push(gen({ kind: 'final', id, n: Number(n), model: m, prompt, aspect: mock.aspect, squares: p.squares, ref }));

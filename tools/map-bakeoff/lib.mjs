@@ -4,7 +4,7 @@
  */
 
 export const PERSPECTIVES = {
-  'top-down':      'strict top-down orthographic view, looking straight down, no horizon, no perspective distortion',
+  'top-down':      'flat top-down orthographic view with the camera pointing straight down at 90 degrees, like a classic virtual tabletop battle map. Walls are flat thick outlines seen only from above, with no wall faces or sides of furniture visible. No tilt, no depth, no horizon, no vanishing point',
   'isometric':     'isometric view at a 30 degree angle, 2:1 isometric projection, walls and objects shown from above at an angle',
   'three-quarter': 'three-quarter overhead view, camera tilted slightly so the fronts of walls and objects are visible, no horizon',
 };
