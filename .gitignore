@@ -10,3 +10,6 @@
 /Dnd5eStoreGenerator/
 *.zip
 node_modules/
+
+# Map bake-off output (images and results)
+/tools/map-bakeoff/out/
