@@ -52,7 +52,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T33. **D&D 5e Item — "Wardstone lantern-pole"** — an iron-shod marching pole topped with a rune-carved stone that shields a camp from wandering monsters for a night.
 - [x] T34. **Hero 6e Character — "Disgraced sidekick"** — a former hero's protégé trying to escape a famous mentor's shadow, skilled but underestimated, with a chip on their shoulder.
 - [x] T35. **PF2e Settlement — "Salt-marsh causeway village"** — a stilt-and-boardwalk hamlet living off salt-panning, eel traps, and tolls on the only dry road through the fen.
-- [ ] T36. **D&D 5e Item — "Emberglass lantern-flask"** — a stoppered glass flask holding a captive ember that can be uncorked to light a campfire instantly or hurled as a small fire bomb.
+- [ ] T37. **PF2e NPC — "Salt-road caravan guard"** — a weathered mercenary who escorts salt wagons along dangerous trade roads, practical, superstitious about omens, and loyal to whoever pays on time.
+- [x] T36. **D&D 5e Item — "Emberglass lantern-flask"** — a stoppered glass flask holding a captive ember that can be uncorked to light a campfire instantly or hurled as a small fire bomb.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
