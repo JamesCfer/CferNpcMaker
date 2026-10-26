@@ -22,10 +22,15 @@ const args = Object.fromEntries(rest.reduce((a, v, i, all) => (v.startsWith('--'
 if (!KEY) die('Set OPENROUTER_API_KEY.');
 
 const LIGHT = { key: 'mock-klein', model: 'black-forest-labs/flux.2-klein-4b', resolution: '1K' };
-const FINALS = [
+const ALL_FINALS = [
   { key: 'final-gemini', model: 'google/gemini-3.1-flash-image', resolution: '2K', label: 'Standard (Gemini)' },
   { key: 'final-seedream-pro', model: 'bytedance-seed/seedream-5-0-pro', resolution: '2K', label: 'High detail (Seedream Pro)' },
+  { key: 'final-gemini-1k', model: 'google/gemini-3.1-flash-image', resolution: '1K', label: 'Budget candidate (Gemini at 1K)' },
+  { key: 'final-seedream-lite', model: 'bytedance-seed/seedream-5-0-lite', resolution: '2K', label: 'Budget candidate (Seedream Lite)' },
+  { key: 'final-klein-2k', model: 'black-forest-labs/flux.2-klein-4b', resolution: '2K', label: 'Budget candidate (FLUX.2 klein at 2K)' },
 ];
+// --models final-gemini,final-seedream-lite picks which finals to run (default: the two launch options).
+const FINALS = ALL_FINALS.filter(m => (args.models ? args.models.split(',') : ['final-gemini', 'final-seedream-pro']).includes(m.key));
 
 const outDir = path.join(here, 'out', args.out || 'mockups');
 fs.mkdirSync(outDir, { recursive: true });
