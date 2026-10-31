@@ -54,7 +54,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T35. **PF2e Settlement — "Salt-marsh causeway village"** — a stilt-and-boardwalk hamlet living off salt-panning, eel traps, and tolls on the only dry road through the fen.
 - [x] T37. **PF2e NPC — "Salt-road caravan guard"** — a weathered mercenary who escorts salt wagons along dangerous trade roads, practical, superstitious about omens, and loyal to whoever pays on time.
 - [x] T36. **D&D 5e Item — "Emberglass lantern-flask"** — a stoppered glass flask holding a captive ember that can be uncorked to light a campfire instantly or hurled as a small fire bomb.
-- [ ] T38. **Hero 6e Character — "Rooftop courier"** — a free-running urban messenger who carries sensitive packages across a city's skyline, fast and evasive, caught between rival employers.
+- [x] T38. **Hero 6e Character — "Rooftop courier"** — a free-running urban messenger who carries sensitive packages across a city's skyline, fast and evasive, caught between rival employers.
+- [ ] T39. **PF2e Settlement — "Cliffside monastery town"** — a switchback town clinging to a sea-cliff, built around a contemplative order that feeds, shelters, and quietly governs the villagers below.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
