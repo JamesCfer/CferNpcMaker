@@ -55,7 +55,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T37. **PF2e NPC — "Salt-road caravan guard"** — a weathered mercenary who escorts salt wagons along dangerous trade roads, practical, superstitious about omens, and loyal to whoever pays on time.
 - [x] T36. **D&D 5e Item — "Emberglass lantern-flask"** — a stoppered glass flask holding a captive ember that can be uncorked to light a campfire instantly or hurled as a small fire bomb.
 - [x] T38. **Hero 6e Character — "Rooftop courier"** — a free-running urban messenger who carries sensitive packages across a city's skyline, fast and evasive, caught between rival employers.
-- [ ] T39. **PF2e Settlement — "Cliffside monastery town"** — a switchback town clinging to a sea-cliff, built around a contemplative order that feeds, shelters, and quietly governs the villagers below.
+- [x] T39. **PF2e Settlement — "Cliffside monastery town"** — a switchback town clinging to a sea-cliff, built around a contemplative order that feeds, shelters, and quietly governs the villagers below.
+- [ ] T40. **D&D 5e Creature — "Lantern-eyed marsh stalker"** — a gaunt fen predator whose glowing eyes mimic distant lantern-light to lure travellers off the safe path and into the mire.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
