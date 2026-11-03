@@ -1,0 +1,10 @@
+{
+  "id": "BattleMapMaker",
+  "title": "Battle Map Maker",
+  "description": "Create battle map mockups and finished Foundry scenes from a description.",
+  "authors": [{ "name": "JamesCfer" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "esmodules": ["scripts/preload-templates.js", "scripts/entry.js"],
+  "styles": ["styles/builder.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }]
+}

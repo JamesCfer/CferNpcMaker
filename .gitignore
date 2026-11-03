@@ -8,6 +8,7 @@
 /Pf2eCalendarTimeline/
 /Pf2eStoreGenerator/
 /Dnd5eStoreGenerator/
+/BattleMapMaker/
 *.zip
 node_modules/
 
