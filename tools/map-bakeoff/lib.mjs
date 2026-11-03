@@ -148,7 +148,6 @@ export function buildPrompt(p) {
     // Dark water came out as a flat black hole on night maps (Nov 3 crypt test).
     ...(/water|river|lake|pond|pool|flood|sea|stream|canal|moat|swamp|marsh/i.test(p.description) ? ['Draw any water, even water described as dark or black, in deep teal or green-blue with visible ripples, reflections of nearby lights, and the floor or stones showing through where it is shallow. Never draw water as a flat black area.'] : []),
     `The map covers an area of ${Math.round(w * boost)} by ${Math.round(h * boost)} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,
-    'Draw every object at true scale for that area and keep furniture small: a round table is about one square across, a chair about half a square, a bed one by two squares, a cart one by two squares, and a small house about four by five squares.',
     `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,
     'Clear readable layout, the whole area fills the frame edge to edge.',
     'Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark. No people or creatures.',
@@ -159,6 +158,8 @@ export function buildPrompt(p) {
  * Image models draw furniture and doors too big for the area we ask for, so
  * the map comes out smaller than requested. Measured Nov 3, 2026: indoor maps
  * came out at about 0.45 of the asked width, outdoor (town) at about 0.88.
+ * The boost helped the tavern and freighter a little; listing object sizes
+ * in squares did not help and was dropped.
  * The prompt asks for a larger area by the inverse of that.
  */
 export const SIZE_BOOST = { indoor: 2.2, outdoor: 1.15 };
