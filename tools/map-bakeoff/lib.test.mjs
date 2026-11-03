@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
+import { sceneScale, gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -99,6 +99,14 @@ describe('map bake-off helpers', () => {
     const big = gridFit(2400, 1792, [40, 30]);
     expect(big).toMatchObject({ width: 4000, height: 3000, sharpen: 0.6 });
     expect(big.scale).toBeCloseTo(1.667, 2);
+  });
+
+  it('turns a size estimate into Foundry scene and grid settings', () => {
+    // 36.6 m by 27.4 m is 120 ft by 90 ft: 24 by 18 five-foot squares.
+    expect(sceneScale({ width_m: 36.6, height_m: 27.4 })).toEqual({ squares: [24, 18], width: 2400, height: 1800, grid: { size: 100, distance: 5, units: 'ft' } });
+    expect(sceneScale({ width_m: 36.6, height_m: 27.4 }, { system: 'metric' })).toMatchObject({ squares: [24, 18], grid: { distance: 1.5, units: 'm' } });
+    expect(sceneScale({ width_m: 30, height_m: 20 }, { system: 'metric', square: 1 }).squares).toEqual([30, 20]);
+    expect(() => sceneScale({ width_m: 0, height_m: 5 })).toThrow();
   });
 
   it('rejects an unknown perspective', () => {

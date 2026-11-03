@@ -306,3 +306,32 @@ export function gridFit(width, height, [sw, sh], gridPx = 100) {
   const scale = (sw * gridPx) / width;
   return { width: sw * gridPx, height: sh * gridPx, scale, sharpen: scale > 1.2 ? 0.6 : 0 };
 }
+
+/** Grid square sizes the builder offers. Foundry's grid.distance is the size of one square in these units. */
+export const UNIT_SYSTEMS = {
+  imperial: { units: 'ft', square: 5 },
+  metric:   { units: 'm',  square: 1.5 },
+};
+const FEET_PER_METRE = 3.28084;
+
+/**
+ * Foundry scene settings from the vision model's size estimate. The map is
+ * split into whole squares of the chosen size and fitted at 100 pixels per
+ * square, so the image stretches slightly to land exactly on the grid.
+ * @param {{width_m: number, height_m: number}} estimate real size of the whole image, in metres
+ * @param {{system?: 'imperial'|'metric', square?: number, gridPx?: number}} [opts] square overrides the default square size
+ */
+export function sceneScale({ width_m, height_m }, { system = 'imperial', square, gridPx = 100 } = {}) {
+  if (!(width_m > 0 && height_m > 0)) throw new Error('The size estimate needs a positive width and height.');
+  const u = UNIT_SYSTEMS[system];
+  if (!u) throw new Error(`Unknown unit system "${system}"`);
+  const size = square || u.square;
+  const toUnits = m => (u.units === 'ft' ? m * FEET_PER_METRE : m);
+  const squares = [Math.max(1, Math.round(toUnits(width_m) / size)), Math.max(1, Math.round(toUnits(height_m) / size))];
+  return {
+    squares,
+    width: squares[0] * gridPx,
+    height: squares[1] * gridPx,
+    grid: { size: gridPx, distance: size, units: u.units },
+  };
+}
