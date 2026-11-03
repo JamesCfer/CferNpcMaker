@@ -4,9 +4,18 @@
  */
 
 export const PERSPECTIVES = {
-  'top-down':      'flat top-down orthographic view with the camera pointing straight down at 90 degrees, like a classic virtual tabletop battle map. Walls are flat thick outlines seen only from above, with no wall faces or sides of furniture visible. No tilt, no depth, no horizon, no vanishing point',
+  // Chosen Nov 3, 2026 after testing four wordings ("combo" won: flattest walls, no labels, no white borders).
+  'top-down':      'flat top-down orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down',
   'isometric':     'isometric view at a 30 degree angle, 2:1 isometric projection, walls and objects shown from above at an angle',
   'three-quarter': 'three-quarter overhead view, camera tilted slightly so the fronts of walls and objects are visible, no horizon',
+};
+
+/** Other top-down wordings tested on Nov 3, 2026. "plan" drew dimension labels and white borders, "sat" tilted the crypt. Pass one as p.view to use it. */
+export const TOP_DOWN_VARIANTS = {
+  plan:  'orthographic floor plan seen from directly overhead, like an architect\'s plan drawn in full color. Only the top surfaces of walls, furniture, and objects are visible. Walls are flat bands with no visible height or faces. Shadows are short and fall straight down',
+  sat:   'satellite view from far above, looking straight down, so nothing has visible height or sides. Tables read as flat circles and rectangles, chairs as small squares, and walls as flat strips',
+  previous: 'flat top-down orthographic view with the camera pointing straight down at 90 degrees, like a classic virtual tabletop battle map. Walls are flat thick outlines seen only from above, with no wall faces or sides of furniture visible. No tilt, no depth, no horizon, no vanishing point',
+  combo: 'orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down',
 };
 
 export const MOODS = {
@@ -127,7 +136,7 @@ export function pickAspect([w, h]) {
  * @param {{description: string, perspective: string, genre: string, style: string, mood: string, squares: [number, number], dials?: Record<string, number>}} p
  */
 export function buildPrompt(p) {
-  const view = PERSPECTIVES[p.perspective];
+  const view = p.view ? TOP_DOWN_VARIANTS[p.view] : PERSPECTIVES[p.perspective];
   if (!view) throw new Error(`Unknown perspective "${p.perspective}"`);
   const mood = MOODS[p.mood] || p.mood;
   const [w, h] = p.squares;

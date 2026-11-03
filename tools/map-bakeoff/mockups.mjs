@@ -45,13 +45,21 @@ if (step === 'mockups') {
   const ids = (args.prompts || '').split(',').filter(Boolean);
   if (!ids.length) die('Pass --prompts id1,id2');
   state.prompts = ids;
+  const styleRef = args['style-ref'] ? `data:image/${args['style-ref'].endsWith('.png') ? 'png' : 'jpeg'};base64,${fs.readFileSync(args['style-ref']).toString('base64')}` : null;
   // --dials "clutter=1;clutter=5" makes one set of mockups per dial variant, named <id>--<variant>.
   const variants = args.dials ? args.dials.split(';').map(v => Object.fromEntries(v.split(',').map(kv => { const [k, x] = kv.split('='); return [k, Number(x)]; }))) : [null];
   await Promise.all(ids.flatMap(baseId => variants.map(async dials => {
     const p = byId[baseId] || die(`Unknown prompt ${baseId}`);
-    const id = dials ? `${baseId}--${Object.entries(dials).map(([k, v]) => `${k}${v}`).join('-')}` : baseId;
-    const prompt = `Quick rough mockup for layout only. ${buildPrompt({ ...p, ...(dials ? { dials } : {}) })}`;
-    await Promise.all([1, 2, 3, 4].map(n => gen({ kind: 'mockup', id, n, model: LIGHT, prompt, aspect: pickAspect(p.squares), squares: p.squares, ...(dials ? { dials } : {}) })));
+    let id = dials ? `${baseId}--${Object.entries(dials).map(([k, v]) => `${k}${v}`).join('-')}` : baseId;
+    // --view plan|sat|combo tries another top-down wording; --style-ref <image> adds a reference for the camera angle only.
+    if (args.view) id += `--view-${args.view}`;
+    if (styleRef) id += '--ref';
+    const prompt = [
+      'Quick rough mockup for layout only.',
+      ...(styleRef ? ['Use the attached image only as a reference for the straight-down camera angle and how flat walls and furniture look. Do not copy its content, layout, or colors.'] : []),
+      buildPrompt({ ...p, ...(dials ? { dials } : {}), ...(args.view ? { view: args.view } : {}) }),
+    ].join(' ');
+    await Promise.all([1, 2, 3, 4].map(n => gen({ kind: 'mockup', id, n, model: LIGHT, prompt, aspect: pickAspect(p.squares), squares: p.squares, ref: styleRef, ...(dials ? { dials } : {}), ...(args.view ? { view: args.view } : {}) })));
   })));
 } else if (step === 'finals') {
   const picks = Object.fromEntries((args.pick || '').split(',').filter(Boolean).map(s => s.split('=')));
@@ -62,7 +70,7 @@ if (step === 'mockups') {
     const mock = state.results.find(r => r.kind === 'mockup' && r.id === id && r.n === Number(n) && r.ok);
     if (!mock) die(`No mockup ${n} for ${id}`);
     // A mockup made with --dials is named <id>--<variant>; the final keeps its content dials.
-    const p = { ...byId[id.split('--')[0]], ...(mock.dials ? { dials: mock.dials } : {}) };
+    const p = { ...byId[id.split('--')[0]], ...(mock.dials ? { dials: mock.dials } : {}), ...(mock.view ? { view: mock.view } : {}) };
     const bytes = fs.readFileSync(path.join(outDir, mock.file));
     const ref = `data:${mock.mediaType};base64,${bytes.toString('base64')}`;
     for (const m of FINALS) jobs.push(gen({ kind: 'final', id, n: Number(n), model: m, prompt: finalPrompt(p), aspect: mock.aspect, squares: p.squares, ref }));
@@ -95,11 +103,11 @@ function finalPrompt(p) {
 fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
 console.log(`Done. $${spent.toFixed(3)} spent this step.`);
 
-async function gen({ kind, id, n, model, prompt, aspect, squares, ref, dials }) {
+async function gen({ kind, id, n, model, prompt, aspect, squares, ref, dials, view }) {
   const t0 = Date.now();
   const body = { n: 1, model: model.model, prompt, aspect_ratio: aspect, resolution: model.resolution };
   if (ref) body.input_references = [{ type: 'image_url', image_url: { url: ref } }];
-  const rec = { kind, id, n, modelKey: model.key, model: model.model, aspect, squares, ...(dials ? { dials } : {}) };
+  const rec = { kind, id, n, modelKey: model.key, model: model.model, aspect, squares, ...(dials ? { dials } : {}), ...(view ? { view } : {}) };
   try {
     const res = await fetch(`${API}/images`, { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'X-Title': 'Battle map mockup test' }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
