@@ -59,9 +59,10 @@ if (step === 'mockups') {
   state.picks = picks;
   const jobs = [];
   for (const [id, n] of Object.entries(picks)) {
-    const p = byId[id];
     const mock = state.results.find(r => r.kind === 'mockup' && r.id === id && r.n === Number(n) && r.ok);
     if (!mock) die(`No mockup ${n} for ${id}`);
+    // A mockup made with --dials is named <id>--<variant>; the final keeps its content dials.
+    const p = { ...byId[id.split('--')[0]], ...(mock.dials ? { dials: mock.dials } : {}) };
     const bytes = fs.readFileSync(path.join(outDir, mock.file));
     const ref = `data:${mock.mediaType};base64,${bytes.toString('base64')}`;
     for (const m of FINALS) jobs.push(gen({ kind: 'final', id, n: Number(n), model: m, prompt: finalPrompt(p), aspect: mock.aspect, squares: p.squares, ref }));

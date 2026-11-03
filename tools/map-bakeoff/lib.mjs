@@ -16,30 +16,92 @@ export const MOODS = {
 };
 
 /**
- * Look dials the GM can set from 1 to 5. Level 3 is the default. A null level
- * adds nothing to the prompt, so the default map reads the same as before.
+ * Dials the GM can set from 1 to 5. Level 3 is the default.
+ *
+ * Content dials change what is drawn, so they go into the mockup prompt (the
+ * final copies the mockup's content). Look dials are image filters applied
+ * after the map is made: free, exact, and changeable later without new uses.
+ * A null level adds nothing to the prompt.
  */
 export const DIALS = {
-  detail:    { label: 'Detail',            levels: ['simple and clean, with large plain areas and only the key features', 'lightly detailed, with simple textures', 'highly detailed', 'very highly detailed, with rich textures on every surface', 'extremely intricate, with fine texture and small details everywhere'] },
-  sharpness: { label: 'Sharpness',         levels: ['soft painterly brushwork with blended edges', 'gently soft edges', 'crisp textures', 'sharp, clean edges', 'razor-sharp inked outlines and hard edges'] },
-  color:     { label: 'Color',             levels: ['nearly monochrome, desaturated colors', 'muted, earthy colors', null, 'rich, saturated colors', 'vivid, bold, highly saturated colors'] },
-  tint:      { label: 'Color temperature', levels: ['a cold blue and teal palette', 'a cool palette', null, 'a warm palette', 'a hot orange and gold palette'] },
-  contrast:  { label: 'Lighting contrast', levels: ['flat, even lighting with very soft shadows', 'soft lighting', null, 'strong shadows and bright highlights', 'dramatic high-contrast lighting with deep shadows'] },
-  clutter:   { label: 'Props',             levels: ['almost empty, with only essential furniture', 'sparse props', null, 'plenty of props and furnishings', 'crowded with props, debris, and small objects, while keeping clear floor space to walk on'] },
-  wear:      { label: 'Wear',              levels: ['everything pristine and brand new', 'everything clean and well kept', null, 'surfaces worn, dirty, and cracked', 'ruined, broken, and overgrown surroundings'] },
+  detail:    { label: 'Detail',            stage: 'mockup', levels: ['simple and clean, with large plain areas and only the key features', 'lightly detailed, with simple textures', 'highly detailed', 'very highly detailed, with rich textures on every surface', 'extremely intricate, with fine texture and small details everywhere'] },
+  clutter:   { label: 'Props',             stage: 'mockup', levels: ['almost empty, with only essential furniture', 'sparse props', null, 'plenty of props and furnishings', 'crowded with props, debris, and small objects, while keeping clear floor space to walk on'] },
+  wear:      { label: 'Wear',              stage: 'mockup', levels: ['everything pristine and brand new', 'everything clean and well kept', null, 'surfaces worn, dirty, and cracked', 'ruined, broken, and overgrown surroundings'] },
+  color:     { label: 'Color',             stage: 'filter', levels: [0.35, 0.7, 1, 1.3, 1.6] },   // saturation
+  tint:      { label: 'Color temperature', stage: 'filter', levels: [-1, -0.5, 0, 0.5, 1] },      // cool to warm
+  contrast:  { label: 'Lighting contrast', stage: 'filter', levels: [0.75, 0.88, 1, 1.15, 1.3] },
+  sharpness: { label: 'Sharpness',         stage: 'filter', levels: [-1, -0.5, 0, 0.6, 1.2] },    // blur to sharpen
 };
 
-/**
- * The look phrases for a set of dial values, in a fixed order.
- * @param {Record<string, number>} [dials] e.g. { detail: 4, color: 2 }
- * @returns {string[]}
- */
-export function dialPhrases(dials = {}) {
+function checkDials(dials) {
   for (const [k, v] of Object.entries(dials)) {
     if (!DIALS[k]) throw new Error(`Unknown dial "${k}"`);
     if (!Number.isInteger(v) || v < 1 || v > 5) throw new Error(`Dial "${k}" must be a whole number from 1 to 5`);
   }
-  return Object.entries(DIALS).map(([k, d]) => d.levels[(dials[k] ?? 3) - 1]).filter(Boolean);
+}
+
+/**
+ * Prompt phrases for the content dials, in a fixed order. Look dials are ignored.
+ * @param {Record<string, number>} [dials] e.g. { detail: 4, wear: 5 }
+ * @returns {string[]}
+ */
+export function dialPhrases(dials = {}) {
+  checkDials(dials);
+  return Object.entries(DIALS).filter(([, d]) => d.stage === 'mockup').map(([k, d]) => d.levels[(dials[k] ?? 3) - 1]).filter(Boolean);
+}
+
+/**
+ * Filter amounts for the look dials.
+ * @param {Record<string, number>} [dials]
+ * @returns {{saturation: number, temperature: number, contrast: number, sharpen: number}}
+ */
+export function lookFilters(dials = {}) {
+  checkDials(dials);
+  const v = k => DIALS[k].levels[(dials[k] ?? 3) - 1];
+  return { saturation: v('color'), temperature: v('tint'), contrast: v('contrast'), sharpen: v('sharpness') };
+}
+
+/**
+ * Apply the look dials to RGBA pixels in place. Works on canvas ImageData in
+ * the browser (Foundry) and on plain arrays in Node, so the module bakes the
+ * same result the preview shows. With every look dial on 3 nothing changes.
+ * @param {Uint8ClampedArray} px RGBA pixels
+ * @param {number} width
+ * @param {number} height
+ * @param {Record<string, number>} [dials]
+ */
+export function applyLook(px, width, height, dials = {}) {
+  const { saturation, temperature, contrast, sharpen } = lookFilters(dials);
+  if (sharpen) {
+    // 3x3 box blur, then push away from it (sharpen) or blend toward it (soften).
+    const src = Uint8ClampedArray.from(px);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          let sum = 0, n = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            const yy = y + dy; if (yy < 0 || yy >= height) continue;
+            for (let dx = -1; dx <= 1; dx++) {
+              const xx = x + dx; if (xx < 0 || xx >= width) continue;
+              sum += src[(yy * width + xx) * 4 + c]; n++;
+            }
+          }
+          const blur = sum / n;
+          px[i + c] = sharpen > 0 ? src[i + c] + (src[i + c] - blur) * sharpen : src[i + c] + (blur - src[i + c]) * -sharpen;
+        }
+      }
+    }
+  }
+  if (saturation === 1 && temperature === 0 && contrast === 1) return;
+  for (let i = 0; i < px.length; i += 4) {
+    let r = px[i], g = px[i + 1], b = px[i + 2];
+    r = (r - 128) * contrast + 128; g = (g - 128) * contrast + 128; b = (b - 128) * contrast + 128;
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = l + (r - l) * saturation; g = l + (g - l) * saturation; b = l + (b - l) * saturation;
+    r += 18 * temperature; g += 4 * temperature; b -= 18 * temperature;
+    px[i] = r; px[i + 1] = g; px[i + 2] = b;
+  }
 }
 
 /** Aspect ratios most image providers accept. */
@@ -74,7 +136,7 @@ export function buildPrompt(p) {
     `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,
     `Scene: ${p.description}.`,
     `The map covers an area of ${w} by ${h} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,
-    `Look: ${dialPhrases(p.dials).join('; ')}.`,
+    `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,
     'Clear readable layout, the whole area fills the frame edge to edge.',
     'Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark. No people or creatures.',
   ].join(' ');

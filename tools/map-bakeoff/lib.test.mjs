@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS } from './lib.mjs';
+import { pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -29,11 +29,31 @@ describe('map bake-off helpers', () => {
   });
 
   it('turns dial values into look phrases', () => {
-    const text = buildPrompt({ ...prompts[0], dials: { detail: 1, color: 5, wear: 5 } });
+    const text = buildPrompt({ ...prompts[0], dials: { detail: 1, clutter: 5, wear: 5, color: 5 } });
     expect(text).toContain(DIALS.detail.levels[0]);
-    expect(text).toContain(DIALS.color.levels[4]);
+    expect(text).toContain(DIALS.clutter.levels[4]);
     expect(text).toContain(DIALS.wear.levels[4]);
+    expect(buildPrompt({ ...prompts[0], dials: { color: 5, tint: 1 } })).toBe(buildPrompt(prompts[0]));
     expect(text).not.toContain('highly detailed;');
+  });
+
+  it('leaves pixels alone when every look dial is on 3', () => {
+    const px = new Uint8ClampedArray([10, 120, 240, 255, 200, 50, 90, 255, 0, 0, 0, 255, 255, 255, 255, 255]);
+    const copy = Uint8ClampedArray.from(px);
+    applyLook(px, 2, 2, { detail: 5 });
+    expect(px).toEqual(copy);
+  });
+
+  it('applies the look filters', () => {
+    const gray = () => new Uint8ClampedArray([100, 100, 100, 255]);
+    const warm = gray(); applyLook(warm, 1, 1, { tint: 5 });
+    expect(warm[0]).toBeGreaterThan(warm[2]);
+    const flat = new Uint8ClampedArray([200, 100, 50, 255]); applyLook(flat, 1, 1, { color: 1 });
+    expect(flat[0] - flat[2]).toBeLessThan(150);
+    const hi = new Uint8ClampedArray([200, 200, 200, 255]); applyLook(hi, 1, 1, { contrast: 5 });
+    expect(hi[0]).toBeGreaterThan(200);
+    expect(hi[3]).toBe(255);
+    expect(lookFilters({ sharpness: 1 }).sharpen).toBeLessThan(0);
   });
 
   it('rejects unknown dials and out-of-range values', () => {
