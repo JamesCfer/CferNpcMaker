@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
+import { toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -60,6 +60,23 @@ describe('map bake-off helpers', () => {
     expect(() => dialPhrases({ shininess: 2 })).toThrow(/Unknown dial/);
     expect(() => dialPhrases({ detail: 6 })).toThrow(/1 to 5/);
     expect(() => dialPhrases({ detail: 2.5 })).toThrow(/1 to 5/);
+  });
+
+  it('adds the water rule only when the scene has water', () => {
+    expect(buildPrompt(prompts.find(p => p.id === 'p01-crypt'))).toContain('Never draw water as a flat black area');
+    expect(buildPrompt(prompts.find(p => p.id === 'p05-spaceship'))).not.toContain('Never draw water');
+  });
+
+  it('converts vision lights into Foundry ambient lights', () => {
+    const out = toFoundryLights([
+      { kind: 'torch', x: 500, y: 250, color: '#ff8800' },
+      { kind: 'disco ball', x: 0, y: 1000 },
+      { kind: 'lamp', x: 1200, y: 10 },
+    ], { squares: [30, 20] });
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ kind: 'torch', x: 1500, y: 500, config: { bright: 10, dim: 20, color: '#ff8800' } });
+    expect(out[0].config.animation.type).toBe('torch');
+    expect(out[1]).toMatchObject({ kind: 'lamp', x: 0, y: 2000, config: { color: '#ffb35c' } });
   });
 
   it('rejects an unknown perspective', () => {

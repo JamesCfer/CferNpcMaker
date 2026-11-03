@@ -144,6 +144,8 @@ export function buildPrompt(p) {
     `Tabletop RPG battle map, ${view}.`,
     `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,
     `Scene: ${p.description}.`,
+    // Dark water came out as a flat black hole on night maps (Nov 3 crypt test).
+    ...(/water|river|lake|pond|pool|flood|sea|stream|canal|moat|swamp|marsh/i.test(p.description) ? ['Draw any water, even water described as dark or black, in deep teal or green-blue with visible ripples, reflections of nearby lights, and the floor or stones showing through where it is shallow. Never draw water as a flat black area.'] : []),
     `The map covers an area of ${w} by ${h} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,
     `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,
     'Clear readable layout, the whole area fills the frame edge to edge.',
@@ -202,4 +204,50 @@ export function extFor(mediaType) {
  */
 export function sessionCost(mapUsd, editUsd) {
   return 8 * mapUsd + 4 * editUsd;
+}
+
+/** Light kinds the vision model may return, with Foundry light settings in squares. */
+export const LIGHT_PRESETS = {
+  candle:    { bright: 0.5, dim: 1.5, animation: 'torch',  intensity: 2 },
+  lamp:      { bright: 1,   dim: 3,   animation: null,     intensity: 3 },
+  torch:     { bright: 2,   dim: 4,   animation: 'torch',  intensity: 4 },
+  brazier:   { bright: 2,   dim: 5,   animation: 'flame',  intensity: 4 },
+  fireplace: { bright: 3,   dim: 6,   animation: 'flame',  intensity: 5 },
+  campfire:  { bright: 4,   dim: 8,   animation: 'flame',  intensity: 5 },
+  crystal:   { bright: 1,   dim: 3,   animation: 'pulse',  intensity: 3 },
+  magic:     { bright: 2,   dim: 4,   animation: 'energy', intensity: 4 },
+  screen:    { bright: 0.5, dim: 2,   animation: null,     intensity: 2 },
+  lava:      { bright: 2,   dim: 5,   animation: 'fog',    intensity: 4 },
+  window:    { bright: 2,   dim: 5,   animation: null,     intensity: 3 },
+};
+export const LIGHT_KINDS = Object.keys(LIGHT_PRESETS);
+
+/**
+ * Turn the vision model's lights (x and y from 0 to 1000) into Foundry
+ * AmbientLight data. Positions are in pixels at 100 pixels per square, and
+ * radii are in grid units at 5 feet per square. Unknown kinds become lamps,
+ * and points outside the map are dropped.
+ * @param {{kind: string, x: number, y: number, color?: string}[]} raw
+ * @param {{squares: [number, number], gridPx?: number, feetPerSquare?: number}} opts
+ */
+export function toFoundryLights(raw, { squares, gridPx = 100, feetPerSquare = 5 }) {
+  const [w, h] = squares;
+  return raw
+    .filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && l.x >= 0 && l.x <= 1000 && l.y >= 0 && l.y <= 1000)
+    .map(l => {
+      const kind = LIGHT_PRESETS[l.kind] ? l.kind : 'lamp';
+      const p = LIGHT_PRESETS[kind];
+      return {
+        kind,
+        x: Math.round((l.x / 1000) * w * gridPx),
+        y: Math.round((l.y / 1000) * h * gridPx),
+        config: {
+          bright: p.bright * feetPerSquare,
+          dim: p.dim * feetPerSquare,
+          color: /^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ffb35c',
+          alpha: 0.5,
+          animation: p.animation ? { type: p.animation, speed: 3, intensity: p.intensity } : { type: null },
+        },
+      };
+    });
 }
