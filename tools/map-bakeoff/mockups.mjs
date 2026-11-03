@@ -45,11 +45,14 @@ if (step === 'mockups') {
   const ids = (args.prompts || '').split(',').filter(Boolean);
   if (!ids.length) die('Pass --prompts id1,id2');
   state.prompts = ids;
-  await Promise.all(ids.map(async id => {
-    const p = byId[id] || die(`Unknown prompt ${id}`);
-    const prompt = `Quick rough mockup for layout only. ${buildPrompt(p)}`;
-    await Promise.all([1, 2, 3, 4].map(n => gen({ kind: 'mockup', id, n, model: LIGHT, prompt, aspect: pickAspect(p.squares), squares: p.squares })));
-  }));
+  // --dials "clutter=1;clutter=5" makes one set of mockups per dial variant, named <id>--<variant>.
+  const variants = args.dials ? args.dials.split(';').map(v => Object.fromEntries(v.split(',').map(kv => { const [k, x] = kv.split('='); return [k, Number(x)]; }))) : [null];
+  await Promise.all(ids.flatMap(baseId => variants.map(async dials => {
+    const p = byId[baseId] || die(`Unknown prompt ${baseId}`);
+    const id = dials ? `${baseId}--${Object.entries(dials).map(([k, v]) => `${k}${v}`).join('-')}` : baseId;
+    const prompt = `Quick rough mockup for layout only. ${buildPrompt({ ...p, ...(dials ? { dials } : {}) })}`;
+    await Promise.all([1, 2, 3, 4].map(n => gen({ kind: 'mockup', id, n, model: LIGHT, prompt, aspect: pickAspect(p.squares), squares: p.squares, ...(dials ? { dials } : {}) })));
+  })));
 } else if (step === 'finals') {
   const picks = Object.fromEntries((args.pick || '').split(',').filter(Boolean).map(s => s.split('=')));
   if (!Object.keys(picks).length) die('Pass --pick id=n,...');
