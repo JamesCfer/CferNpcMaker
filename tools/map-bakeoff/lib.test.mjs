@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
+import { toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -77,6 +77,21 @@ describe('map bake-off helpers', () => {
     expect(out[0]).toMatchObject({ kind: 'torch', x: 1500, y: 500, config: { bright: 10, dim: 20, color: '#ff8800' } });
     expect(out[0].config.animation.type).toBe('torch');
     expect(out[1]).toMatchObject({ kind: 'lamp', x: 0, y: 2000, config: { color: '#ffb35c' } });
+  });
+
+  it('converts vision walls into Foundry walls and closes corners', () => {
+    const walls = toFoundryWalls([
+      { kind: 'wall', x1: 100, y1: 100, x2: 500, y2: 100 },
+      { kind: 'wall', x1: 505, y1: 103, x2: 505, y2: 900 },
+      { kind: 'door', x1: 200, y1: 900, x2: 300, y2: 900 },
+      { kind: 'window', x1: 600, y1: 100, x2: 700, y2: 100 },
+      { kind: 'wall', x1: 10, y1: 10, x2: 11, y2: 11 },
+      { kind: 'wall', x1: 'a', y1: 0, x2: 1, y2: 1 },
+    ], { squares: [10, 10] });
+    expect(walls).toHaveLength(4);
+    expect(walls[1].c.slice(0, 2)).toEqual(walls[0].c.slice(2, 4));
+    expect(walls[2]).toMatchObject({ door: 1, sight: 20 });
+    expect(walls[3]).toMatchObject({ door: 0, sight: 0, light: 0, move: 20 });
   });
 
   it('rejects an unknown perspective', () => {

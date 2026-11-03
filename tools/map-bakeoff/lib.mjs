@@ -251,3 +251,43 @@ export function toFoundryLights(raw, { squares, gridPx = 100, feetPerSquare = 5 
       };
     });
 }
+
+/** Foundry wall sense levels (CONST.WALL_SENSE_TYPES) and door types (CONST.WALL_DOOR_TYPES). */
+const SENSE = { none: 0, normal: 20 };
+const DOOR = { none: 0, door: 1 };
+
+/**
+ * Turn the vision model's wall segments (0 to 1000 on each axis) into Foundry
+ * Wall data at 100 pixels per square. Windows block movement but not sight or
+ * light. Endpoints within a third of a square snap together so corners close,
+ * and segments shorter than a fifth of a square are dropped.
+ * @param {{kind?: string, x1: number, y1: number, x2: number, y2: number}[]} raw
+ * @param {{squares: [number, number], gridPx?: number}} opts
+ */
+export function toFoundryWalls(raw, { squares, gridPx = 100 }) {
+  const [w, h] = squares;
+  const clamp = v => Math.min(1000, Math.max(0, v));
+  const segs = raw
+    .filter(s => ['x1', 'y1', 'x2', 'y2'].every(k => Number.isFinite(s[k])))
+    .map(s => ({
+      kind: ['door', 'window'].includes(s.kind) ? s.kind : 'wall',
+      c: [clamp(s.x1) / 1000 * w * gridPx, clamp(s.y1) / 1000 * h * gridPx, clamp(s.x2) / 1000 * w * gridPx, clamp(s.y2) / 1000 * h * gridPx],
+    }))
+    .filter(s => Math.hypot(s.c[2] - s.c[0], s.c[3] - s.c[1]) >= gridPx / 5);
+  const pts = segs.flatMap(s => [[s, 0], [s, 2]]);
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const [s1, k1] = pts[i], [s2, k2] = pts[j];
+      if (Math.hypot(s1.c[k1] - s2.c[k2], s1.c[k1 + 1] - s2.c[k2 + 1]) < gridPx / 3) { s2.c[k2] = s1.c[k1]; s2.c[k2 + 1] = s1.c[k1 + 1]; }
+    }
+  }
+  return segs.map(s => ({
+    c: s.c.map(Math.round),
+    kind: s.kind,
+    door: s.kind === 'door' ? DOOR.door : DOOR.none,
+    move: SENSE.normal,
+    sight: s.kind === 'window' ? SENSE.none : SENSE.normal,
+    light: s.kind === 'window' ? SENSE.none : SENSE.normal,
+    sound: SENSE.normal,
+  }));
+}
