@@ -96,6 +96,7 @@ function finalPrompt(p) {
     'The attached image is a rough layout mockup. Redraw it as a finished battle map.',
     'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
     'Ignore and remove any grid lines, text, or labels in the mockup.',
+    'Keep every object the same size relative to the map as in the mockup, and never enlarge furniture, buildings, or other objects.',
     ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
     buildPrompt(p),
   ].join(' ');

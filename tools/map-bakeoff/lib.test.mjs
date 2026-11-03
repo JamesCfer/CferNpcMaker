@@ -19,7 +19,7 @@ describe('map bake-off helpers', () => {
   it('builds a prompt with the perspective, size, and no-grid rule', () => {
     const text = buildPrompt(prompts[0]);
     expect(text).toContain('top-down');
-    expect(text).toContain('30 by 20');
+    expect(text).toContain('66 by 44');
     expect(text).toContain('Do not draw any grid lines');
   });
 
@@ -139,4 +139,14 @@ describe('map bake-off helpers', () => {
     for (const p of prompts) expect(() => buildPrompt(p)).not.toThrow();
     for (const e of edits) expect(prompts.some(p => p.id === e.source)).toBe(true);
   });
+});
+
+it('sizeBoost asks for a larger area indoors than outdoors', async () => {
+  const { sizeBoost, buildPrompt, SIZE_BOOST } = await import('./lib.mjs');
+  const inside = { description: 'a two-room tavern', perspective: 'top-down', genre: 'fantasy', style: 'painted', mood: 'day', squares: [24, 18] };
+  expect(sizeBoost(inside)).toBe(SIZE_BOOST.indoor);
+  expect(sizeBoost({ ...inside, description: 'a walled market town' })).toBe(SIZE_BOOST.outdoor);
+  expect(sizeBoost({ ...inside, setting: 'outdoor' })).toBe(SIZE_BOOST.outdoor);
+  expect(buildPrompt({ ...inside, sizeBoost: 1 })).toContain('24 by 18 five-foot squares');
+  expect(buildPrompt(inside)).toContain('53 by 40 five-foot squares');
 });
