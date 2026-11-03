@@ -10,7 +10,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toFoundryLights, LIGHT_KINDS } from './lib.mjs';
+import { toFoundryLights } from './lib.mjs';
+import { LIGHTS_PROMPT as PROMPT } from '../../shared/scripts/core/maps/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []));
@@ -22,13 +23,6 @@ const models = (args.models || 'google/gemini-3.7-flash').split(',');
 const outDir = path.join(here, 'out', args.out || 'lights');
 fs.mkdirSync(outDir, { recursive: true });
 
-const PROMPT = [
-  'You are placing light sources on a tabletop RPG battle map for Foundry VTT.',
-  'Find every visible light source: candles, lamps, lanterns, torches, braziers, fireplaces, campfires, glowing crystals, magic glows, screens and console lights, lava, and windows or holes letting in daylight or moonlight.',
-  'Return JSON only, in this shape:',
-  `{"lights":[{"kind":"<one of: ${LIGHT_KINDS.join(', ')}>","x":<0-1000, left to right>,"y":<0-1000, top to bottom>,"color":"#rrggbb"}]}`,
-  'x and y are the centre of the light source on the image. Group candles that are touching into one light. Do not add lights where there is no visible source.',
-].join('\n');
 
 let total = 0;
 const results = [];

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toFoundryWalls, extFor } from './lib.mjs';
+import { WALLS_PROMPT as LLM_PROMPT, WALLS_MASK_PROMPT as MASK_PROMPT } from '../../shared/scripts/core/maps/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const [step, ...rest] = process.argv.slice(2);
@@ -31,20 +32,7 @@ const dataUri = f => `data:${f.endsWith('.png') ? 'image/png' : 'image/jpeg'};ba
 const slug = m => m.split('/').pop().replace(/[^a-z0-9.-]/gi, '-');
 let total = 0;
 
-const MASK_PROMPT = [
-  'Convert the attached battle map into a wall mask for a virtual tabletop.',
-  'Keep every wall exactly where it is in the input, at the same size and position, and keep the same framing.',
-  'Fill the whole image with pure black. Paint every wall that blocks movement as solid pure white.',
-  'Paint every door as a solid pure red bar in the doorway. Paint every window as a solid pure blue bar.',
-  'Draw nothing else: no furniture, floor texture, shading, outlines, text, or grid.',
-].join(' ');
 
-const LLM_PROMPT = [
-  'You are tracing walls on a top-down tabletop RPG battle map for Foundry VTT.',
-  'List every wall as straight line segments along the centre of the wall. Split walls at doors and windows, and list doors and windows as their own segments.',
-  'Return JSON only: {"walls":[{"kind":"wall|door|window","x1":0-1000,"y1":0-1000,"x2":0-1000,"y2":0-1000}]}',
-  'x runs left to right and y top to bottom, as a share of the image width and height out of 1000. Do not include furniture.',
-].join('\n');
 
 if (step === 'mask') {
   if (!KEY) die('Set OPENROUTER_API_KEY.');

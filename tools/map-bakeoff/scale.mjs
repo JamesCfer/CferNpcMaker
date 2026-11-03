@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sceneScale } from './lib.mjs';
+import { SCALE_PROMPT as PROMPT } from '../../shared/scripts/core/maps/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []));
@@ -25,13 +26,6 @@ const repeat = Number(args.repeat || 1);
 const outDir = path.join(here, 'out', args.out || 'scale');
 fs.mkdirSync(outDir, { recursive: true });
 
-const PROMPT = [
-  'This is a tabletop RPG battle map. Estimate the real-world size of the whole area shown in the image, edge to edge.',
-  'Use objects of known size as rulers: a single door is about 0.9 m wide, a chair about 0.5 m, a bed about 2 m long, a round tavern table about 1.2 m across, a cart about 3 m long, a person about 0.5 m across from above.',
-  'Measure at least three different objects, work out metres per pixel from each, and combine them.',
-  'Return JSON only: {"references":[{"object":"...","size_m":0.9,"share_of_width":0.03}],"width_m":<number>,"height_m":<number>}',
-  'share_of_width is how much of the image width the object spans.',
-].join('\n');
 
 let total = 0;
 const results = [];
