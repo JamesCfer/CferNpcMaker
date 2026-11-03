@@ -5,6 +5,7 @@
  *
  *   node tools/map-bakeoff/mockups.mjs mockups --prompts p02-tavern,p05-spaceship
  *   node tools/map-bakeoff/mockups.mjs finals  --pick p02-tavern=2,p05-spaceship=4
+ *   node tools/map-bakeoff/mockups.mjs dials   --pick p02-tavern=2 --models final-gemini --variants "detail=1;detail=5;color=1,tint=5"
  *
  * Needs OPENROUTER_API_KEY. Output goes to tools/map-bakeoff/out/mockups/, or out/<name>/ with --out <name>.
  * Prompts come from prompts.json and towns.json.
@@ -60,26 +61,41 @@ if (step === 'mockups') {
     if (!mock) die(`No mockup ${n} for ${id}`);
     const bytes = fs.readFileSync(path.join(outDir, mock.file));
     const ref = `data:${mock.mediaType};base64,${bytes.toString('base64')}`;
-    const prompt = [
-      'The attached image is a rough layout mockup. Redraw it as a finished, highly detailed battle map.',
-      'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
-      'Ignore and remove any grid lines, text, or labels in the mockup.',
-      ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
-      buildPrompt(p),
-    ].join(' ');
-    for (const m of FINALS) jobs.push(gen({ kind: 'final', id, n: Number(n), model: m, prompt, aspect: mock.aspect, squares: p.squares, ref }));
+    for (const m of FINALS) jobs.push(gen({ kind: 'final', id, n: Number(n), model: m, prompt: finalPrompt(p), aspect: mock.aspect, squares: p.squares, ref }));
   }
   await Promise.all(jobs);
-} else die('First argument must be "mockups" or "finals".');
+} else if (step === 'dials') {
+  // One final per dial variant, all from the same picked mockup, so only the look changes.
+  const [id, n] = (args.pick || '').split('=');
+  const p = byId[id] || die('Pass --pick id=n');
+  const mock = state.results.find(r => r.kind === 'mockup' && r.id === id && r.n === Number(n) && r.ok) || die(`No mockup ${n} for ${id}`);
+  const ref = `data:${mock.mediaType};base64,${fs.readFileSync(path.join(outDir, mock.file)).toString('base64')}`;
+  const variants = (args.variants || '').split(';').filter(Boolean).map(v => Object.fromEntries(v.split(',').map(kv => { const [k, x] = kv.split('='); return [k, Number(x)]; })));
+  if (!variants.length) die('Pass --variants "detail=1;detail=5"');
+  await Promise.all(variants.flatMap(dials => {
+    const slug = Object.entries(dials).map(([k, v]) => `${k}${v}`).join('-');
+    return FINALS.map(m => gen({ kind: 'dial', id: `${id}--${slug}`, n: Number(n), model: m, prompt: finalPrompt({ ...p, dials }), aspect: mock.aspect, squares: p.squares, ref, dials }));
+  }));
+} else die('First argument must be "mockups", "finals", or "dials".');
+
+function finalPrompt(p) {
+  return [
+    'The attached image is a rough layout mockup. Redraw it as a finished battle map.',
+    'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
+    'Ignore and remove any grid lines, text, or labels in the mockup.',
+    ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
+    buildPrompt(p),
+  ].join(' ');
+}
 
 fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
 console.log(`Done. $${spent.toFixed(3)} spent this step.`);
 
-async function gen({ kind, id, n, model, prompt, aspect, squares, ref }) {
+async function gen({ kind, id, n, model, prompt, aspect, squares, ref, dials }) {
   const t0 = Date.now();
   const body = { n: 1, model: model.model, prompt, aspect_ratio: aspect, resolution: model.resolution };
   if (ref) body.input_references = [{ type: 'image_url', image_url: { url: ref } }];
-  const rec = { kind, id, n, modelKey: model.key, model: model.model, aspect, squares };
+  const rec = { kind, id, n, modelKey: model.key, model: model.model, aspect, squares, ...(dials ? { dials } : {}) };
   try {
     const res = await fetch(`${API}/images`, { method: 'POST', headers: { Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json', 'X-Title': 'Battle map mockup test' }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pickAspect, buildPrompt, imageSize, extFor, sessionCost } from './lib.mjs';
+import { pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -21,6 +21,25 @@ describe('map bake-off helpers', () => {
     expect(text).toContain('top-down');
     expect(text).toContain('30 by 20');
     expect(text).toContain('Do not draw any grid lines');
+  });
+
+  it('keeps the old wording when every dial is on its default', () => {
+    expect(buildPrompt(prompts[0])).toContain('Look: highly detailed; crisp textures.');
+    expect(buildPrompt({ ...prompts[0], dials: { detail: 3, color: 3 } })).toBe(buildPrompt(prompts[0]));
+  });
+
+  it('turns dial values into look phrases', () => {
+    const text = buildPrompt({ ...prompts[0], dials: { detail: 1, color: 5, wear: 5 } });
+    expect(text).toContain(DIALS.detail.levels[0]);
+    expect(text).toContain(DIALS.color.levels[4]);
+    expect(text).toContain(DIALS.wear.levels[4]);
+    expect(text).not.toContain('highly detailed;');
+  });
+
+  it('rejects unknown dials and out-of-range values', () => {
+    expect(() => dialPhrases({ shininess: 2 })).toThrow(/Unknown dial/);
+    expect(() => dialPhrases({ detail: 6 })).toThrow(/1 to 5/);
+    expect(() => dialPhrases({ detail: 2.5 })).toThrow(/1 to 5/);
   });
 
   it('rejects an unknown perspective', () => {

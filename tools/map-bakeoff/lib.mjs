@@ -15,6 +15,33 @@ export const MOODS = {
   night: 'night time, dark with warm light from lamps, torches, and other light sources',
 };
 
+/**
+ * Look dials the GM can set from 1 to 5. Level 3 is the default. A null level
+ * adds nothing to the prompt, so the default map reads the same as before.
+ */
+export const DIALS = {
+  detail:    { label: 'Detail',            levels: ['simple and clean, with large plain areas and only the key features', 'lightly detailed, with simple textures', 'highly detailed', 'very highly detailed, with rich textures on every surface', 'extremely intricate, with fine texture and small details everywhere'] },
+  sharpness: { label: 'Sharpness',         levels: ['soft painterly brushwork with blended edges', 'gently soft edges', 'crisp textures', 'sharp, clean edges', 'razor-sharp inked outlines and hard edges'] },
+  color:     { label: 'Color',             levels: ['nearly monochrome, desaturated colors', 'muted, earthy colors', null, 'rich, saturated colors', 'vivid, bold, highly saturated colors'] },
+  tint:      { label: 'Color temperature', levels: ['a cold blue and teal palette', 'a cool palette', null, 'a warm palette', 'a hot orange and gold palette'] },
+  contrast:  { label: 'Lighting contrast', levels: ['flat, even lighting with very soft shadows', 'soft lighting', null, 'strong shadows and bright highlights', 'dramatic high-contrast lighting with deep shadows'] },
+  clutter:   { label: 'Props',             levels: ['almost empty, with only essential furniture', 'sparse props', null, 'plenty of props and furnishings', 'crowded with props, debris, and small objects, while keeping clear floor space to walk on'] },
+  wear:      { label: 'Wear',              levels: ['everything pristine and brand new', 'everything clean and well kept', null, 'surfaces worn, dirty, and cracked', 'ruined, broken, and overgrown surroundings'] },
+};
+
+/**
+ * The look phrases for a set of dial values, in a fixed order.
+ * @param {Record<string, number>} [dials] e.g. { detail: 4, color: 2 }
+ * @returns {string[]}
+ */
+export function dialPhrases(dials = {}) {
+  for (const [k, v] of Object.entries(dials)) {
+    if (!DIALS[k]) throw new Error(`Unknown dial "${k}"`);
+    if (!Number.isInteger(v) || v < 1 || v > 5) throw new Error(`Dial "${k}" must be a whole number from 1 to 5`);
+  }
+  return Object.entries(DIALS).map(([k, d]) => d.levels[(dials[k] ?? 3) - 1]).filter(Boolean);
+}
+
 /** Aspect ratios most image providers accept. */
 export const ASPECTS = [
   ['1:1', 1], ['4:3', 4 / 3], ['3:4', 3 / 4], ['3:2', 3 / 2], ['2:3', 2 / 3], ['16:9', 16 / 9], ['9:16', 9 / 16],
@@ -35,7 +62,7 @@ export function pickAspect([w, h]) {
 
 /**
  * The full text prompt sent to every model for one test map.
- * @param {{description: string, perspective: string, genre: string, style: string, mood: string, squares: [number, number]}} p
+ * @param {{description: string, perspective: string, genre: string, style: string, mood: string, squares: [number, number], dials?: Record<string, number>}} p
  */
 export function buildPrompt(p) {
   const view = PERSPECTIVES[p.perspective];
@@ -47,7 +74,8 @@ export function buildPrompt(p) {
     `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,
     `Scene: ${p.description}.`,
     `The map covers an area of ${w} by ${h} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,
-    'Highly detailed, crisp textures, clear readable layout, the whole area fills the frame edge to edge.',
+    `Look: ${dialPhrases(p.dials).join('; ')}.`,
+    'Clear readable layout, the whole area fills the frame edge to edge.',
     'Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark. No people or creatures.',
   ].join(' ');
 }
