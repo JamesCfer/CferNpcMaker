@@ -150,3 +150,11 @@ it('sizeBoost asks for a larger area indoors than outdoors', async () => {
   expect(buildPrompt({ ...inside, sizeBoost: 1 })).toContain('24 by 18 five-foot squares');
   expect(buildPrompt(inside)).toContain('53 by 40 five-foot squares');
 });
+
+it('mapDefects retries on grid, text, or frame, and on a margin only for top-down', async () => {
+  const { mapDefects } = await import('./lib.mjs');
+  expect(mapDefects({ grid: false, text: false, frame: false, margin: 0 })).toEqual({ retry: false, reasons: [] });
+  expect(mapDefects({ grid: true, text: true, frame: false, margin: 0 }).reasons).toEqual(['grid', 'text']);
+  expect(mapDefects({ margin: 0.2 }).reasons).toEqual(['margin']);
+  expect(mapDefects({ margin: 0.2 }, { perspective: 'isometric' }).retry).toBe(false);
+});

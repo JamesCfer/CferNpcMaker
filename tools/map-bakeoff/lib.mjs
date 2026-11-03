@@ -354,3 +354,16 @@ export function sceneScale({ width_m, height_m }, { system = 'imperial', square,
     grid: { size: gridPx, distance: size, units: u.units },
   };
 }
+
+/**
+ * Turns the vision check's answers into a retry decision. A drawn grid, text,
+ * or frame always means a retry. A blank margin only counts on top-down maps,
+ * since isometric and three-quarter maps sit on a background by design.
+ * @param {{grid?: boolean, text?: boolean, frame?: boolean, margin?: number}} raw
+ * @param {{perspective?: string, maxMargin?: number}} [opts]
+ */
+export function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {
+  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);
+  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');
+  return { retry: reasons.length > 0, reasons };
+}
