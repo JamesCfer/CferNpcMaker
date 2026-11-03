@@ -106,7 +106,7 @@ export const UNIT_SYSTEMS = {
   imperial: { units: 'ft', square: 5 },
   metric:   { units: 'm',  square: 1.5 },
 };
-const FEET_PER_METRE = 3.28084;
+export const FEET_PER_METRE = 3.28084;
 
 /**
  * Foundry scene settings from the vision model's size estimate. The map is

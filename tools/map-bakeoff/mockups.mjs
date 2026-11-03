@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt, pickAspect, extFor, imageSize } from './lib.mjs';
+import { finalPrompt } from '../../shared/scripts/core/maps/prompt.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const API = 'https://openrouter.ai/api/v1';
@@ -90,16 +91,6 @@ if (step === 'mockups') {
     return FINALS.map(m => gen({ kind: 'dial', id: `${id}--${slug}`, n: Number(n), model: m, prompt: finalPrompt({ ...p, dials }), aspect: mock.aspect, squares: p.squares, ref, dials }));
   }));
 } else die('First argument must be "mockups", "finals", or "dials".');
-
-function finalPrompt(p) {
-  return [
-    'The attached image is a rough layout mockup. Redraw it as a finished battle map.',
-    'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
-    'Ignore and remove any grid lines, text, or labels in the mockup.',
-    ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
-    buildPrompt(p),
-  ].join(' ');
-}
 
 fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
 console.log(`Done. $${spent.toFixed(3)} spent this step.`);

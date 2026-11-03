@@ -104,7 +104,7 @@ export function buildPrompt(p) {
  * The prompt asks for a larger area by the inverse of that.
  */
 export const SIZE_BOOST = { indoor: 2.2, outdoor: 1.15 };
-const OUTDOOR = /\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\b/i;
+export const OUTDOOR = /\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\b/i;
 
 /** Prompt size multiplier: p.sizeBoost if set, else by p.setting, else guessed from the description. */
 export function sizeBoost(p) {
@@ -113,6 +113,17 @@ export function sizeBoost(p) {
   return SIZE_BOOST[setting] ?? 1;
 }
 
-function cap(s) {
+export function cap(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Turn a selected rough mockup into the final image prompt. */
+export function finalPrompt(p) {
+  return [
+    'The attached image is a rough layout mockup. Redraw it as a finished battle map.',
+    'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',
+    'Ignore and remove any grid lines, text, or labels in the mockup.',
+    ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),
+    buildPrompt(p),
+  ].join(' ');
 }
