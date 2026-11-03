@@ -26,6 +26,7 @@ const LIGHT = { key: 'mock-klein', model: 'black-forest-labs/flux.2-klein-4b', r
 const ALL_FINALS = [
   { key: 'final-gemini', model: 'google/gemini-3.1-flash-image', resolution: '2K', label: 'Standard (Gemini)' },
   { key: 'final-seedream-pro', model: 'bytedance-seed/seedream-5-0-pro', resolution: '2K', label: 'High detail (Seedream Pro)' },
+  { key: 'final-gemini-4k', model: 'google/gemini-3.1-flash-image', resolution: '4K', label: 'Upscale candidate (Gemini at 4K)' },
   { key: 'final-gemini-1k', model: 'google/gemini-3.1-flash-image', resolution: '1K', label: 'Budget candidate (Gemini at 1K)' },
   { key: 'final-seedream-lite', model: 'bytedance-seed/seedream-5-0-lite', resolution: '2K', label: 'Budget candidate (Seedream Lite)' },
   { key: 'final-klein-2k', model: 'black-forest-labs/flux.2-klein-4b', resolution: '2K', label: 'Budget candidate (FLUX.2 klein at 2K)' },

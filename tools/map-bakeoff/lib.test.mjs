@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
+import { gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, imageSize, extFor, sessionCost, dialPhrases, DIALS, applyLook, lookFilters } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
@@ -92,6 +92,13 @@ describe('map bake-off helpers', () => {
     expect(walls[1].c.slice(0, 2)).toEqual(walls[0].c.slice(2, 4));
     expect(walls[2]).toMatchObject({ door: 1, sight: 20 });
     expect(walls[3]).toMatchObject({ door: 0, sight: 0, light: 0, move: 20 });
+  });
+
+  it('fits maps to 100 pixels per square and sharpens big enlargements', () => {
+    expect(gridFit(2400, 1792, [24, 18])).toEqual({ width: 2400, height: 1800, scale: 1, sharpen: 0 });
+    const big = gridFit(2400, 1792, [40, 30]);
+    expect(big).toMatchObject({ width: 4000, height: 3000, sharpen: 0.6 });
+    expect(big.scale).toBeCloseTo(1.667, 2);
   });
 
   it('rejects an unknown perspective', () => {
