@@ -51,6 +51,7 @@ describe('tier plans', () => {
     expect(store).toBe(7);
     expect(ACTION_COSTS.find(a => a.id === 'map-mockups').cost).toBe(3);
     expect(ACTION_COSTS.find(a => a.id === 'map-final').cost).toBe(6);
+    expect(ACTION_COSTS.find(a => a.id === 'map-final-economy').cost).toBe(4);
     expect(describeAllowance(25)).toBe('25 NPCs or items, or 3 stores');
     expect(describeAllowance(3)).toBe('3 NPCs or items');
   });
