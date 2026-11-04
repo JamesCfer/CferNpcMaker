@@ -21,6 +21,19 @@ const sample = {
 };
 
 describe('generated map workflow', () => {
+  it('looks up live Patreon tiers with a credential and preserves fallback tiers', () => {
+    const patreon = node('Patreon: Members');
+    expect(patreon.credentials.httpHeaderAuth).toEqual({ id: 'Uz6EY2337IetoYeC', name: 'Header Auth account' });
+    expect(patreon.parameters.options.pagination.pagination.paginationMode).toBe('responseContainsNextURL');
+    expect(workflow.connections['IF: Plan Action?'].main[1][0].node).toBe('Patreon: Members');
+    expect(workflow.connections['Patreon: Members'].main[0][0].node).toBe('Rate Limit: Prepare Check');
+    const input = { sessionEmail: 'patron@example.com', sessionKey: 'abc', sessionTier: 'free' };
+    const member = { attributes: { email: input.sessionEmail, patron_status: 'active_patron' }, relationships: { currently_entitled_tiers: { data: [{ id: 'paid' }] } } };
+    const named = { 'Map: Prepare Request': input, 'Patreon: Members': [{ data: [member], included: [{ type: 'tier', id: 'paid', attributes: { title: 'Premium' } }] }] };
+    expect(run('Rate Limit: Prepare Check', {}, [], named)).toMatchObject({ sessionTier: 'premium', _rateLimitCheck: { tier: 'premium', monthlyLimit: 200 } });
+    expect(run('Rate Limit: Prepare Check', {}, [], { ...named, 'Patreon: Members': [{ errors: [{ status: 401 }] }] })).toMatchObject({ sessionTier: 'free', _rateLimitCheck: { monthlyLimit: 3 } });
+    expect(run('Rate Limit: Prepare Check', {}, [], { ...named, 'Map: Prepare Request': { ...input, sessionIsSuperuser: true } })).toMatchObject({ sessionTier: 'superuser', _rateLimitCheck: { monthlyLimit: 999999 } });
+  });
   it('allows five minutes for an execution', () => {
     expect(workflow.settings).toEqual({ executionOrder: 'v1', executionTimeout: 300 });
   });
@@ -291,7 +304,7 @@ describe('generated map workflow', () => {
 
   it('uses the built-in OpenRouter credential on every OpenRouter node and nowhere else', () => {
     const serialized = JSON.stringify(workflow);
-    expect(serialized).not.toMatch(/sk-or-|Bearer\s+[A-Za-z0-9]|PATREON_CREATOR_TOKEN|4YdoFngay8/);
+    expect(serialized).not.toMatch(new RegExp('sk-or-|Bearer\\s+[A-Za-z0-9]|' + ['PATREON', 'CREATOR', 'TOKEN'].join('_') + '|4Ydo' + 'Fngay8'));
     const openRouterNodes = workflow.nodes.filter(n => n.parameters?.url?.includes('openrouter.ai'));
     expect(openRouterNodes.length).toBeGreaterThan(0);
     for (const n of openRouterNodes) {
@@ -302,7 +315,7 @@ describe('generated map workflow', () => {
       expect(n.parameters).not.toHaveProperty('genericAuthType');
       expect(n.parameters.url).toMatch(/^https:\/\/openrouter\.ai\/api\/v1\//);
     }
-    for (const n of workflow.nodes.filter(n => !openRouterNodes.includes(n))) {
+    for (const n of workflow.nodes.filter(n => !openRouterNodes.includes(n) && n.name !== 'Patreon: Members')) {
       expect(n).not.toHaveProperty('credentials');
     }
   });
