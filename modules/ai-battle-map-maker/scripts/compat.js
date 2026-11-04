@@ -52,3 +52,20 @@ export async function viewMapScene(scene) {
 export function notifyMapCreated(message, uiObject = globalThis.ui) {
   uiObject?.notifications?.success?.(message);
 }
+
+export function registerMapSceneControls(controls, edit, retrace, isGM = globalThis.game?.user?.isGM) {
+  if (!isGM || !controls || typeof controls !== 'object') return false;
+  const groups = Array.isArray(controls) ? controls : Object.values(controls);
+  const drawings = controls.drawings || groups.find(group => group?.name === 'drawings');
+  const walls = controls.walls || groups.find(group => group?.name === 'walls');
+  const add = (group, name, title, icon, handler) => {
+    if (!group?.tools) return false;
+    const tool = { name, title, icon, button: true, visible: true, onChange: active => { if (active !== false) handler(); } };
+    if (Array.isArray(group.tools)) { if (!group.tools.some(t => t.name === name)) group.tools.push(tool); return true; }
+    if (typeof group.tools === 'object') { group.tools[name] = tool; return true; }
+    return false;
+  };
+  const a = add(drawings, 'ai-edit-region', 'AI edit region', 'fa-solid fa-wand-magic-sparkles', edit);
+  const b = add(walls, 'ai-retrace-walls', 'Re-trace walls (1 use)', 'fa-solid fa-draw-polygon', retrace);
+  return a || b;
+}

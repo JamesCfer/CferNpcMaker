@@ -6,8 +6,8 @@ const price = id => ACTION_COSTS.find(action => action.id === id).cost;
 const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) && String(value).trim() !== ''
   ? Math.max(min, Math.min(max, Math.round(Number(value)))) : fallback;
 
-export function costSummary({ quality = 'standard', includeMockups = true, walls = false, perspective = 'top-down' } = {}) {
-  const mockups = includeMockups ? price('map-mockups') : 0;
+export function costSummary({ quality = 'standard', mockups: mockupCount = 4, includeMockups = true, walls = false, perspective = 'top-down' } = {}) {
+  const mockups = includeMockups ? price(mockupCount === 1 ? 'map-mockups-1' : mockupCount === 2 ? 'map-mockups-2' : 'map-mockups') : 0;
   const qualities = { standard: ['map-final', 'Standard'], economy: ['map-final-economy', 'Economy'], draft: ['map-final-draft', 'Draft'], high: ['map-final-high', 'High detail'] };
   const [action, label] = qualities[quality] || qualities.standard;
   const final = price(action);
@@ -44,4 +44,23 @@ export function sceneFileName(description, date = new Date(), extension = 'webp'
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50).replace(/-$/g, '') || 'battle-map';
   const stamp = new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z').replace('T', '-');
   return `${slug}-${stamp}.${extension}`;
+}
+
+export function drawingBox(drawing, scene, dimensions) {
+  const shape = drawing?.document?.shape || drawing?.shape;
+  const x = drawing?.document?.x ?? drawing?.x;
+  const y = drawing?.document?.y ?? drawing?.y;
+  if (shape?.type !== 'r' || ![x,y,shape.width,shape.height,scene?.width,scene?.height].every(Number.isFinite) || shape.width <= 0 || shape.height <= 0) return null;
+  const sx = dimensions?.sceneX || 0, sy = dimensions?.sceneY || 0;
+  const l = Math.max(0, Math.min(1, (x - sx) / scene.width));
+  const t = Math.max(0, Math.min(1, (y - sy) / scene.height));
+  const r = Math.max(0, Math.min(1, (x + shape.width - sx) / scene.width));
+  const b = Math.max(0, Math.min(1, (y + shape.height - sy) / scene.height));
+  return r - l >= 0.02 && b - t >= 0.02 ? [l,t,r,b] : null;
+}
+
+export function sceneTraceOptions(scene) {
+  const size = scene?.grid?.size;
+  if (!(size > 0) || !(scene.width > 0) || !(scene.height > 0)) throw new Error('Scene grid is unavailable.');
+  return { squares: [Math.round(scene.width / size), Math.round(scene.height / size)], units: scene.grid.units === 'm' ? 'metric' : 'imperial' };
 }

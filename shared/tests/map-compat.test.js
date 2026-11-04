@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, loadMapTemplates, createMapScene, viewMapScene, notifyMapCreated } from '../../modules/ai-battle-map-maker/scripts/compat.js';
+import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, loadMapTemplates, createMapScene, viewMapScene, notifyMapCreated, registerMapSceneControls } from '../../modules/ai-battle-map-maker/scripts/compat.js';
+import { drawingBox, sceneTraceOptions } from '../../modules/ai-battle-map-maker/scripts/map-logic.js';
 import { registerSidebar } from '../scripts/core/sidebar.js';
 
 describe('map Foundry compatibility', () => {
@@ -45,5 +46,25 @@ describe('map Foundry compatibility', () => {
     expect(hooks).toContain('renderSceneDirectory');
     expect(hooks).toContain('getHeaderControlsSceneDirectory');
     expect(hooks).toContain('getHeaderControlsApplicationV2');
+  });
+  it('registers GM controls in object and array control shapes', () => {
+    const edit=vi.fn(), retrace=vi.fn();
+    const object={drawings:{tools:{}},walls:{tools:{}}};
+    expect(registerMapSceneControls(object,edit,retrace,true)).toBe(true);
+    expect(object.drawings.tools['ai-edit-region']).toMatchObject({button:true,icon:'fa-solid fa-wand-magic-sparkles'});
+    object.drawings.tools['ai-edit-region'].onChange(true);
+    expect(edit).toHaveBeenCalledTimes(1);
+    const array=[{name:'drawings',tools:[]},{name:'walls',tools:[]}];
+    expect(registerMapSceneControls(array,edit,retrace,true)).toBe(true);
+    expect(array[1].tools[0].name).toBe('ai-retrace-walls');
+    expect(registerMapSceneControls({},edit,retrace,true)).toBe(false);
+    expect(registerMapSceneControls(object,edit,retrace,false)).toBe(false);
+  });
+  it('maps drawing bounds and scene grid to request values', () => {
+    const scene={width:1000,height:800,grid:{size:100,units:'m'}};
+    expect(drawingBox({document:{x:200,y:150,shape:{type:'r',width:500,height:300}}},scene,{sceneX:100,sceneY:50})).toEqual([0.1,0.125,0.6,0.5]);
+    expect(drawingBox({document:{x:0,y:0,shape:{type:'r',width:300,height:300}}},scene,{sceneX:100,sceneY:50})).toEqual([0,0,0.2,0.3125]);
+    expect(drawingBox({document:{x:0,y:0,shape:{type:'e',width:300,height:300}}},scene,{})).toBeNull();
+    expect(sceneTraceOptions(scene)).toEqual({squares:[10,8],units:'metric'});
   });
 });
