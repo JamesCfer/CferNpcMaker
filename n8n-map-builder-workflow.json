@@ -725,7 +725,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "const TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nconst email=($json.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=($json.sessionKey||'').trim();\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst sessionTier=($json.sessionTier||'').toLowerCase().trim();\nconst tier=$json.sessionIsSuperuser===true?'superuser':sessionTier;\nconst monthlyLimit=Object.prototype.hasOwnProperty.call(TIER_LIMITS,tier)?TIER_LIMITS[tier]:3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nreturn [{json:{...$json,sessionTier:tier,_rateLimitCheck:{sessionKey:lookupKey+'::'+currentMonth,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
+        "jsCode": "const __in = $('Map: Prepare Request').first().json;\nconst TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nconst email=(__in.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=(__in.sessionKey||'').trim();\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst sessionTier=(__in.sessionTier||'').toLowerCase().trim();\nlet tier=sessionTier;\nif(__in.sessionIsSuperuser===true)tier='superuser';\nelse try {\n  const pages=$('Patreon: Members').all().map(i=>i.json);\n  if(!pages.length||pages.some(p=>!Array.isArray(p.data)))throw new Error('Patreon lookup failed');\n  const tierMap={};\n  let member=null;\n  for(const page of pages){\n    for(const inc of(page.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n    if(!member&&email)member=page.data.find(m=>(m.attributes?.email||'').toLowerCase()===email)||null;\n  }\n  if(member?.attributes?.patron_status==='active_patron'){\n    const names=(member.relationships?.currently_entitled_tiers?.data||[]).map(t=>tierMap[t.id]).filter(Boolean);\n    const paid=names.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    if(paid)tier=paid.toLowerCase();\n  }\n} catch {} \nconst monthlyLimit=Object.prototype.hasOwnProperty.call(TIER_LIMITS,tier)?TIER_LIMITS[tier]:3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nreturn [{json:{...__in,sessionTier:tier,_rateLimitCheck:{sessionKey:lookupKey+'::'+currentMonth,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
       },
       "id": "map-29",
       "position": [
@@ -735,11 +735,50 @@
     },
     {
       "id": "map-30",
+      "name": "Patreon: Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6960,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.patreon.com/api/oauth2/v2/campaigns/9988159/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=1000",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ ($response.body.links || {}).next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !($response.body.links || {}).next }}"
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Uz6EY2337IetoYeC",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "map-31",
       "name": "Get row(s)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        6960,
+        7200,
         0
       ],
       "parameters": {
@@ -771,19 +810,19 @@
       "parameters": {
         "jsCode": "const originalData=$('Rate Limit: Prepare Check').first().json;\nconst rateLimitData=originalData._rateLimitCheck;\nconst cost=originalData._map.cost;\nconst usageData=$input.all().map(i=>i.json).find(r=>r?.session_key);\nconst currentCount=Number(usageData?.npc_count)||0;\nif(cost>0&&currentCount+cost>rateLimitData.monthlyLimit){\n  const resetDate=new Date();resetDate.setMonth(resetDate.getMonth()+1);resetDate.setDate(1);resetDate.setHours(0,0,0,0);\n  return [{json:{ok:false,rateLimitExceeded:true,error:'RATE_LIMIT_EXCEEDED',message:'A map '+(originalData._map.action==='mockups'?'mockups':originalData._map.action==='final'?'final ('+originalData._map.quality+')':originalData._map.action==='edit'?'edit ('+originalData._map.quality+')':'retrace')+' costs '+cost+' uses. You have used '+currentCount+' of your '+rateLimitData.monthlyLimit+' monthly uses.',currentUsage:currentCount,limit:rateLimitData.monthlyLimit,tier:rateLimitData.tier,resetDate:resetDate.toISOString(),upgradeUrl:'https://www.patreon.com/c/CelestiaTools/membership'}}];\n}\nreturn [{json:{...originalData,_rateLimitCheck:{...rateLimitData,currentCount,usageRecordExists:!!usageData,usageRecordId:usageData?.id||null}}}];"
       },
-      "id": "map-31",
+      "id": "map-32",
       "position": [
-        7200,
+        7440,
         0
       ]
     },
     {
-      "id": "map-32",
+      "id": "map-33",
       "name": "IF: Rate Limit Exceeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        7440,
+        7680,
         0
       ],
       "parameters": {
@@ -812,12 +851,12 @@
       }
     },
     {
-      "id": "map-33",
+      "id": "map-34",
       "name": "IF: Check Action?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        7680,
+        7920,
         0
       ],
       "parameters": {
@@ -830,7 +869,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-32",
+              "id": "map-condition-33",
               "leftValue": "={{ $json._map.action === \"check\" }}",
               "rightValue": "",
               "operator": {
@@ -852,9 +891,9 @@
       "parameters": {
         "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nconst prep=$json._map; return [{json:{body:checkRequest(prep.image)}}];"
       },
-      "id": "map-34",
+      "id": "map-35",
       "position": [
-        7920,
+        8160,
         0
       ]
     },
@@ -896,9 +935,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-35",
+      "id": "map-36",
       "position": [
-        8160,
+        8400,
         0
       ]
     },
@@ -909,19 +948,19 @@
       "parameters": {
         "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst response=$json||{}; const prep=$('Rate Limit: Validate').first().json._map; try { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/,'').replace(/```\\s*$/,'')); const defects=mapDefects(raw,{perspective:prep.perspective}); return [{json:{ok:true,raw,defects,costUsd:Number(response.usage?.cost)||0,usesCharged:0}}]; } catch { return [{json:{ok:false,error:'CHECK_FAILED',message:'The map could not be checked.',usesCharged:0}}]; }"
       },
-      "id": "map-36",
+      "id": "map-37",
       "position": [
-        8400,
+        8640,
         0
       ]
     },
     {
-      "id": "map-37",
+      "id": "map-38",
       "name": "IF: Check OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        8640,
+        8880,
         0
       ],
       "parameters": {
@@ -934,7 +973,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-36",
+              "id": "map-condition-37",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -950,12 +989,12 @@
       }
     },
     {
-      "id": "map-38",
+      "id": "map-39",
       "name": "Respond: Check",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        8880,
+        9120,
         0
       ],
       "parameters": {
@@ -983,12 +1022,12 @@
       }
     },
     {
-      "id": "map-39",
+      "id": "map-40",
       "name": "IF: Edit Action?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        9120,
+        9360,
         0
       ],
       "parameters": {
@@ -1001,7 +1040,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-38",
+              "id": "map-condition-39",
               "leftValue": "={{ $json._map.action === \"edit\" }}",
               "rightValue": "",
               "operator": {
@@ -1023,9 +1062,9 @@
       "parameters": {
         "jsCode": "const prep=$json._map; return [{json:{crop:prep.crop},binary:{map:{data:prep.image.b64,mimeType:prep.image.mediaType,fileName:'map.png'}}}];"
       },
-      "id": "map-40",
+      "id": "map-41",
       "position": [
-        9360,
+        9600,
         0
       ]
     },
@@ -1042,9 +1081,9 @@
         "positionY": "={{ $json.crop.y }}",
         "binaryPropertyName": "map"
       },
-      "id": "map-41",
+      "id": "map-42",
       "position": [
-        9600,
+        9840,
         0
       ]
     },
@@ -1055,9 +1094,9 @@
       "parameters": {
         "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const bytes=await this.helpers.getBinaryDataBuffer(0,'map'); const binary=$input.first().binary.map; return [{json:{body:{n:1,model:prep.model,prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:prep.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+(binary.mimeType||'image/png')+';base64,'+bytes.toString('base64')}}]}}}];"
       },
-      "id": "map-42",
+      "id": "map-43",
       "position": [
-        9840,
+        10080,
         0
       ]
     },
@@ -1099,9 +1138,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-43",
+      "id": "map-44",
       "position": [
-        10080,
+        10320,
         0
       ]
     },
@@ -1112,19 +1151,19 @@
       "parameters": {
         "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Edit: Build Request').first().json.body.resolution}}];"
       },
-      "id": "map-44",
+      "id": "map-45",
       "position": [
-        10320,
+        10560,
         0
       ]
     },
     {
-      "id": "map-45",
+      "id": "map-46",
       "name": "IF: Edit Resolution Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        10560,
+        10800,
         0
       ],
       "parameters": {
@@ -1137,7 +1176,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-44",
+              "id": "map-condition-45",
               "leftValue": "={{ $json._resolutionFallback }}",
               "rightValue": "",
               "operator": {
@@ -1159,9 +1198,9 @@
       "parameters": {
         "jsCode": "const {resolution,...body}=$('Edit: Build Request').first().json.body;\nreturn [{json:{body}}];"
       },
-      "id": "map-46",
+      "id": "map-47",
       "position": [
-        10800,
+        11040,
         0
       ]
     },
@@ -1203,9 +1242,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-47",
+      "id": "map-48",
       "position": [
-        11040,
+        11280,
         0
       ]
     },
@@ -1216,49 +1255,15 @@
       "parameters": {
         "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const raw=$json||{}; const img=raw.data?.[0]; const patch=img?.b64_json?{b64:img.b64_json,mediaType:img.media_type||'image/png'}:null; return [{json:patch?{ok:true,action:'edit',patch,crop:prep.crop,box:prep.box,costUsd:Number(raw.usage?.cost)||0}:{ok:false,error:'GENERATION_FAILED',message:'The image provider returned no patch.',usesCharged:0}}];"
       },
-      "id": "map-48",
+      "id": "map-49",
       "position": [
-        11280,
+        11520,
         0
       ]
     },
     {
-      "id": "map-49",
-      "name": "IF: Edit Image OK?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        11520,
-        0
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "version": 2,
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "map-condition-48",
-              "leftValue": "={{ $json.ok }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
       "id": "map-50",
-      "name": "IF: Retrace Action?",
+      "name": "IF: Edit Image OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
@@ -1276,6 +1281,40 @@
           "conditions": [
             {
               "id": "map-condition-49",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-51",
+      "name": "IF: Retrace Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        12000,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-50",
               "leftValue": "={{ $json._map.action === \"retrace\" }}",
               "rightValue": "",
               "operator": {
@@ -1297,9 +1336,9 @@
       "parameters": {
         "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const WALLS_PROMPT=`You are tracing walls on a top-down tabletop RPG battle map for Foundry VTT.\nList every wall as straight line segments along the centre of the wall. Split walls at doors and windows, and list doors and windows as their own segments.\nReturn JSON only: {\"walls\":[{\"kind\":\"wall|door|window\",\"x1\":0-1000,\"y1\":0-1000,\"x2\":0-1000,\"y2\":0-1000}]}\nx runs left to right and y top to bottom, as a share of the image width and height out of 1000. Do not include furniture.`; const LIGHTS_PROMPT=`You are placing light sources on a tabletop RPG battle map for Foundry VTT.\nFind every visible light source: candles, lamps, lanterns, torches, braziers, fireplaces, campfires, glowing crystals, magic glows, screens and console lights, lava, and windows or holes letting in daylight or moonlight.\nReturn JSON only, in this shape:\n{\"lights\":[{\"kind\":\"<one of: candle, lamp, torch, brazier, fireplace, campfire, crystal, magic, screen, lava, window>\",\"x\":<0-1000, left to right>,\"y\":<0-1000, top to bottom>,\"color\":\"#rrggbb\"}]}\nx and y are the centre of the light source on the image. Group candles that are touching into one light. Do not add lights where there is no visible source.`; return [['walls',WALLS_PROMPT],['lights',LIGHTS_PROMPT]].map(([purpose,prompt])=>({json:{purpose,body:{model:'google/gemini-3.7-flash',response_format:{type:'json_object'},usage:{include:true},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+prep.image.mediaType+';base64,'+prep.image.b64}}]}]}}}));"
       },
-      "id": "map-51",
+      "id": "map-52",
       "position": [
-        12000,
+        12240,
         0
       ]
     },
@@ -1341,9 +1380,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-52",
+      "id": "map-53",
       "position": [
-        12240,
+        12480,
         0
       ]
     },
@@ -1354,49 +1393,15 @@
       "parameters": {
         "jsCode": "const UNIT_SYSTEMS = {\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst LIGHT_PRESETS = {\"candle\":{\"bright\":0.5,\"dim\":1.5,\"animation\":\"torch\",\"intensity\":2},\"lamp\":{\"bright\":1,\"dim\":3,\"animation\":null,\"intensity\":3},\"torch\":{\"bright\":2,\"dim\":4,\"animation\":\"torch\",\"intensity\":4},\"brazier\":{\"bright\":2,\"dim\":5,\"animation\":\"flame\",\"intensity\":4},\"fireplace\":{\"bright\":3,\"dim\":6,\"animation\":\"flame\",\"intensity\":5},\"campfire\":{\"bright\":4,\"dim\":8,\"animation\":\"flame\",\"intensity\":5},\"crystal\":{\"bright\":1,\"dim\":3,\"animation\":\"pulse\",\"intensity\":3},\"magic\":{\"bright\":2,\"dim\":4,\"animation\":\"energy\",\"intensity\":4},\"screen\":{\"bright\":0.5,\"dim\":2,\"animation\":null,\"intensity\":2},\"lava\":{\"bright\":2,\"dim\":5,\"animation\":\"fog\",\"intensity\":4},\"window\":{\"bright\":2,\"dim\":5,\"animation\":null,\"intensity\":3}};\nconst SENSE = { none: 0, normal: 20 };\nconst DOOR = { none: 0, door: 1 };\nfunction gridFit(width, height, [sw, sh], gridPx = 100) {\n  const scale = (sw * gridPx) / width;\n  return { width: sw * gridPx, height: sh * gridPx, scale, sharpen: scale > 1.2 ? 0.6 : 0 };\n}\nfunction toFoundryWalls(raw, { squares, gridPx = 100 }) {\n  const [w, h] = squares;\n  const clamp = v => Math.min(1000, Math.max(0, v));\n  const segs = raw\n    .filter(s => ['x1', 'y1', 'x2', 'y2'].every(k => Number.isFinite(s[k])))\n    .map(s => ({\n      kind: ['door', 'window'].includes(s.kind) ? s.kind : 'wall',\n      c: [clamp(s.x1) / 1000 * w * gridPx, clamp(s.y1) / 1000 * h * gridPx, clamp(s.x2) / 1000 * w * gridPx, clamp(s.y2) / 1000 * h * gridPx],\n    }))\n    .filter(s => Math.hypot(s.c[2] - s.c[0], s.c[3] - s.c[1]) >= gridPx / 5);\n  const pts = segs.flatMap(s => [[s, 0], [s, 2]]);\n  for (let i = 0; i < pts.length; i++) {\n    for (let j = i + 1; j < pts.length; j++) {\n      const [s1, k1] = pts[i], [s2, k2] = pts[j];\n      if (Math.hypot(s1.c[k1] - s2.c[k2], s1.c[k1 + 1] - s2.c[k2 + 1]) < gridPx / 3) { s2.c[k2] = s1.c[k1]; s2.c[k2 + 1] = s1.c[k1 + 1]; }\n    }\n  }\n  return segs.map(s => ({\n    c: s.c.map(Math.round),\n    kind: s.kind,\n    door: s.kind === 'door' ? DOOR.door : DOOR.none,\n    move: SENSE.normal,\n    sight: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    light: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    sound: SENSE.normal,\n  }));\n}\nfunction toFoundryLights(raw, { squares, gridPx = 100, feetPerSquare = 5 }) {\n  const [w, h] = squares;\n  return raw\n    .filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && l.x >= 0 && l.x <= 1000 && l.y >= 0 && l.y <= 1000)\n    .map(l => {\n      const kind = LIGHT_PRESETS[l.kind] ? l.kind : 'lamp';\n      const p = LIGHT_PRESETS[kind];\n      return {\n        kind,\n        x: Math.round((l.x / 1000) * w * gridPx),\n        y: Math.round((l.y / 1000) * h * gridPx),\n        config: {\n          bright: p.bright * feetPerSquare,\n          dim: p.dim * feetPerSquare,\n          color: /^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ffb35c',\n          alpha: 0.5,\n          animation: p.animation ? { type: p.animation, speed: 3, intensity: p.intensity } : { type: null },\n        },\n      };\n    });\n}\nfunction convertTraceCore(trace, squares, units, systems, convertWalls, convertLights) {\n  const unit = systems[units];\n  const walls = convertWalls(trace.walls, { squares, gridPx: 100 }).map(({ c, door, move, sight, light, sound }) => ({ c, door, move, sight, light, sound }));\n  const lights = convertLights(trace.lights, { squares, gridPx: 100, feetPerSquare: unit.square }).map(({ x, y, config }) => ({ x, y, config }));\n  const counts = { walls: walls.filter(w => w.door === 0 && w.sight !== 0).length, doors: walls.filter(w => w.door === 1).length, windows: walls.filter(w => w.sight === 0).length, lights: lights.length };\n  return { walls, lights, counts };\n}\nconst prep=$('Rate Limit: Validate').first().json._map; const requests=$('Retrace: Build Requests').all().map(i=>i.json); const responses=$input.all().map((i,index)=>({purpose:requests[index]?.purpose,raw:i.json})); const trace={walls:[],lights:[]}; for(const {purpose,raw} of responses){try{const value=JSON.parse(String(raw.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/,'').replace(/```\\s*$/,''));if(Array.isArray(value?.[purpose]))trace[purpose]=value[purpose].filter(v=>v&&typeof v==='object'&&!Array.isArray(v));}catch{}} const {walls,lights,counts}=convertTraceCore(trace,prep.squares,prep.units,UNIT_SYSTEMS,toFoundryWalls,toFoundryLights); const costUsd=responses.reduce((sum,r)=>sum+(Number(r.raw.usage?.cost)||0),0); return [{json:walls.length||lights.length?{ok:true,action:'retrace',walls,lights,counts,costUsd}:{ok:false,error:'GENERATION_FAILED',message:'No walls or lights could be traced.',usesCharged:0}}];"
       },
-      "id": "map-53",
+      "id": "map-54",
       "position": [
-        12480,
+        12720,
         0
       ]
     },
     {
-      "id": "map-54",
-      "name": "IF: Retrace OK?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        12720,
-        0
-      ],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "version": 2,
-            "leftValue": "",
-            "caseSensitive": true,
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "map-condition-53",
-              "leftValue": "={{ $json.ok }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
       "id": "map-55",
-      "name": "Switch: Action",
+      "name": "IF: Retrace OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
@@ -1414,7 +1419,7 @@
           "conditions": [
             {
               "id": "map-condition-54",
-              "leftValue": "={{ $json._map.action === \"mockups\" }}",
+              "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -1430,7 +1435,7 @@
     },
     {
       "id": "map-56",
-      "name": "IF: Auto Plan?",
+      "name": "Switch: Action",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
@@ -1448,6 +1453,40 @@
           "conditions": [
             {
               "id": "map-condition-55",
+              "leftValue": "={{ $json._map.action === \"mockups\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-57",
+      "name": "IF: Auto Plan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        13440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-56",
               "leftValue": "={{ $json._map.autoPlan === true }}",
               "rightValue": "",
               "operator": {
@@ -1469,9 +1508,9 @@
       "parameters": {
         "jsCode": "const prep=$json._map?$json:$('Rate Limit: Validate').first().json;\nconst {prompt,aspect,count}=prep._map;\nreturn Array.from({length:count},()=>({json:{body:{n:1,model:'black-forest-labs/flux.2-klein-4b',prompt,aspect_ratio:aspect,resolution:'1K'}}}));"
       },
-      "id": "map-57",
+      "id": "map-58",
       "position": [
-        13440,
+        13680,
         0
       ]
     },
@@ -1513,9 +1552,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-58",
+      "id": "map-59",
       "position": [
-        13680,
+        13920,
         0
       ]
     },
@@ -1526,19 +1565,19 @@
       "parameters": {
         "jsCode": "let planned; try { const item=$('Plan: Parse').first().json; if(item?.ok&&item._map?.action==='mockups') planned=item; } catch {}\nconst prep=planned?._map||$('Rate Limit: Validate').first().json._map;\nconst responses=$input.all().map(i=>i.json);\nconst images=responses.flatMap(r=>(r.data||[]).filter(i=>i?.b64_json).map(i=>({b64:i.b64_json,mediaType:i.media_type||'image/png'})));\nconst costUsd=(planned?.costUsd||0)+responses.reduce((sum,r)=>sum+(Number(r.usage?.cost)||0),0);\nconst failed=prep.count-images.length;\nreturn [{json:images.length?{ok:true,action:'mockups',images,failed,aspect:prep.aspect,prompt:prep.prompt,...(planned?{layout:planned.layout}:{}),costUsd,ms:Date.now()-prep.startedAt}:{ok:false,error:'GENERATION_FAILED',message:'No mockup images were generated.',usesCharged:0}}];"
       },
-      "id": "map-59",
+      "id": "map-60",
       "position": [
-        13920,
+        14160,
         0
       ]
     },
     {
-      "id": "map-60",
+      "id": "map-61",
       "name": "IF: Mockups OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        14160,
+        14400,
         0
       ],
       "parameters": {
@@ -1551,7 +1590,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-59",
+              "id": "map-condition-60",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -1573,9 +1612,9 @@
       "parameters": {
         "jsCode": "const prep=$('Rate Limit: Validate').first().json._map;\nconst {prompt,aspect,mockup}=prep;\nconst quality={\"standard\":{\"label\":\"Standard\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"2K\",\"scaleCalls\":2,\"cost\":6},\"economy\":{\"label\":\"Economy\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"1K\",\"scaleCalls\":1,\"cost\":4},\"draft\":{\"label\":\"Draft\",\"model\":\"black-forest-labs/flux.2-klein-4b\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":2},\"high\":{\"label\":\"High detail\",\"model\":\"bytedance-seed/seedream-5-0-pro\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":6}}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt,aspect_ratio:aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+mockup.mediaType+';base64,'+mockup.b64}}]},costUsd:0}}];"
       },
-      "id": "map-61",
+      "id": "map-62",
       "position": [
-        14400,
+        14640,
         0
       ]
     },
@@ -1617,9 +1656,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-62",
+      "id": "map-63",
       "position": [
-        14640,
+        14880,
         0
       ]
     },
@@ -1630,19 +1669,19 @@
       "parameters": {
         "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Final: Build Request').first().json.body.resolution}}];"
       },
-      "id": "map-63",
+      "id": "map-64",
       "position": [
-        14880,
+        15120,
         0
       ]
     },
     {
-      "id": "map-64",
+      "id": "map-65",
       "name": "IF: Final Resolution Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        15120,
+        15360,
         0
       ],
       "parameters": {
@@ -1655,7 +1694,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-63",
+              "id": "map-condition-64",
               "leftValue": "={{ $json._resolutionFallback }}",
               "rightValue": "",
               "operator": {
@@ -1677,9 +1716,9 @@
       "parameters": {
         "jsCode": "const {resolution,...body}=$('Final: Build Request').first().json.body;\nreturn [{json:{body}}];"
       },
-      "id": "map-65",
+      "id": "map-66",
       "position": [
-        15360,
+        15600,
         0
       ]
     },
@@ -1721,9 +1760,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-66",
+      "id": "map-67",
       "position": [
-        15600,
+        15840,
         0
       ]
     },
@@ -1734,19 +1773,19 @@
       "parameters": {
         "jsCode": "const prior = $('Final: Build Request').first().json;\nconst raw = $json || {};\nconst img = raw.data?.[0];\nconst image = img?.b64_json ? {b64:img.b64_json,mediaType:img.media_type||'image/png'} : null;\nconst costUsd = (prior.costUsd||0)+(Number(raw.usage?.cost)||0);\n\nreturn [{json:{...prior,image,costUsd,...(image?{}:{ok:false,error:'GENERATION_FAILED',message:'The image provider returned no image.',usesCharged:0})}}];"
       },
-      "id": "map-67",
+      "id": "map-68",
       "position": [
-        15840,
+        16080,
         0
       ]
     },
     {
-      "id": "map-68",
+      "id": "map-69",
       "name": "IF: Final Image OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        16080,
+        16320,
         0
       ],
       "parameters": {
@@ -1759,7 +1798,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-67",
+              "id": "map-condition-68",
               "leftValue": "={{ !!$json.image }}",
               "rightValue": "",
               "operator": {
@@ -1781,9 +1820,9 @@
       "parameters": {
         "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nreturn [{json:{body:checkRequest($json.image)}}];"
       },
-      "id": "map-69",
+      "id": "map-70",
       "position": [
-        16320,
+        16560,
         0
       ]
     },
@@ -1825,9 +1864,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-70",
+      "id": "map-71",
       "position": [
-        16560,
+        16800,
         0
       ]
     },
@@ -1838,19 +1877,19 @@
       "parameters": {
         "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst prior=$('Final: Parse Image').first().json;\nconst response=$json||{};\nlet defects={retry:false,reasons:[]}, warning;\ntry { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, '')); defects=mapDefects(raw,{perspective:$('Rate Limit: Validate').first().json._map.map.perspective}); } catch { warning='The map could not be checked.'; }\nreturn [{json:{...prior,defects,warning,costUsd:prior.costUsd+(Number(response.usage?.cost)||0),retried:false}}];"
       },
-      "id": "map-71",
+      "id": "map-72",
       "position": [
-        16800,
+        17040,
         0
       ]
     },
     {
-      "id": "map-72",
+      "id": "map-73",
       "name": "IF: Retry Final?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        17040,
+        17280,
         0
       ],
       "parameters": {
@@ -1863,7 +1902,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-71",
+              "id": "map-condition-72",
               "leftValue": "={{ $json.defects.retry }}",
               "rightValue": "",
               "operator": {
@@ -1885,9 +1924,9 @@
       "parameters": {
         "jsCode": "const prep=$('Rate Limit: Validate').first().json._map;\nconst quality={\"standard\":{\"label\":\"Standard\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"2K\",\"scaleCalls\":2,\"cost\":6},\"economy\":{\"label\":\"Economy\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"1K\",\"scaleCalls\":1,\"cost\":4},\"draft\":{\"label\":\"Draft\",\"model\":\"black-forest-labs/flux.2-klein-4b\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":2},\"high\":{\"label\":\"High detail\",\"model\":\"bytedance-seed/seedream-5-0-pro\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":6}}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+prep.mockup.mediaType+';base64,'+prep.mockup.b64}}]}}}];"
       },
-      "id": "map-73",
+      "id": "map-74",
       "position": [
-        17280,
+        17520,
         0
       ]
     },
@@ -1929,9 +1968,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-74",
+      "id": "map-75",
       "position": [
-        17520,
+        17760,
         0
       ]
     },
@@ -1942,19 +1981,19 @@
       "parameters": {
         "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Final: Build Retry').first().json.body.resolution}}];"
       },
-      "id": "map-75",
+      "id": "map-76",
       "position": [
-        17760,
+        18000,
         0
       ]
     },
     {
-      "id": "map-76",
+      "id": "map-77",
       "name": "IF: Retry Resolution Retry?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        18000,
+        18240,
         0
       ],
       "parameters": {
@@ -1967,7 +2006,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-75",
+              "id": "map-condition-76",
               "leftValue": "={{ $json._resolutionFallback }}",
               "rightValue": "",
               "operator": {
@@ -1989,9 +2028,9 @@
       "parameters": {
         "jsCode": "const {resolution,...body}=$('Final: Build Retry').first().json.body;\nreturn [{json:{body}}];"
       },
-      "id": "map-77",
+      "id": "map-78",
       "position": [
-        18240,
+        18480,
         0
       ]
     },
@@ -2033,9 +2072,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-78",
+      "id": "map-79",
       "position": [
-        18480,
+        18720,
         0
       ]
     },
@@ -2046,9 +2085,9 @@
       "parameters": {
         "jsCode": "const first=$('Final: Judge').first().json;\nconst raw=$json||{};\nconst img=raw.data?.[0];\nconst retryImage=img?.b64_json?{b64:img.b64_json,mediaType:img.media_type||'image/png'}:null;\nreturn [{json:{...first,image:retryImage||first.image,retried:!!retryImage,retryImageFailed:!retryImage,warning:retryImage?first.warning:'The retry image could not be generated; the first image was kept.',costUsd:first.costUsd+(Number(raw.usage?.cost)||0)}}];"
       },
-      "id": "map-79",
+      "id": "map-80",
       "position": [
-        18720,
+        18960,
         0
       ]
     },
@@ -2059,9 +2098,9 @@
       "parameters": {
         "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nreturn [{json:{body:checkRequest($json.image)}}];"
       },
-      "id": "map-80",
+      "id": "map-81",
       "position": [
-        18960,
+        19200,
         0
       ]
     },
@@ -2103,9 +2142,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-81",
+      "id": "map-82",
       "position": [
-        19200,
+        19440,
         0
       ]
     },
@@ -2116,9 +2155,9 @@
       "parameters": {
         "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst prior=$('Final: Parse Retry').first().json;\nconst response=$json||{};\nlet defects=prior.defects, warning=prior.warning;\nif(!prior.retryImageFailed) { try { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, '')); defects=mapDefects(raw,{perspective:$('Rate Limit: Validate').first().json._map.map.perspective}); if(defects.retry) warning='The final map still has: '+defects.reasons.join(', ')+'.'; } catch { warning='The map could not be checked.'; } }\nreturn [{json:{...prior,defects,warning,costUsd:prior.costUsd+(Number(response.usage?.cost)||0)}}];"
       },
-      "id": "map-82",
+      "id": "map-83",
       "position": [
-        19440,
+        19680,
         0
       ]
     },
@@ -2129,9 +2168,9 @@
       "parameters": {
         "jsCode": "const chosen=$json;\nconst prep=$('Rate Limit: Validate').first().json._map;\nconst SCALE_PROMPT=`This is a tabletop RPG battle map. Estimate the real-world size of the whole area shown in the image, edge to edge.\nUse objects of known size as rulers: a single door is about 0.9 m wide, a chair about 0.5 m, a bed about 2 m long, a round tavern table about 1.2 m across, a cart about 3 m long, a person about 0.5 m across from above.\nMeasure at least three different objects, work out metres per pixel from each, and combine them.\nReturn JSON only: {\"references\":[{\"object\":\"...\",\"size_m\":0.9,\"share_of_width\":0.03}],\"width_m\":<number>,\"height_m\":<number>}\nshare_of_width is how much of the image width the object spans.`;\nconst LIGHTS_PROMPT=`You are placing light sources on a tabletop RPG battle map for Foundry VTT.\nFind every visible light source: candles, lamps, lanterns, torches, braziers, fireplaces, campfires, glowing crystals, magic glows, screens and console lights, lava, and windows or holes letting in daylight or moonlight.\nReturn JSON only, in this shape:\n{\"lights\":[{\"kind\":\"<one of: candle, lamp, torch, brazier, fireplace, campfire, crystal, magic, screen, lava, window>\",\"x\":<0-1000, left to right>,\"y\":<0-1000, top to bottom>,\"color\":\"#rrggbb\"}]}\nx and y are the centre of the light source on the image. Group candles that are touching into one light. Do not add lights where there is no visible source.`;\nconst WALLS_PROMPT=`You are tracing walls on a top-down tabletop RPG battle map for Foundry VTT.\nList every wall as straight line segments along the centre of the wall. Split walls at doors and windows, and list doors and windows as their own segments.\nReturn JSON only: {\"walls\":[{\"kind\":\"wall|door|window\",\"x1\":0-1000,\"y1\":0-1000,\"x2\":0-1000,\"y2\":0-1000}]}\nx runs left to right and y top to bottom, as a share of the image width and height out of 1000. Do not include furniture.`;\nconst image=chosen.image;\nconst tasks=[...Array.from({length:prep.scaleCalls},()=>({purpose:'scale',prompt:SCALE_PROMPT})),...(prep.walls?[{purpose:'lights',prompt:LIGHTS_PROMPT},{purpose:'walls',prompt:WALLS_PROMPT}]:[])];\nreturn tasks.map(({purpose,prompt})=>({json:{purpose,chosen,body:{model:'google/gemini-3.7-flash',response_format:{type:'json_object'},usage:{include:true},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}]}}}));"
       },
-      "id": "map-83",
+      "id": "map-84",
       "position": [
-        19680,
+        19920,
         0
       ]
     },
@@ -2173,9 +2212,9 @@
           "name": "OpenRouter account"
         }
       },
-      "id": "map-84",
+      "id": "map-85",
       "position": [
-        19920,
+        20160,
         0
       ]
     },
@@ -2186,19 +2225,19 @@
       "parameters": {
         "jsCode": "const UNIT_SYSTEMS = {\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst FEET_PER_METRE = 3.28084;\nfunction averageScale(a, b) {\n  const valid = value => Number.isFinite(value?.width_m) && value.width_m > 0 && Number.isFinite(value?.height_m) && value.height_m > 0;\n  const estimates = [a, b].filter(valid);\n  if (!estimates.length) throw new Error('At least one valid size estimate is required.');\n  return {\n    width_m: estimates.reduce((sum, value) => sum + value.width_m, 0) / estimates.length,\n    height_m: estimates.reduce((sum, value) => sum + value.height_m, 0) / estimates.length,\n  };\n}\nfunction sceneScale({ width_m, height_m }, { system = 'imperial', square, gridPx = 100 } = {}) {\n  if (!(width_m > 0 && height_m > 0)) throw new Error('The size estimate needs a positive width and height.');\n  const u = UNIT_SYSTEMS[system];\n  if (!u) throw new Error(`Unknown unit system \"${system}\"`);\n  const size = square || u.square;\n  const toUnits = m => (u.units === 'ft' ? m * FEET_PER_METRE : m);\n  const squares = [Math.max(1, Math.round(toUnits(width_m) / size)), Math.max(1, Math.round(toUnits(height_m) / size))];\n  return {\n    squares,\n    width: squares[0] * gridPx,\n    height: squares[1] * gridPx,\n    grid: { size: gridPx, distance: size, units: u.units },\n  };\n}\nconst WALLS_COST=1;\nconst prep=$('Rate Limit: Validate').first().json._map;\nconst requests=$('Scale: Build Requests').all().map(i=>i.json);\nconst chosen=requests[0].chosen;\nconst responses=$input.all().map((i,index)=>({purpose:requests[index]?.purpose,raw:i.json}));\nconst parsed=responses.map(({purpose,raw})=>{try{return {purpose,value:JSON.parse(String(raw.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''))};}catch{return {purpose,value:null};}});\nconst estimates=parsed.filter(r=>r.purpose==='scale').map(r=>r.value).filter(e=>e&&Number.isFinite(e.width_m)&&e.width_m>0&&Number.isFinite(e.height_m)&&e.height_m>0);\nconst trace={walls:[],lights:[]};\nlet measured,scene,warning=chosen.warning;\nfor(const purpose of ['walls','lights']) if(prep.walls) {\n  const value=parsed.find(r=>r.purpose===purpose)?.value;\n  if(Array.isArray(value?.[purpose])) trace[purpose]=value[purpose].filter(v=>v&&typeof v==='object'&&!Array.isArray(v));\n  else warning=[warning,purpose==='walls'?'Walls could not be traced.':'Lights could not be placed.'].filter(Boolean).join(' ');\n}\nif(estimates.length){const avg=averageScale(estimates[0],estimates[1]);measured={...avg,estimates};scene=sceneScale(avg,{system:prep.units,square:prep.square});}\nelse {const size=prep.square||(prep.units==='metric'?1.5:5);const units=prep.units==='metric'?'m':'ft';const squares=prep.map.squares;measured={width_m:null,height_m:null,estimates:[]};scene={squares,width:squares[0]*100,height:squares[1]*100,grid:{size:100,distance:size,units}};warning=[warning,'Map size could not be measured; the requested squares were used.'].filter(Boolean).join(' ');}\nconst costUsd=chosen.costUsd+responses.reduce((sum,r)=>sum+(Number(r.raw.usage?.cost)||0),0);\nconst chargedCost=prep.cost-(prep.walls&&trace.walls.length===0&&trace.lights.length===0?WALLS_COST:0);\nreturn [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,defects:chosen.defects,retried:chosen.retried,...(warning?{warning}:{}),measured,scene,trace,costUsd,chargedCost,ms:Date.now()-prep.startedAt}}];"
       },
-      "id": "map-85",
+      "id": "map-86",
       "position": [
-        20160,
+        20400,
         0
       ]
     },
     {
-      "id": "map-86",
+      "id": "map-87",
       "name": "IF: Scale OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        20400,
+        20640,
         0
       ],
       "parameters": {
@@ -2211,7 +2250,7 @@
           },
           "conditions": [
             {
-              "id": "map-condition-85",
+              "id": "map-condition-86",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -2227,12 +2266,12 @@
       }
     },
     {
-      "id": "map-87",
+      "id": "map-88",
       "name": "Respond: 502 Generation Failed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        20640,
+        20880,
         0
       ],
       "parameters": {
@@ -2266,19 +2305,19 @@
       "parameters": {
         "jsCode": "const rateLimitData=$('Rate Limit: Validate').first().json._rateLimitCheck;\nlet cost=$('Rate Limit: Validate').first().json._map.cost;\ntry { const final=$('Scale: Combine').first().json; if(final?.ok) cost=final.chargedCost; } catch {}\nconst now=new Date().toISOString();\nreturn [{json:{session_key:rateLimitData.sessionKey,month:rateLimitData.currentMonth,npc_count:rateLimitData.currentCount+cost,last_created:now}}];"
       },
-      "id": "map-88",
+      "id": "map-89",
       "position": [
-        20880,
+        21120,
         0
       ]
     },
     {
-      "id": "map-89",
+      "id": "map-90",
       "name": "Upsert Usage Row",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        21120,
+        21360,
         0
       ],
       "parameters": {
@@ -2360,19 +2399,19 @@
       "parameters": {
         "jsCode": "let payload;\nfor(const name of ['Scale: Combine','Mockups: Collect','Edit: Parse Image','Retrace: Collect']) { try { const candidate=$(name).first().json; if(candidate?.ok){payload=candidate;break;} } catch {} }\nconst cost=payload.chargedCost??$('Rate Limit: Validate').first().json._map.cost;\nconst {chargedCost,...publicPayload}=payload;\nreturn [{json:{...publicPayload,usesCharged:cost}}];"
       },
-      "id": "map-90",
+      "id": "map-91",
       "position": [
-        21360,
+        21600,
         0
       ]
     },
     {
-      "id": "map-91",
+      "id": "map-92",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        21600,
+        21840,
         0
       ],
       "parameters": {
@@ -2559,6 +2598,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Patreon: Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patreon: Members": {
+      "main": [
         [
           {
             "node": "Rate Limit: Prepare Check",
@@ -3454,5 +3504,5 @@
       ]
     }
   },
-  "_devNote": "POST /webhook/map-builder accepts free plan and bake, mockups, final, charged edit and retrace. OpenRouter requests use the built-in openRouterApi credential. Session tier is authoritative."
+  "_devNote": "POST /webhook/map-builder accepts free plan and bake, mockups, final, charged edit and retrace. OpenRouter requests use the built-in openRouterApi credential. Active Patreon tier is used when available; the session tier is the fallback."
 }

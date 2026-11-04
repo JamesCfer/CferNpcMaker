@@ -11,6 +11,7 @@ import { CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, mapDefects } f
 import { imageSize } from '../../shared/scripts/core/maps/image.js';
 import { UNIT_SYSTEMS, FEET_PER_METRE, LIGHT_PRESETS, averageScale, sceneScale, gridFit, toFoundryWalls, toFoundryLights, cropBox } from '../../shared/scripts/core/maps/foundry.js';
 import { EDIT_QUALITIES, editSettingsCore, convertTraceCore } from './map-actions.mjs';
+import { patreonMembersNode, PATREON_CREDENTIAL } from './patreon-credential-migration.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const store = JSON.parse(fs.readFileSync(path.join(root, 'n8n-dnd5e-store-builder-workflow.json'), 'utf8'));
@@ -118,6 +119,13 @@ export function buildMapWorkflow() {
   response('Respond: Plan', 200);
   response('Respond: 502 Plan Failed', 502);
   code('Rate Limit: Prepare Check', `const TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nconst email=($json.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=($json.sessionKey||'').trim();\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst sessionTier=($json.sessionTier||'').toLowerCase().trim();\nconst tier=$json.sessionIsSuperuser===true?'superuser':sessionTier;\nconst monthlyLimit=Object.prototype.hasOwnProperty.call(TIER_LIMITS,tier)?TIER_LIMITS[tier]:3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nreturn [{json:{...$json,sessionTier:tier,_rateLimitCheck:{sessionKey:lookupKey+'::'+currentMonth,email:lookupKey,currentMonth,monthlyLimit,tier}}}];`);
+  const patreon = patreonMembersNode('Patreon: Members', [0, 0], 'https://www.patreon.com/api/oauth2/v2/campaigns/9988159/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=1000', PATREON_CREDENTIAL);
+  add(patreon);
+  const prepareCheck = nodes.find(n => n.name === 'Rate Limit: Prepare Check');
+  prepareCheck.parameters.jsCode = prepareCheck.parameters.jsCode
+    .replace('const TIER_LIMITS=', `const __in = $('Map: Prepare Request').first().json;\nconst TIER_LIMITS=`)
+    .replaceAll('$json', '__in')
+    .replace("const tier=__in.sessionIsSuperuser===true?'superuser':sessionTier;", `let tier=sessionTier;\nif(__in.sessionIsSuperuser===true)tier='superuser';\nelse try {\n  const pages=$('Patreon: Members').all().map(i=>i.json);\n  if(!pages.length||pages.some(p=>!Array.isArray(p.data)))throw new Error('Patreon lookup failed');\n  const tierMap={};\n  let member=null;\n  for(const page of pages){\n    for(const inc of(page.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n    if(!member&&email)member=page.data.find(m=>(m.attributes?.email||'').toLowerCase()===email)||null;\n  }\n  if(member?.attributes?.patron_status==='active_patron'){\n    const names=(member.relationships?.currently_entitled_tiers?.data||[]).map(t=>tierMap[t.id]).filter(Boolean);\n    const paid=names.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    if(paid)tier=paid.toLowerCase();\n  }\n} catch {} `);
   copied('Get row(s)');
   code('Rate Limit: Validate', `const originalData=$('Rate Limit: Prepare Check').first().json;\nconst rateLimitData=originalData._rateLimitCheck;\nconst cost=originalData._map.cost;\nconst usageData=$input.all().map(i=>i.json).find(r=>r?.session_key);\nconst currentCount=Number(usageData?.npc_count)||0;\nif(cost>0&&currentCount+cost>rateLimitData.monthlyLimit){\n  const resetDate=new Date();resetDate.setMonth(resetDate.getMonth()+1);resetDate.setDate(1);resetDate.setHours(0,0,0,0);\n  return [{json:{ok:false,rateLimitExceeded:true,error:'RATE_LIMIT_EXCEEDED',message:'A map '+(originalData._map.action==='mockups'?'mockups':originalData._map.action==='final'?'final ('+originalData._map.quality+')':originalData._map.action==='edit'?'edit ('+originalData._map.quality+')':'retrace')+' costs '+cost+' uses. You have used '+currentCount+' of your '+rateLimitData.monthlyLimit+' monthly uses.',currentUsage:currentCount,limit:rateLimitData.monthlyLimit,tier:rateLimitData.tier,resetDate:resetDate.toISOString(),upgradeUrl:'https://www.patreon.com/c/CelestiaTools/membership'}}];\n}\nreturn [{json:{...originalData,_rateLimitCheck:{...rateLimitData,currentCount,usageRecordExists:!!usageData,usageRecordId:usageData?.id||null}}}];`);
   copied('IF: Rate Limit Exceeded?');
@@ -216,7 +224,7 @@ return [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,de
   link('Build Unauthorized Response','Respond: 401 Unauthorized');
   link('Map: Prepare Request','IF: Bad Request?'); link('IF: Bad Request?','Respond: 400 Bad Request',0); link('IF: Bad Request?','IF: Bake Action?',1);
   link('IF: Bake Action?','Bake: Prepare',0); link('IF: Bake Action?','IF: Plan Action?',1);
-  link('IF: Plan Action?','Plan: Build Request',0); link('IF: Plan Action?','Rate Limit: Prepare Check',1);
+  link('IF: Plan Action?','Plan: Build Request',0); link('IF: Plan Action?','Patreon: Members',1); link('Patreon: Members','Rate Limit: Prepare Check');
   link('Plan: Build Request','OpenRouter: Plan Layout'); link('OpenRouter: Plan Layout','Plan: Parse'); link('Plan: Parse','IF: Plan OK?');
   link('IF: Plan OK?','IF: Standalone Plan?',0); link('IF: Plan OK?','Respond: 502 Plan Failed',1);
   link('IF: Standalone Plan?','Plan: Respond',0); link('IF: Standalone Plan?','Mockups: Build Requests',1); link('Plan: Respond','Respond: Plan');
@@ -248,7 +256,7 @@ return [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,de
   link('IF: Scale OK?','Increment Usage Counter',0); link('IF: Scale OK?','Respond: 502 Generation Failed',1);
   link('Increment Usage Counter','Upsert Usage Row'); link('Upsert Usage Row','Map: Build Response'); link('Map: Build Response','Respond to Webhook');
   return { name:'Map Builder', settings:{executionOrder:'v1',executionTimeout:300}, nodes, connections,
-    _devNote:'POST /webhook/map-builder accepts free plan and bake, mockups, final, charged edit and retrace. OpenRouter requests use the built-in openRouterApi credential. Session tier is authoritative.' };
+    _devNote:'POST /webhook/map-builder accepts free plan and bake, mockups, final, charged edit and retrace. OpenRouter requests use the built-in openRouterApi credential. Active Patreon tier is used when available; the session tier is the fallback.' };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
