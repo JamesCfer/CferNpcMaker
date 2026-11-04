@@ -1,5 +1,7 @@
 <form class="npc-form map-form" autocomplete="off">
   <div class="field"><label for="map-description">Description</label><textarea id="map-description" name="description" rows="4" placeholder="A ruined riverside fortress with a broken bridge…"></textarea></div>
+  <div class="field"><label><input type="checkbox" name="autoPlan" checked> Plan the layout first</label></div>
+  <details class="map-layout-plan"><summary>Layout plan</summary><div class="field"><label for="map-layout">Edit the layout before drawing</label><textarea id="map-layout" name="layout" rows="5" maxlength="1200"></textarea></div><button type="button" class="btn-secondary map-plan">Plan layout (free)</button></details>
   <div class="map-row">
     <div class="field"><label>Perspective</label><select name="perspective"><option value="top-down">Top-down</option><option value="isometric">Isometric</option><option value="three-quarter">Three-quarter</option></select></div>
     <div class="field"><label>Genre</label><select name="genre"><option value="fantasy">Fantasy</option><option value="sci-fi">Sci-fi</option><option value="modern">Modern</option><option value="horror">Horror</option><option value="post-apocalyptic">Post-apocalyptic</option><option value="steampunk">Steampunk</option><option value="other">Other</option></select><input name="genreOther" type="text" placeholder="Other genre" hidden></div>

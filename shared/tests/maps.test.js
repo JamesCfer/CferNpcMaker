@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sceneScale, gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, dialPhrases, DIALS, applyLook, lookFilters, sizeBoost, SIZE_BOOST, mapDefects, averageScale, cropBox, LIGHTS_PROMPT, WALLS_PROMPT, WALLS_MASK_PROMPT, SCALE_PROMPT, CHECK_PROMPT } from '../scripts/core/maps/index.js';
+import { sceneScale, gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, dialPhrases, DIALS, applyLook, lookFilters, sizeBoost, SIZE_BOOST, mapDefects, averageScale, cropBox, LIGHTS_PROMPT, WALLS_PROMPT, WALLS_MASK_PROMPT, SCALE_PROMPT, CHECK_PROMPT, parsePlan, planText } from '../scripts/core/maps/index.js';
 
 const prompts = [
   {
@@ -41,6 +41,22 @@ describe('shared map helpers', () => {
     expect(text).toContain('top-down');
     expect(text).toContain('66 by 44');
     expect(text).toContain('Do not draw any grid lines');
+  });
+  it('inserts layout immediately after the scene and preserves old prompts without it', () => {
+    const base = buildPrompt(prompts[0]);
+    const laid = buildPrompt({ ...prompts[0], layout: 'Layout: fire in the centre.' });
+    expect(laid).toContain(`Scene: ${prompts[0].description}. Layout: fire in the centre.`);
+    expect(laid.replace(' Layout: fire in the centre.', '')).toBe(base);
+  });
+
+  it('parses a fenced plan, drops bad areas, and caps layout prose', () => {
+    const area = (name, where) => ({ name, where, size: 'about 4 by 3 squares', features: 'broken stone, ash, rubble, old banners, torch sconces' });
+    const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('gatehouse', 'south'), area('courtyard', 'centre'), area('tower', 'north'), area('stable', 'west'), area('invalid', 'up'), area('duplicate', 'south')], connections: ['gatehouse to courtyard through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
+    expect(plan.areas.map(a => a.name)).toEqual(['gatehouse', 'courtyard', 'tower', 'stable']);
+    expect(plan.connections).toEqual(['gatehouse to courtyard through a broken portcullis']);
+    expect(() => parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 3) }))).toThrow(/four valid areas/);
+    expect(planText(plan)).toContain('Layout: the gatehouse (about 4 by 3 squares) sits at the south');
+    expect(planText({ areas: Array.from({ length: 10 }, (_, i) => area('long ruined chamber ' + i, ['north-west','north','north-east','west','centre','east','south-west','south','south-east','south'][i])), connections: Array(12).fill('long corridor connecting two chambers'), notes: 'A huge keep.' }).length).toBeLessThanOrEqual(900);
   });
 
   it('keeps the old wording when every dial is on its default', () => {

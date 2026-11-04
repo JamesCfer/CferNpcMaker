@@ -74,6 +74,7 @@ export class BattleMapAdapter extends SystemAdapter {
       form.querySelector('.map-final').textContent = `Make final map (${summary.final + (field('walls').checked && perspective === 'top-down' ? 1 : 0)} uses)`;
       const signed = !!this.app?.authenticated && !this.app?._isOffline;
       form.querySelector('.map-mockups').disabled = this.busy || !signed;
+      form.querySelector('.map-plan').disabled = this.busy || !signed;
       form.querySelector('.map-final').disabled = this.busy || !signed || this.selected < 0;
       form.querySelector('.map-create').disabled = this.busy || !this.final;
     };
@@ -87,6 +88,7 @@ export class BattleMapAdapter extends SystemAdapter {
       if (!settingEdited) field('setting').value = /\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\b/i.test(description.value) ? 'outdoor' : 'indoor';
     });
     form.querySelector('.map-mockups').addEventListener('click', () => this.generateMockups());
+    form.querySelector('.map-plan').addEventListener('click', () => this.planLayout());
     form.querySelector('.map-final').addEventListener('click', () => this.generateFinal());
     form.querySelector('.map-create').addEventListener('click', () => this.createScene());
     field('sceneWidth').addEventListener('input', () => this.updateMeasured());
@@ -131,6 +133,16 @@ export class BattleMapAdapter extends SystemAdapter {
     finally { this.busy = false; this.update(); }
   }
 
+  planLayout() { return this.run(async () => {
+    const map = buildMapRequest(this.values());
+    this.status('Planning the layout…');
+    const data = await this.request({ action: 'plan', map });
+    if (typeof data.layout !== 'string' || !data.layout.trim()) throw new Error('No layout plan was returned.');
+    this.form.elements.layout.value = data.layout;
+    this.form.querySelector('.map-layout-plan').open = true;
+    this.status('Layout plan ready. You can edit it before drawing.');
+  }); }
+
   generateMockups() { return this.run(async () => {
     const map = buildMapRequest(this.values());
     const count = Number(this.form.elements.mockups.value);
@@ -138,7 +150,11 @@ export class BattleMapAdapter extends SystemAdapter {
     this.mockups = []; this.selected = -1; this.final = null; this.sourceImage = null;
     this.form.querySelector('.map-result').hidden = true;
     const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren(); box.dataset.count = String(count);
-    const data = await this.request({ action: 'mockups', map, count });
+    const data = await this.request({ action: 'mockups', map, count, ...(!map.layout && this.form.elements.autoPlan.checked ? { autoPlan: true } : {}) });
+    if (typeof data.layout === 'string' && data.layout.trim()) {
+      this.form.elements.layout.value = data.layout;
+      this.form.querySelector('.map-layout-plan').open = true;
+    }
     if (!Array.isArray(data.images) || !data.images.length) throw new Error('No mockups were returned.');
     this.mockups = data.images;
     data.images.forEach((image, index) => {

@@ -28,6 +28,11 @@ describe('AI Battle Map Maker logic', () => {
     const map = buildMapRequest({ description: '  forest camp  ', perspective: 'top-down', genre: 'other', genreOther: '  mythic  ', style: 'painted', mood: 'day', width: 1, height: 99, dials: { detail: 7, clutter: 0, wear: '', color: 5 } });
     expect(map).toEqual({ description: 'forest camp', perspective: 'top-down', genre: 'mythic', style: 'painted', mood: 'day', squares: [5, 60], setting: 'outdoor', dials: { detail: 5, clutter: 1, wear: 3 } });
   });
+  it('trims and caps an editable layout', () => {
+    expect(buildMapRequest({ description: 'Keep', layout: '  A'.repeat(700) + '  ' }).layout).toHaveLength(1200);
+    expect(buildMapRequest({ description: 'Keep', layout: '  west gate  ' }).layout).toBe('west gate');
+    expect(buildMapRequest({ description: 'Keep', layout: '  ' })).not.toHaveProperty('layout');
+  });
   it('labels measured dimensions', () => {
     expect(measuredLabel({ squares: [15, 12], grid: { distance: 5, units: 'ft' } })).toBe('Measured 75 by 60 ft (15 x 12 squares)');
   });

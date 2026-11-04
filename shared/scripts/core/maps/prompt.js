@@ -84,6 +84,7 @@ export function buildPrompt(p) {
     `Tabletop RPG battle map, ${view}.`,
     `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,
     `Scene: ${p.description}.`,
+    ...(typeof p.layout === 'string' && p.layout.trim() ? [p.layout.trim()] : []),
     // Dark water came out as a flat black hole on night maps (Nov 3 crypt test).
     ...(/water|river|lake|pond|pool|flood|sea|stream|canal|moat|swamp|marsh/i.test(p.description) ? ['Draw any water, even water described as dark or black, in deep teal or green-blue with visible ripples, reflections of nearby lights, and the floor or stones showing through where it is shallow. Never draw water as a flat black area.'] : []),
     `The map covers an area of ${Math.round(w * boost)} by ${Math.round(h * boost)} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,

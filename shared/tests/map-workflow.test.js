@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import path from 'node:path';
 import { buildMapWorkflow } from '../../tools/n8n/build-map-workflow.mjs';
-import { buildPrompt, finalPrompt, CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, averageScale, sceneScale, toFoundryWalls, toFoundryLights, gridFit, UNIT_SYSTEMS, cropBox } from '../scripts/core/maps/index.js';
+import { buildPrompt, finalPrompt, PLAN_PROMPT, CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, averageScale, sceneScale, toFoundryWalls, toFoundryLights, gridFit, UNIT_SYSTEMS, cropBox } from '../scripts/core/maps/index.js';
 
 const workflow = buildMapWorkflow();
 const node = name => workflow.nodes.find(n => n.name === name);
@@ -32,6 +32,7 @@ describe('generated map workflow', () => {
   it('embeds the shared prompt text', () => {
     const scripts = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.code').map(n => n.parameters.jsCode).join('\n');
     expect(scripts).toContain(CHECK_PROMPT);
+    expect(scripts).toContain(PLAN_PROMPT.split(' Return JSON only')[0]);
     expect(scripts).toContain(SCALE_PROMPT);
     expect(scripts).toContain(LIGHTS_PROMPT);
     expect(scripts).toContain(WALLS_PROMPT);
@@ -78,6 +79,43 @@ describe('generated map workflow', () => {
       });
       expect(limited.message).toContain(`A map final (${quality}) costs ${cost} uses.`);
     }
+  });
+
+  it('builds a free plan request and parses a fenced response', () => {
+    const prepared = run('Map: Prepare Request', { body: { action: 'plan', map: sample } });
+    expect(prepared._map).toMatchObject({ action: 'plan', cost: 0 });
+    const request = run('Plan: Build Request', prepared);
+    expect(request.body).toMatchObject({ model: 'google/gemini-3.7-flash', response_format: { type: 'json_object' } });
+    expect(request.body.messages[0].content).toContain(PLAN_PROMPT);
+    expect(request.body.messages[0].content).toContain(sample.description);
+    const plan = { areas: [{ name: 'gatehouse', where: 'south', size: 'about 4 by 3 squares', features: 'broken portcullis' }, ...['centre', 'north', 'west'].map(where => ({ name: where, where, size: 'about 4 by 3 squares', features: 'rubble' })), { name: 'bad', where: 'above', size: 'large', features: 'stone' }], connections: ['gatehouse to courtyard'], notes: 'A ruined keep.' };
+    const parsed = run('Plan: Parse', { choices: [{ message: { content: '```json\n' + JSON.stringify(plan) + '\n```' } }], usage: { cost: 0.001 } }, [], { 'Plan: Build Request': request });
+    expect(parsed.plan.areas).toHaveLength(4);
+    expect(parsed.layout).toContain('gatehouse');
+    expect(run('Plan: Respond', parsed)).toMatchObject({ ok: true, usesCharged: 0, costUsd: 0.001 });
+    expect(run('Plan: Parse', {}, [], { 'Plan: Build Request': request })).toMatchObject({ ok: false, error: 'PLAN_FAILED', message: 'The layout plan could not be made.', usesCharged: 0 });
+    expect(workflow.connections['IF: Plan OK?'].main[1][0].node).toBe('Respond: 502 Plan Failed');
+    expect(workflow.connections['IF: Plan Action?'].main[0][0].node).toBe('Plan: Build Request');
+    const reached = new Set();
+    const walk = at => { if (reached.has(at)) return; reached.add(at); for (const branch of workflow.connections[at]?.main || []) for (const edge of branch) walk(edge.node); };
+    walk('Plan: Respond');
+    expect(reached.has('Increment Usage Counter')).toBe(false);
+  });
+
+  it('runs one plan call before auto planned mockups and uses its layout', () => {
+    const prepared = run('Map: Prepare Request', { body: { action: 'mockups', map: sample, autoPlan: true, count: 2 } });
+    expect(prepared._map.autoPlan).toBe(true);
+    expect(workflow.connections['IF: Auto Plan?'].main[0]).toHaveLength(1);
+    expect(workflow.connections['IF: Auto Plan?'].main[0][0].node).toBe('Plan: Build Request');
+    const request = run('Plan: Build Request', prepared);
+    const plan = { areas: ['centre', 'north', 'south', 'west'].map(where => ({ name: where === 'centre' ? 'fire' : where, where, size: 'about 3 by 3 squares', features: where === 'centre' ? 'flames' : 'stone' })), connections: [], notes: '' };
+    const parsed = run('Plan: Parse', { choices: [{ message: { content: JSON.stringify(plan) } }] }, [], { 'Plan: Build Request': request });
+    const mockups = runAll('Mockups: Build Requests', parsed, [], { 'Rate Limit: Validate': prepared });
+    expect(mockups).toHaveLength(2);
+    expect(mockups[0].body.prompt).toContain(parsed.layout);
+    expect(workflow.connections['IF: Standalone Plan?'].main[1][0].node).toBe('Mockups: Build Requests');
+    const collected = run('Mockups: Collect', {}, [{ data: [{ b64_json: 'YWJj' }] }], { 'Rate Limit: Validate': prepared, 'Plan: Parse': parsed });
+    expect(collected.layout).toBe(parsed.layout);
   });
 
   it('validates mockup counts and charges the selected count', () => {

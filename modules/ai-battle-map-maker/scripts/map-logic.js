@@ -30,7 +30,8 @@ export function buildMapRequest(values) {
   const setting = ['indoor', 'outdoor'].includes(values.setting) ? values.setting : (OUTDOOR.test(description) ? 'outdoor' : 'indoor');
   const source = values.dials ?? values;
   const dials = Object.fromEntries(['detail', 'clutter', 'wear'].map(key => [key, clamp(source[key], 1, 5, 3)]));
-  return { description, perspective, genre, style, mood, squares, setting, dials };
+  const layout = String(values.layout ?? '').trim().slice(0, 1200);
+  return { description, perspective, genre, style, mood, squares, setting, dials, ...(layout ? { layout } : {}) };
 }
 
 export function measuredLabel(scene) {
