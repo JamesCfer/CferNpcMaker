@@ -45,3 +45,22 @@ export function sceneFileName(description, date = new Date(), extension = 'webp'
   const stamp = new Date(date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z').replace('T', '-');
   return `${slug}-${stamp}.${extension}`;
 }
+
+export function drawingBox(drawing, scene, dimensions) {
+  const shape = drawing?.document?.shape || drawing?.shape;
+  const x = drawing?.document?.x ?? drawing?.x;
+  const y = drawing?.document?.y ?? drawing?.y;
+  if (shape?.type !== 'r' || ![x,y,shape.width,shape.height,scene?.width,scene?.height].every(Number.isFinite) || shape.width <= 0 || shape.height <= 0) return null;
+  const sx = dimensions?.sceneX || 0, sy = dimensions?.sceneY || 0;
+  const l = Math.max(0, Math.min(1, (x - sx) / scene.width));
+  const t = Math.max(0, Math.min(1, (y - sy) / scene.height));
+  const r = Math.max(0, Math.min(1, (x + shape.width - sx) / scene.width));
+  const b = Math.max(0, Math.min(1, (y + shape.height - sy) / scene.height));
+  return r - l >= 0.02 && b - t >= 0.02 ? [l,t,r,b] : null;
+}
+
+export function sceneTraceOptions(scene) {
+  const size = scene?.grid?.size;
+  if (!(size > 0) || !(scene.width > 0) || !(scene.height > 0)) throw new Error('Scene grid is unavailable.');
+  return { squares: [Math.round(scene.width / size), Math.round(scene.height / size)], units: scene.grid.units === 'm' ? 'metric' : 'imperial' };
+}

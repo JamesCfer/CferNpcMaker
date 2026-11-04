@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import path from 'node:path';
 import { buildMapWorkflow } from '../../tools/n8n/build-map-workflow.mjs';
-import { buildPrompt, finalPrompt, CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, averageScale, sceneScale, toFoundryWalls, toFoundryLights, gridFit, UNIT_SYSTEMS } from '../scripts/core/maps/index.js';
+import { buildPrompt, finalPrompt, CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, averageScale, sceneScale, toFoundryWalls, toFoundryLights, gridFit, UNIT_SYSTEMS, cropBox } from '../scripts/core/maps/index.js';
 
 const workflow = buildMapWorkflow();
 const node = name => workflow.nodes.find(n => n.name === name);
@@ -226,7 +226,7 @@ describe('generated map workflow', () => {
     expect(targets('IF: Scale OK?', 0)).toEqual(['Increment Usage Counter']);
     expect(targets('IF: Scale OK?', 1)).toEqual(['Respond: 502 Generation Failed']);
     const parents = Object.entries(workflow.connections).flatMap(([from, c]) => c.main.flat().filter(e => e.node === 'Increment Usage Counter').map(() => from));
-    expect(parents.sort()).toEqual(['IF: Mockups OK?', 'IF: Scale OK?']);
+    expect(parents.sort()).toEqual(['IF: Edit Image OK?', 'IF: Mockups OK?', 'IF: Retrace OK?', 'IF: Scale OK?']);
     for (const name of workflow.nodes.filter(n => n.name.startsWith('OpenRouter:')).map(n => n.name)) {
       const seen = new Set();
       const walk = (at, failed = false) => {
@@ -237,5 +237,49 @@ describe('generated map workflow', () => {
       };
       walk(name);
     }
+  });
+
+  it('crops edits and selects model, resolution, and cost by quality', () => {
+    const png = Buffer.alloc(32); png.set([0x89, 0x50, 0x4e, 0x47]); png.writeUInt32BE(1600, 16); png.writeUInt32BE(1200, 20);
+    const image = { b64: png.toString('base64'), mediaType: 'image/png' };
+    const box = [0.2, 0.3, 0.8, 0.7];
+    const [x,y,r,b] = cropBox(box,1600,1200,0.15);
+    for (const [quality,model,cost,resolution] of [
+      ['standard','google/gemini-3.1-flash-image',4,'2K'],
+      ['economy','google/gemini-3.1-flash-image',4,'2K'],
+      ['draft','black-forest-labs/flux.2-klein-4b',4,'2K'],
+      ['high','bytedance-seed/seedream-5-0-pro',6,'2K'],
+    ]) {
+      const prep = run('Map: Prepare Request',{body:{action:'edit',image,box,change:'Broken tables',quality}});
+      expect(prep._map).toMatchObject({cost,model,resolution,crop:{x,y,width:r-x,height:b-y},box:{x:320,y:360,width:960,height:480}});
+      expect(prep._map.prompt).toContain('This is a cut-out piece of a top-down battle map. Broken tables');
+    }
+    const small = run('Map: Prepare Request',{body:{action:'edit',image,box:[0.3,0.3,0.5,0.5],change:'Ash',quality:'standard'}});
+    expect(small._map.resolution).toBe('1K');
+    expect(run('Map: Prepare Request',{body:{action:'edit',image,box:[0,0,0.01,1],change:'Ash'}}).error).toBe('BAD_REQUEST');
+    expect(run('Map: Prepare Request',{body:{action:'edit',image,box,change:'x'.repeat(501)}}).error).toBe('BAD_REQUEST');
+    expect(node('Edit: Crop Image').parameters).toMatchObject({operation:'crop',positionX:'={{ $json.crop.x }}',positionY:'={{ $json.crop.y }}'});
+    const named = {'Rate Limit: Validate':small};
+    expect(run('Edit: Parse Image',{data:[{b64_json:'YWJj',media_type:'image/png'}],usage:{cost:0.03}},[],named)).toMatchObject({ok:true,action:'edit',patch:{b64:'YWJj'},crop:small._map.crop,costUsd:0.03});
+    expect(run('Edit: Parse Image',{error:'provider failed'},[],named)).toMatchObject({ok:false,usesCharged:0});
+    expect(workflow.connections['IF: Edit Image OK?'].main[1][0].node).toBe('Respond: 502 Generation Failed');
+  });
+
+  it('retrace returns the same Foundry documents as bake and charges only on data', () => {
+    const png = Buffer.alloc(32); png.set([0x89, 0x50, 0x4e, 0x47]); png.writeUInt32BE(1200, 16); png.writeUInt32BE(900, 20);
+    const image = {b64:png.toString('base64'),mediaType:'image/png'};
+    const trace = {walls:[{kind:'door',x1:0,y1:0,x2:200,y2:0}],lights:[{kind:'torch',x:500,y:500}]};
+    const req = {image,squares:[12,9],units:'metric',trace};
+    const baked = run('Bake: Prepare',run('Map: Prepare Request',{body:{action:'bake',...req}}));
+    const prep = run('Map: Prepare Request',{body:{action:'retrace',image,squares:req.squares,units:req.units}});
+    expect(prep._map.cost).toBe(1);
+    const requests = runAll('Retrace: Build Requests',{},[],{'Rate Limit: Validate':prep});
+    expect(requests.map(r=>r.purpose)).toEqual(['walls','lights']);
+    const response = value => ({choices:[{message:{content:JSON.stringify(value)}}],usage:{cost:0.01}});
+    const result = run('Retrace: Collect',{},[response({walls:trace.walls}),response({lights:trace.lights})],{'Rate Limit: Validate':prep,'Retrace: Build Requests':requests});
+    expect(result).toMatchObject({ok:true,action:'retrace',walls:baked.walls,lights:baked.lights,counts:baked.counts,costUsd:0.02});
+    const failed = run('Retrace: Collect',{},[{},{}],{'Rate Limit: Validate':prep,'Retrace: Build Requests':requests});
+    expect(failed).toMatchObject({ok:false,usesCharged:0});
+    expect(workflow.connections['IF: Retrace OK?'].main[1][0].node).toBe('Respond: 502 Generation Failed');
   });
 });

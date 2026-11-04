@@ -1,8 +1,10 @@
 import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
-import { buildMapRequest, costSummary, measuredLabel, sceneFileName } from './map-logic.js';
+import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, sceneTraceOptions } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
 import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated } from './compat.js';
+import { pasteRegion } from './region-paste.js';
+import { Storage } from './core/storage.js';
 
 const imageUrl = image => `data:${image.mediaType || 'image/png'};base64,${image.b64}`;
 const loadImage = image => new Promise((resolve, reject) => {
@@ -89,7 +91,7 @@ export class BattleMapAdapter extends SystemAdapter {
 
   values() { return Object.fromEntries(new FormData(this.form)); }
   key() {
-    const key = this.app?.accessKey || this.app?.storage.getKey();
+    const key = this.app?.accessKey || this.app?.storage.getKey() || new Storage(this.module.id).getKey();
     if (!key) throw new Error('Please sign in with Patreon first.');
     return key;
   }
@@ -106,8 +108,8 @@ export class BattleMapAdapter extends SystemAdapter {
     } catch (err) {
       if (err.name === 'AbortError') throw new Error(`The map request timed out after ${Math.round(timeout / 1000)} seconds. Please try again.`);
       if (err instanceof AuthError) {
-        this.app.storage.setKey(''); this.app.accessKey = ''; this.app.authenticated = false;
-        this.app._applyAuthStateUI();
+        new Storage(this.module.id).setKey('');
+        if (this.app) { this.app.accessKey = ''; this.app.authenticated = false; this.app._applyAuthStateUI(); }
         window.open(PATREON_URL, '_blank');
       }
       throw err;
@@ -156,7 +158,7 @@ export class BattleMapAdapter extends SystemAdapter {
     const tick = () => this.status(`Making final map… ${Math.floor((Date.now() - started) / 1000)} seconds elapsed. This can take several minutes.`);
     tick(); const clock = setInterval(tick, 1000);
     let data;
-    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units, walls: this.form.elements.walls.checked && map.perspective === 'top-down' }, 900000); }
+    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units, walls: this.form.elements.walls.checked && map.perspective === 'top-down' }, 330000); }
     finally { clearInterval(clock); }
     if (!data.image || !data.scene) throw new Error('The final map response was incomplete.');
     this.sourceImage = await loadImage(data.image);
@@ -238,4 +240,76 @@ export class BattleMapAdapter extends SystemAdapter {
     this.status(`Created scene “${name}”.`);
     notifyMapCreated(`Created battle map scene “${name}”.`);
   }); }
+
+  async sceneImage(scene) {
+    if (!scene?.background?.src) throw new Error('This scene has no background image.');
+    const response = await fetch(scene.background.src);
+    if (!response.ok) throw new Error('The scene background could not be loaded.');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error('The scene background could not be decoded.')); img.src = url;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+      canvas.getContext('2d').drawImage(image, 0, 0);
+      return { image, payload: { b64: canvas.toDataURL('image/png').split(',')[1], mediaType: 'image/png' } };
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  async editRegion() {
+    const scene = canvas?.scene;
+    const selected = canvas?.drawings?.controlled || [];
+    const box = selected.length === 1 ? drawingBox(selected[0], scene, canvas.dimensions) : null;
+    if (!box) { ui.notifications?.warn?.('Draw a rectangle with the Drawings tool, select it, then click AI edit region.'); return; }
+    const Dialog = foundry?.applications?.api?.DialogV2;
+    if (!Dialog?.wait) { ui.notifications?.error?.('Foundry DialogV2 is unavailable.'); return; }
+    const choice = await Dialog.wait({ window: { title: 'AI edit region' }, content: '<label>Change<textarea name="change" maxlength="500" rows="4" style="width:100%"></textarea></label><label>Quality<select name="quality"><option value="standard">Standard (4 uses)</option><option value="economy">Economy (4 uses)</option><option value="draft">Draft (4 uses)</option><option value="high">High detail (6 uses)</option></select></label>', buttons: [
+      { action: 'apply', label: 'Apply', default: true, callback: (_event, _button, dialog) => ({ change: dialog.element.querySelector('[name="change"]')?.value?.trim(), quality: dialog.element.querySelector('[name="quality"]')?.value }) },
+      { action: 'cancel', label: 'Cancel', callback: () => null },
+    ] });
+    if (!choice) return;
+    if (!choice.change || choice.change.length > 500) { ui.notifications?.error?.('Enter a change of up to 500 characters.'); return; }
+    try {
+      ui.notifications?.info?.('Preparing region edit…');
+      const { image, payload } = await this.sceneImage(scene);
+      ui.notifications?.info?.('Generating region patch…');
+      const result = await this.request({ action: 'edit', image: payload, box, change: choice.change, quality: choice.quality }, 330000);
+      if (!result.patch?.b64 || !result.crop) throw new Error('The region edit response was incomplete.');
+      const patch = await loadImage(result.patch);
+      const composed = pasteRegion(image, patch, result.crop);
+      const blob = await encodeCanvas(composed, 'image/webp') || await encodeCanvas(composed, 'image/png');
+      if (!blob) throw new Error('The edited map could not be encoded.');
+      const picker = filePicker(); if (!picker) throw new Error('Foundry FilePicker is unavailable.');
+      const folder = `worlds/${game.world.id}/battle-maps`;
+      try { await picker.createDirectory('data', folder); } catch (err) { if (!directoryExists(err)) throw err; }
+      ui.notifications?.info?.('Uploading edited map…');
+      const extension = blob.type === 'image/png' ? 'png' : 'webp';
+      const filename = sceneFileName(scene.name || 'battle-map', new Date(), extension).replace(`.${extension}`, `-${crypto.randomUUID().slice(0,8)}.${extension}`);
+      const path = await uploadMap(picker, folder, new File([blob], filename, { type: blob.type }));
+      await scene.update({ 'background.src': path });
+      await scene.deleteEmbeddedDocuments('Drawing', [selected[0].document.id]);
+      ui.notifications?.success?.(`Region edited (${result.usesCharged} uses).`);
+    } catch (err) { ui.notifications?.error?.(err.message); }
+  }
+
+  async retraceWalls() {
+    const scene = canvas?.scene;
+    if (!scene) { ui.notifications?.error?.('Open a scene first.'); return; }
+    const Dialog = foundry?.applications?.api?.DialogV2;
+    if (!Dialog?.confirm) { ui.notifications?.error?.('Foundry DialogV2 is unavailable.'); return; }
+    if (!await Dialog.confirm({ window: { title: 'Re-trace walls' }, content: 'Replace all walls and lights on this scene? 1 use' })) return;
+    try {
+      ui.notifications?.info?.('Tracing walls and lights…');
+      const { payload } = await this.sceneImage(scene);
+      const result = await this.request({ action: 'retrace', image: payload, ...sceneTraceOptions(scene) }, 330000);
+      if (!Array.isArray(result.walls) || !Array.isArray(result.lights)) throw new Error('The re-trace response was incomplete.');
+      await scene.deleteEmbeddedDocuments('Wall', scene.walls.map(w => w.id));
+      await scene.deleteEmbeddedDocuments('AmbientLight', scene.lights.map(l => l.id));
+      if (result.walls.length) await scene.createEmbeddedDocuments('Wall', result.walls.map(wallData));
+      if (result.lights.length) await scene.createEmbeddedDocuments('AmbientLight', result.lights.map(lightData));
+      ui.notifications?.success?.(`Re-traced walls and lights (${result.usesCharged} use).`);
+    } catch (err) { ui.notifications?.error?.(err.message); }
+  }
 }
