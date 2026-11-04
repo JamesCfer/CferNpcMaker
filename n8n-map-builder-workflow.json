@@ -1,0 +1,3509 @@
+{
+  "name": "Map Builder",
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 300
+  },
+  "nodes": [
+    {
+      "id": "map-01",
+      "name": "Webhook: /webhook/map-builder",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "map-builder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "map-builder-post"
+    },
+    {
+      "id": "map-02",
+      "name": "Webhook OPTIONS map-builder",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "OPTIONS",
+        "path": "map-builder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "map-builder-options"
+    },
+    {
+      "id": "map-03",
+      "name": "IF OPTIONS Preflight",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cors-method-check",
+              "leftValue": "={{ $json.method || $json.headers?.['access-control-request-method'] }}",
+              "rightValue": "OPTIONS",
+              "operator": {
+                "type": "string",
+                "operation": "equalsIgnoreCase"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-04",
+      "name": "Respond CORS Preflight",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 204,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook OPTIONS map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              },
+              {
+                "name": "Access-Control-Max-Age",
+                "value": "86400"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-05",
+      "name": "Respond CORS Headers",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 204,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook OPTIONS map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              },
+              {
+                "name": "Access-Control-Max-Age",
+                "value": "86400"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-06",
+      "name": "Session Validation Node",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const headers = $json.headers || {};\nconst body = $json.body || {};\nconst query = $json.query || {};\nconst sessionKey = headers['x-builder-key'] || headers['X-Builder-Key'] || body.sessionKey || query.sessionKey || null;\nconst origin = headers['x-foundry-origin'] || headers['X-Foundry-Origin'] || body.origin || query.origin || '';\nif (!sessionKey) return [{ json: { authorized: false, error: 'NO_SESSION_KEY', message: 'Missing session key.', requiresAuth: true } }];\nif (sessionKey.length !== 32 || !/^[a-f0-9]{32}$/.test(sessionKey)) return [{ json: { authorized: false, error: 'INVALID_SESSION_FORMAT', message: 'Invalid session key format.', requiresAuth: true } }];\nreturn [{ json: { ...($json), sessionKey, requestOrigin: origin, _needsValidation: true } }];"
+      }
+    },
+    {
+      "id": "map-07",
+      "name": "Data Table: Lookup Session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "lpvCd8nOjLWrLeE7",
+          "mode": "list",
+          "cachedResultName": "patreon_sessions",
+          "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/lpvCd8nOjLWrLeE7"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "key",
+              "keyValue": "={{ $json.sessionKey }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "map-08",
+      "name": "Validate Session & Check Expiration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const input = $('Session Validation Node').first().json;\nconst sessions = $input.all().map(i => i.json);\nconst sessionData = sessions && sessions.length > 0 ? sessions[0] : null;\nif (!sessionData || !sessionData.key) return [{ json: { authorized: false, error: 'SESSION_NOT_FOUND', message: 'Session expired or invalid.', requiresAuth: true } }];\nconst now = new Date();\nconst expiresAt = new Date(sessionData.expires_at);\nif (expiresAt < now) return [{ json: { authorized: false, error: 'SESSION_EXPIRED', message: 'Your session has expired.', requiresAuth: true } }];\nconst isSuperuser = sessionData.superuser === true;\nconst tier = sessionData.tier ? String(sessionData.tier).trim() : '';\nreturn [{ json: { authorized: true, sessionEmail: sessionData.email, sessionTier: tier, sessionIsSuperuser: isSuperuser, sessionKey: sessionData.key, ...input } }];"
+      }
+    },
+    {
+      "id": "map-09",
+      "name": "IF: Is Authorized?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1920,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "auth-check-condition",
+              "leftValue": "={{ $json.authorized }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-10",
+      "name": "Build Unauthorized Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const error = $json.error || 'UNAUTHORIZED';\nconst message = $json.message || 'You are not authorized to access this feature.';\nconst requiresAuth = $json.requiresAuth === true;\nconst rateLimitExceeded = $json.rateLimitExceeded === true;\nreturn [{ json: { ok: false, error, message, requiresAuth, rateLimitExceeded, ...(rateLimitExceeded ? { currentUsage: $json.currentUsage, limit: $json.limit, tier: $json.tier, resetDate: $json.resetDate, upgradeUrl: $json.upgradeUrl } : {}), authUrl: requiresAuth ? 'https://foundryrelay.dedicated2.com/webhook/oauth/patreon/login' : undefined } }];"
+      }
+    },
+    {
+      "id": "map-11",
+      "name": "Respond: 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        0
+      ],
+      "parameters": {
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "Map: Prepare Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const PERSPECTIVES = {\"top-down\":\"flat top-down orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down\",\"isometric\":\"isometric view at a 30 degree angle, 2:1 isometric projection, walls and objects shown from above at an angle\",\"three-quarter\":\"three-quarter overhead view, camera tilted slightly so the fronts of walls and objects are visible, no horizon\"};\nconst TOP_DOWN_VARIANTS = {\"plan\":\"orthographic floor plan seen from directly overhead, like an architect's plan drawn in full color. Only the top surfaces of walls, furniture, and objects are visible. Walls are flat bands with no visible height or faces. Shadows are short and fall straight down\",\"sat\":\"satellite view from far above, looking straight down, so nothing has visible height or sides. Tables read as flat circles and rectangles, chairs as small squares, and walls as flat strips\",\"previous\":\"flat top-down orthographic view with the camera pointing straight down at 90 degrees, like a classic virtual tabletop battle map. Walls are flat thick outlines seen only from above, with no wall faces or sides of furniture visible. No tilt, no depth, no horizon, no vanishing point\",\"combo\":\"orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down\"};\nconst MOODS = {\"day\":\"bright daylight\",\"dusk\":\"warm dusk light with long shadows\",\"night\":\"night time, dark with warm light from lamps, torches, and other light sources\"};\nconst DIALS = {\"detail\":{\"label\":\"Detail\",\"stage\":\"mockup\",\"levels\":[\"simple and clean, with large plain areas and only the key features\",\"lightly detailed, with simple textures\",\"highly detailed\",\"very highly detailed, with rich textures on every surface\",\"extremely intricate, with fine texture and small details everywhere\"]},\"clutter\":{\"label\":\"Props\",\"stage\":\"mockup\",\"levels\":[\"almost empty, with only essential furniture\",\"sparse props\",null,\"plenty of props and furnishings\",\"crowded with props, debris, and small objects, while keeping clear floor space to walk on\"]},\"wear\":{\"label\":\"Wear\",\"stage\":\"mockup\",\"levels\":[\"everything pristine and brand new\",\"everything clean and well kept\",null,\"surfaces worn, dirty, and cracked\",\"ruined, broken, and overgrown surroundings\"]},\"color\":{\"label\":\"Color\",\"stage\":\"filter\",\"levels\":[0.35,0.7,1,1.3,1.6]},\"tint\":{\"label\":\"Color temperature\",\"stage\":\"filter\",\"levels\":[-1,-0.5,0,0.5,1]},\"contrast\":{\"label\":\"Lighting contrast\",\"stage\":\"filter\",\"levels\":[0.75,0.88,1,1.15,1.3]},\"sharpness\":{\"label\":\"Sharpness\",\"stage\":\"filter\",\"levels\":[-1,-0.5,0,0.6,1.2]}};\nconst SIZE_BOOST = {\"indoor\":2.2,\"outdoor\":1.15};\nconst OUTDOOR = new RegExp(\"\\\\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\\\\b\", \"i\");\nconst ASPECTS = [[\"1:1\",1],[\"4:3\",1.3333333333333333],[\"3:4\",0.75],[\"3:2\",1.5],[\"2:3\",0.6666666666666666],[\"16:9\",1.7777777777777777],[\"9:16\",0.5625]];\nfunction checkDials(dials) {\n  for (const [k, v] of Object.entries(dials)) {\n    if (!DIALS[k]) throw new Error(`Unknown dial \"${k}\"`);\n    if (!Number.isInteger(v) || v < 1 || v > 5) throw new Error(`Dial \"${k}\" must be a whole number from 1 to 5`);\n  }\n}\nfunction dialPhrases(dials = {}) {\n  checkDials(dials);\n  return Object.entries(DIALS).filter(([, d]) => d.stage === 'mockup').map(([k, d]) => d.levels[(dials[k] ?? 3) - 1]).filter(Boolean);\n}\nfunction cap(s) {\n  return s.charAt(0).toUpperCase() + s.slice(1);\n}\nfunction sizeBoost(p) {\n  if (typeof p.sizeBoost === 'number') return p.sizeBoost;\n  const setting = p.setting || (OUTDOOR.test(p.description) ? 'outdoor' : 'indoor');\n  return SIZE_BOOST[setting] ?? 1;\n}\nfunction buildPrompt(p) {\n  const view = p.view ? TOP_DOWN_VARIANTS[p.view] : PERSPECTIVES[p.perspective];\n  if (!view) throw new Error(`Unknown perspective \"${p.perspective}\"`);\n  const mood = MOODS[p.mood] || p.mood;\n  const [w, h] = p.squares;\n  const boost = sizeBoost(p);\n  return [\n    `Tabletop RPG battle map, ${view}.`,\n    `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,\n    `Scene: ${p.description}.`,\n    ...(typeof p.layout === 'string' && p.layout.trim() ? [p.layout.trim()] : []),\n    // Dark water came out as a flat black hole on night maps (Nov 3 crypt test).\n    ...(/water|river|lake|pond|pool|flood|sea|stream|canal|moat|swamp|marsh/i.test(p.description) ? ['Draw any water, even water described as dark or black, in deep teal or green-blue with visible ripples, reflections of nearby lights, and the floor or stones showing through where it is shallow. Never draw water as a flat black area.'] : []),\n    `The map covers an area of ${Math.round(w * boost)} by ${Math.round(h * boost)} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,\n    `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,\n    'Clear readable layout, the whole area fills the frame edge to edge.',\n    // Long layout plans pulled the camera into a tilted view (Nov 4 cave test), so repeat it last.\n    ...(p.perspective === 'top-down' && !p.view ? ['Camera: straight down from directly overhead, like a satellite photo. No wall faces, no ceilings, no tilt, no perspective.'] : []),\n    `Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark.${typeof p.layout === 'string' && p.layout.trim() ? ' Do not write any room names or labels on the map.' : ''} No people or creatures.`,\n  ].join(' ');\n}\nfunction pickAspect([w, h]) {\n  const target = w / h;\n  let best = ASPECTS[0];\n  for (const a of ASPECTS) {\n    if (Math.abs(Math.log(a[1] / target)) < Math.abs(Math.log(best[1] / target))) best = a;\n  }\n  return best[0];\n}\nfunction finalPrompt(p) {\n  return [\n    'The attached image is a rough layout mockup. Redraw it as a finished battle map.',\n    'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',\n    'Ignore and remove any grid lines, text, or labels in the mockup.',\n    ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),\n    buildPrompt(p),\n  ].join(' ');\n}\nfunction isBase64(s) {\n  if (typeof s !== 'string' || !s.length || s.length % 4 !== 0) return false;\n  let padding = 0;\n  if (s.charCodeAt(s.length - 1) === 61) padding++;\n  if (s.charCodeAt(s.length - 2) === 61) padding++;\n  for (let i = 0; i < s.length - padding; i++) {\n    const c = s.charCodeAt(i);\n    if (!((c >= 65 && c <= 90) || (c >= 97 && c <= 122) ||\n      (c >= 48 && c <= 57) || c === 43 || c === 47)) return false;\n  }\n  return true;\n}\nfunction imageSize(b) {\n  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50) {\n    const v = new DataView(b.buffer, b.byteOffset, b.byteLength);\n    return { width: v.getUint32(16), height: v.getUint32(20) };\n  }\n  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {\n    let i = 2;\n    while (i + 9 < b.length) {\n      if (b[i] !== 0xff) { i++; continue; }\n      const marker = b[i + 1];\n      const len = (b[i + 2] << 8) | b[i + 3];\n      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {\n        return { height: (b[i + 5] << 8) | b[i + 6], width: (b[i + 7] << 8) | b[i + 8] };\n      }\n      i += 2 + len;\n    }\n    return null;\n  }\n  if (b.length > 30 && b[0] === 0x52 && b[8] === 0x57) {\n    const tag = String.fromCharCode(b[12], b[13], b[14], b[15]);\n    if (tag === 'VP8X') return { width: 1 + (b[24] | b[25] << 8 | b[26] << 16), height: 1 + (b[27] | b[28] << 8 | b[29] << 16) };\n    if (tag === 'VP8 ') return { width: (b[26] | b[27] << 8) & 0x3fff, height: (b[28] | b[29] << 8) & 0x3fff };\n    if (tag === 'VP8L') {\n      const bits = b[21] | b[22] << 8 | b[23] << 16 | b[24] << 24;\n      return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };\n    }\n  }\n  return null;\n}\nfunction cropBox(box, width, height, pad = 0.15) {\n  const [left, top, right, bottom] = [box[0] * width, box[1] * height, box[2] * width, box[3] * height];\n  const px = Math.max(32, (right - left) * pad);\n  const py = Math.max(32, (bottom - top) * pad);\n  return [Math.max(0, left - px), Math.max(0, top - py), Math.min(width, right + px), Math.min(height, bottom + py)].map(Math.trunc);\n}\nfunction editSettingsCore(quality, crop, qualities) {\n  const chosen = qualities[quality];\n  if (!chosen) throw new Error('Unknown edit quality.');\n  return { ...chosen, resolution: quality === 'high' || Math.max(crop.width, crop.height) > 1100 ? '2K' : '1K' };\n}\nconst EDIT_QUALITIES={\"standard\":{\"model\":\"google/gemini-3.1-flash-image\",\"cost\":4},\"economy\":{\"model\":\"google/gemini-3.1-flash-image\",\"cost\":4},\"draft\":{\"model\":\"black-forest-labs/flux.2-klein-4b\",\"cost\":4},\"high\":{\"model\":\"bytedance-seed/seedream-5-0-pro\",\"cost\":6}};\nconst FINAL_QUALITIES={\"standard\":{\"label\":\"Standard\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"2K\",\"scaleCalls\":2,\"cost\":6},\"economy\":{\"label\":\"Economy\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"1K\",\"scaleCalls\":1,\"cost\":4},\"draft\":{\"label\":\"Draft\",\"model\":\"black-forest-labs/flux.2-klein-4b\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":2},\"high\":{\"label\":\"High detail\",\"model\":\"bytedance-seed/seedream-5-0-pro\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":6}};\nconst UNIT_SYSTEMS={\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst WALLS_COST=1;\nconst MOCKUP_COSTS={\"1\":1,\"2\":2,\"4\":3};\nconst body=$json.body||{};\ntry {\n const action=body.action; if(!['plan','mockups','final','bake','edit','retrace','check'].includes(action)) throw new Error('Unknown map action.');\n const count=action==='mockups'?(body.count===undefined?4:body.count):null;\n if(action==='mockups'&&(!Number.isInteger(count)||!Object.prototype.hasOwnProperty.call(MOCKUP_COSTS,count))) throw new Error('Mockup count must be 1, 2, or 4.');\n if(['bake','edit','retrace','check'].includes(action)){\n  const image=body.image; if(!image||!isBase64(image.b64)||!/^image\\/[a-z0-9.+-]+$/i.test(image.mediaType||'')) throw new Error('A base64 map image is required.');\n  if(action==='check'){ if(body.perspective!=null&&!PERSPECTIVES[body.perspective]) throw new Error('Unknown perspective.'); return [{json:{...$json,_map:{action,image:{b64:image.b64,mediaType:image.mediaType},perspective:body.perspective||'top-down',cost:0}}}]; }\n  const size=imageSize(Buffer.from(image.b64,'base64')); if(!size) throw new Error('Could not read the map image size.');\n  const common={action,image:{b64:image.b64,mediaType:image.mediaType,...size}};\n  if(action==='edit'){\n   const box=body.box; if(!Array.isArray(box)||box.length!==4||!box.every(n=>Number.isFinite(n)&&n>=0&&n<=1)||box[2]-box[0]<0.02||box[3]-box[1]<0.02) throw new Error('Edit box must be within the image and at least 2% wide and tall.');\n   const change=body.change; if(typeof change!=='string'||!change.trim()||change.length>500) throw new Error('A change of up to 500 characters is required.');\n   const quality=body.quality||'standard'; const [x,y,r,b]=cropBox(box,size.width,size.height,0.15); const crop={x,y,width:r-x,height:b-y}; const settings=editSettingsCore(quality,crop,EDIT_QUALITIES);\n   const gmBox={x:Math.trunc(box[0]*size.width),y:Math.trunc(box[1]*size.height),width:Math.trunc(box[2]*size.width)-Math.trunc(box[0]*size.width),height:Math.trunc(box[3]*size.height)-Math.trunc(box[1]*size.height)};\n   const prompt='This is a cut-out piece of a top-down battle map. '+change.trim()+' Keep the edges of the image, the walls, and the floor layout the same so it fits back into the map. Do not draw any grid lines, text, labels, border, or frame. Keep the same art style, lighting, and straight-down camera angle.';\n   return [{json:{...$json,_map:{...common,quality,cost:settings.cost,model:settings.model,resolution:settings.resolution,crop,box:gmBox,prompt,aspect:pickAspect([crop.width,crop.height])}}}];\n  }\n  const squares=body.squares; if(!Array.isArray(squares)||squares.length!==2||!squares.every(n=>Number.isInteger(n)&&n>0&&n<=200)) throw new Error('Squares must be two positive whole numbers up to 200.');\n  if(!UNIT_SYSTEMS[body.units]) throw new Error('Unknown unit system.');\n  const trace=body.trace&&typeof body.trace==='object'?body.trace:{};\n  return [{json:{...$json,_map:{...common,cost:action==='retrace'?1:0,squares,units:body.units,trace:{walls:Array.isArray(trace.walls)?trace.walls.filter(v=>v&&typeof v==='object'&&!Array.isArray(v)):[],lights:Array.isArray(trace.lights)?trace.lights.filter(v=>v&&typeof v==='object'&&!Array.isArray(v)):[]},mood:body.mood,name:body.name}}}];\n }\n const map=body.map; if(!map||typeof map!=='object') throw new Error('A map is required.');\n for(const key of ['description','perspective','genre','style','mood']) if(typeof map[key]!=='string'||!map[key].trim()) throw new Error('Map '+key+' is required.');\n if(!Array.isArray(map.squares)||map.squares.length!==2||!map.squares.every(n=>Number.isInteger(n)&&n>0)) throw new Error('Map squares must be two positive whole numbers.');\n if(map.dials!=null&&(typeof map.dials!=='object'||Array.isArray(map.dials))) throw new Error('Map dials must be an object.');\n if(map.setting!=null&&!['indoor','outdoor'].includes(map.setting)) throw new Error('Unknown map setting.');\n if(map.view!=null&&!TOP_DOWN_VARIANTS[map.view]) throw new Error('Unknown map view.');\n if(map.layout!=null&&typeof map.layout!=='string') throw new Error('Map layout must be text.');\n const cleanMap={...map,...(typeof map.layout==='string'?{layout:map.layout.trim().slice(0,1200)}:{})};\n if(action==='plan') return [{json:{...$json,_map:{action,map:cleanMap,cost:0,startedAt:Date.now()}}}];\n const quality=action==='final'?(body.quality===undefined?'standard':body.quality):null; const finalSettings=action==='final'?FINAL_QUALITIES[quality]:null; let mockup=null;\n if(action==='final'){\n  if(!Object.prototype.hasOwnProperty.call(FINAL_QUALITIES,quality)) throw new Error('Unknown final quality.');\n  mockup=body.mockup; if(!mockup||!isBase64(mockup.b64)) throw new Error('A base64 mockup image is required.');\n  if(mockup.mediaType!=null&&!/^image\\/[a-z0-9.+-]+$/i.test(mockup.mediaType)) throw new Error('Invalid mockup media type.');\n  if(body.units!=null&&!['imperial','metric'].includes(body.units)) throw new Error('Unknown unit system.');\n  if(body.square!=null&&!(Number.isFinite(body.square)&&body.square>0)) throw new Error('Square size must be positive.');\n }\n const prompt=action==='mockups'?'Quick rough mockup for layout only. '+buildPrompt(cleanMap):finalPrompt(cleanMap);\n return [{json:{...$json,_map:{action,quality,count,autoPlan:action==='mockups'&&body.autoPlan===true&&!cleanMap.layout,cost:action==='mockups'?MOCKUP_COSTS[count]:finalSettings.cost+(body.walls===true&&map.perspective==='top-down'?WALLS_COST:0),walls:action==='final'&&body.walls===true&&map.perspective==='top-down',resolution:finalSettings?.resolution,scaleCalls:finalSettings?.scaleCalls,map:cleanMap,mockup:mockup?{b64:mockup.b64,mediaType:mockup.mediaType||'image/png'}:null,units:body.units||'imperial',square:body.square,prompt,aspect:pickAspect(map.squares),startedAt:Date.now()}}}];\n} catch(e){return [{json:{ok:false,error:'BAD_REQUEST',message:e.message,usesCharged:0}}];}"
+      },
+      "id": "map-12",
+      "position": [
+        2640,
+        0
+      ]
+    },
+    {
+      "id": "map-13",
+      "name": "IF: Bad Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-12",
+              "leftValue": "={{ $json.error === \"BAD_REQUEST\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-14",
+      "name": "Respond: 400 Bad Request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3120,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-15",
+      "name": "IF: Bake Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3360,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-14",
+              "leftValue": "={{ $json._map.action === \"bake\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Bake: Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const UNIT_SYSTEMS = {\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst LIGHT_PRESETS = {\"candle\":{\"bright\":0.5,\"dim\":1.5,\"animation\":\"torch\",\"intensity\":2},\"lamp\":{\"bright\":1,\"dim\":3,\"animation\":null,\"intensity\":3},\"torch\":{\"bright\":2,\"dim\":4,\"animation\":\"torch\",\"intensity\":4},\"brazier\":{\"bright\":2,\"dim\":5,\"animation\":\"flame\",\"intensity\":4},\"fireplace\":{\"bright\":3,\"dim\":6,\"animation\":\"flame\",\"intensity\":5},\"campfire\":{\"bright\":4,\"dim\":8,\"animation\":\"flame\",\"intensity\":5},\"crystal\":{\"bright\":1,\"dim\":3,\"animation\":\"pulse\",\"intensity\":3},\"magic\":{\"bright\":2,\"dim\":4,\"animation\":\"energy\",\"intensity\":4},\"screen\":{\"bright\":0.5,\"dim\":2,\"animation\":null,\"intensity\":2},\"lava\":{\"bright\":2,\"dim\":5,\"animation\":\"fog\",\"intensity\":4},\"window\":{\"bright\":2,\"dim\":5,\"animation\":null,\"intensity\":3}};\nconst SENSE = { none: 0, normal: 20 };\nconst DOOR = { none: 0, door: 1 };\nfunction gridFit(width, height, [sw, sh], gridPx = 100) {\n  const scale = (sw * gridPx) / width;\n  return { width: sw * gridPx, height: sh * gridPx, scale, sharpen: scale > 1.2 ? 0.6 : 0 };\n}\nfunction toFoundryWalls(raw, { squares, gridPx = 100 }) {\n  const [w, h] = squares;\n  const clamp = v => Math.min(1000, Math.max(0, v));\n  const segs = raw\n    .filter(s => ['x1', 'y1', 'x2', 'y2'].every(k => Number.isFinite(s[k])))\n    .map(s => ({\n      kind: ['door', 'window'].includes(s.kind) ? s.kind : 'wall',\n      c: [clamp(s.x1) / 1000 * w * gridPx, clamp(s.y1) / 1000 * h * gridPx, clamp(s.x2) / 1000 * w * gridPx, clamp(s.y2) / 1000 * h * gridPx],\n    }))\n    .filter(s => Math.hypot(s.c[2] - s.c[0], s.c[3] - s.c[1]) >= gridPx / 5);\n  const pts = segs.flatMap(s => [[s, 0], [s, 2]]);\n  for (let i = 0; i < pts.length; i++) {\n    for (let j = i + 1; j < pts.length; j++) {\n      const [s1, k1] = pts[i], [s2, k2] = pts[j];\n      if (Math.hypot(s1.c[k1] - s2.c[k2], s1.c[k1 + 1] - s2.c[k2 + 1]) < gridPx / 3) { s2.c[k2] = s1.c[k1]; s2.c[k2 + 1] = s1.c[k1 + 1]; }\n    }\n  }\n  return segs.map(s => ({\n    c: s.c.map(Math.round),\n    kind: s.kind,\n    door: s.kind === 'door' ? DOOR.door : DOOR.none,\n    move: SENSE.normal,\n    sight: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    light: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    sound: SENSE.normal,\n  }));\n}\nfunction toFoundryLights(raw, { squares, gridPx = 100, feetPerSquare = 5 }) {\n  const [w, h] = squares;\n  return raw\n    .filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && l.x >= 0 && l.x <= 1000 && l.y >= 0 && l.y <= 1000)\n    .map(l => {\n      const kind = LIGHT_PRESETS[l.kind] ? l.kind : 'lamp';\n      const p = LIGHT_PRESETS[kind];\n      return {\n        kind,\n        x: Math.round((l.x / 1000) * w * gridPx),\n        y: Math.round((l.y / 1000) * h * gridPx),\n        config: {\n          bright: p.bright * feetPerSquare,\n          dim: p.dim * feetPerSquare,\n          color: /^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ffb35c',\n          alpha: 0.5,\n          animation: p.animation ? { type: p.animation, speed: 3, intensity: p.intensity } : { type: null },\n        },\n      };\n    });\n}\nfunction convertTraceCore(trace, squares, units, systems, convertWalls, convertLights) {\n  const unit = systems[units];\n  const walls = convertWalls(trace.walls, { squares, gridPx: 100 }).map(({ c, door, move, sight, light, sound }) => ({ c, door, move, sight, light, sound }));\n  const lights = convertLights(trace.lights, { squares, gridPx: 100, feetPerSquare: unit.square }).map(({ x, y, config }) => ({ x, y, config }));\n  const counts = { walls: walls.filter(w => w.door === 0 && w.sight !== 0).length, doors: walls.filter(w => w.door === 1).length, windows: walls.filter(w => w.sight === 0).length, lights: lights.length };\n  return { walls, lights, counts };\n}\nconst prep=$json._map;\nconst {squares,units,trace,image}=prep;\nconst fit=gridFit(image.width,image.height,squares,100);\nconst unit=UNIT_SYSTEMS[units];\nconst {walls,lights,counts}=convertTraceCore(trace,squares,units,UNIT_SYSTEMS,toFoundryWalls,toFoundryLights);\nconst scene={name:typeof prep.name==='string'&&prep.name.trim()?prep.name.trim():'Battle map',width:fit.width,height:fit.height,padding:0,grid:{type:1,size:100,distance:unit.square,units:unit.units},...(prep.mood==='night'?{environment:{darknessLevel:0.7}}:{})};\nreturn [{json:{ok:true,action:'bake',scene,walls,lights,counts,sharpen:fit.sharpen,image},binary:{map:{data:image.b64,mimeType:image.mediaType,fileName:'map.png'}}}];"
+      },
+      "id": "map-16",
+      "position": [
+        3600,
+        0
+      ]
+    },
+    {
+      "name": "Bake: Resize Image",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "parameters": {
+        "operation": "resize",
+        "dataPropertyName": "map",
+        "width": "={{ $json.scene.width }}",
+        "height": "={{ $json.scene.height }}",
+        "resizeOption": "ignoreAspectRatio",
+        "binaryPropertyName": "map"
+      },
+      "id": "map-17",
+      "position": [
+        3840,
+        0
+      ]
+    },
+    {
+      "name": "Bake: Respond",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prior=$('Bake: Prepare').first().json;\nconst binary=$input.first().binary?.map;\nif(!binary) throw new Error('The resized map image is missing.');\nconst bytes=await this.helpers.getBinaryDataBuffer(0,'map');\nreturn [{json:{ok:true,action:'bake',scene:prior.scene,walls:prior.walls,lights:prior.lights,counts:prior.counts,sharpen:prior.sharpen,image:{b64:bytes.toString('base64'),mediaType:binary.mimeType||'image/png'},usesCharged:0}}];"
+      },
+      "id": "map-18",
+      "position": [
+        4080,
+        0
+      ]
+    },
+    {
+      "id": "map-19",
+      "name": "Respond: Bake",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4320,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-20",
+      "name": "IF: Plan Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4560,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-19",
+              "leftValue": "={{ $json._map.action === \"plan\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Plan: Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$json._map;\nconst prompt=\"Expand the GM's map request into a drawable top-down battle map plan. Rewrite every request as polished visual description with spelling corrected, meaning and placement preserved; never paste GM wording into an area's what. Return JSON only with this shape: {\\\"areas\\\":[{\\\"what\\\":\\\"a cramped kitchen with a soot-blackened hearth and stacked barrels\\\",\\\"where\\\":\\\"north-west\\\",\\\"size\\\":\\\"small beside the main room\\\"}],\\\"connections\\\":[],\\\"notes\\\":\\\"overall visible shape\\\"}. Use no numbers, digits, measurements, dimensions, text, or labels. Give relative sizes in words. Areas have no names; describe visible floor, objects, clutter, light, and damage with concrete detail. Open natural places (cave, cavern, grotto, forest, clearing, beach, shore, swamp, field, desert, open ruins) are ONE continuous space with exactly one area unless the GM asks for rooms. Do not split a space for a door or staircase. Built interiors include every requested room, including the main or largest space; respect the requested room count. Use approximate positions, repeating them when needed, and describe connections only between separate areas. Preserve genre, setting, and perspective. In caves describe the perimeter as jagged natural rock edges and boulders around an uneven continuous floor; never say walls, brick, masonry, or blocks unless the GM specifies built, carved, masonry, or brick construction. Describe every feature as seen from straight above: a spiral stair is a ring of wedge-shaped steps around a central column; an obelisk is a small square top with four triangular faces meeting at a central point, like a pyramid seen from above, on a wider square base with a long shadow on the floor. Describe tall things only by their top outline and shadow on the floor, never their height or sides. Ban ceilings, stalactites, hanging things, wall faces, front-view arches, \\\"descending into shadow\\\", and anything visible only from the side or below. Invent no pits, chasms, tiers, levels, split floors, or extra stairs; one requested staircase means exactly one. Treat huge, giant, massive, grand, centrepiece, or \\\"in the centre\\\" features as dominant: mention each once and early, with relative size words. A double door is ONE doorway with two leaves: a huge closed double door shown from above as two thick wooden leaves meeting in the middle, lying in a wide gap in the north rock edge. Doors and gates are thin strips in the wall line seen from above; never describe a doorway's arch, frame front, or wall around it. Include every GM feature once at its requested place. No commentary or markdown.\";\nconst map=prep.map;\nconst fields={description:map.description,perspective:map.perspective,genre:map.genre,setting:map.setting||'indoor'};\nreturn [{json:{...$json,body:{model:'google/gemini-3.7-flash',response_format:{type:'json_object'},usage:{include:true},messages:[{role:'user',content:prompt+'\\nMap fields: '+JSON.stringify(fields)}]}}}];"
+      },
+      "id": "map-21",
+      "position": [
+        4800,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Plan Layout",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-22",
+      "position": [
+        5040,
+        0
+      ]
+    },
+    {
+      "name": "Plan: Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const PERSPECTIVES = {\"top-down\":\"flat top-down orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down\",\"isometric\":\"isometric view at a 30 degree angle, 2:1 isometric projection, walls and objects shown from above at an angle\",\"three-quarter\":\"three-quarter overhead view, camera tilted slightly so the fronts of walls and objects are visible, no horizon\"};\nconst TOP_DOWN_VARIANTS = {\"plan\":\"orthographic floor plan seen from directly overhead, like an architect's plan drawn in full color. Only the top surfaces of walls, furniture, and objects are visible. Walls are flat bands with no visible height or faces. Shadows are short and fall straight down\",\"sat\":\"satellite view from far above, looking straight down, so nothing has visible height or sides. Tables read as flat circles and rectangles, chairs as small squares, and walls as flat strips\",\"previous\":\"flat top-down orthographic view with the camera pointing straight down at 90 degrees, like a classic virtual tabletop battle map. Walls are flat thick outlines seen only from above, with no wall faces or sides of furniture visible. No tilt, no depth, no horizon, no vanishing point\",\"combo\":\"orthographic floor plan seen from directly overhead, like a satellite view from far above. Only the top surfaces of walls, furniture, and objects are visible, and nothing has visible height or sides. Walls are flat strips, never showing their inner or outer faces. Tables read as flat circles and rectangles. Shadows are short and fall straight down\"};\nconst MOODS = {\"day\":\"bright daylight\",\"dusk\":\"warm dusk light with long shadows\",\"night\":\"night time, dark with warm light from lamps, torches, and other light sources\"};\nconst DIALS = {\"detail\":{\"label\":\"Detail\",\"stage\":\"mockup\",\"levels\":[\"simple and clean, with large plain areas and only the key features\",\"lightly detailed, with simple textures\",\"highly detailed\",\"very highly detailed, with rich textures on every surface\",\"extremely intricate, with fine texture and small details everywhere\"]},\"clutter\":{\"label\":\"Props\",\"stage\":\"mockup\",\"levels\":[\"almost empty, with only essential furniture\",\"sparse props\",null,\"plenty of props and furnishings\",\"crowded with props, debris, and small objects, while keeping clear floor space to walk on\"]},\"wear\":{\"label\":\"Wear\",\"stage\":\"mockup\",\"levels\":[\"everything pristine and brand new\",\"everything clean and well kept\",null,\"surfaces worn, dirty, and cracked\",\"ruined, broken, and overgrown surroundings\"]},\"color\":{\"label\":\"Color\",\"stage\":\"filter\",\"levels\":[0.35,0.7,1,1.3,1.6]},\"tint\":{\"label\":\"Color temperature\",\"stage\":\"filter\",\"levels\":[-1,-0.5,0,0.5,1]},\"contrast\":{\"label\":\"Lighting contrast\",\"stage\":\"filter\",\"levels\":[0.75,0.88,1,1.15,1.3]},\"sharpness\":{\"label\":\"Sharpness\",\"stage\":\"filter\",\"levels\":[-1,-0.5,0,0.6,1.2]}};\nconst SIZE_BOOST = {\"indoor\":2.2,\"outdoor\":1.15};\nconst OUTDOOR = new RegExp(\"\\\\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\\\\b\", \"i\");\nconst ASPECTS = [[\"1:1\",1],[\"4:3\",1.3333333333333333],[\"3:4\",0.75],[\"3:2\",1.5],[\"2:3\",0.6666666666666666],[\"16:9\",1.7777777777777777],[\"9:16\",0.5625]];\nfunction checkDials(dials) {\n  for (const [k, v] of Object.entries(dials)) {\n    if (!DIALS[k]) throw new Error(`Unknown dial \"${k}\"`);\n    if (!Number.isInteger(v) || v < 1 || v > 5) throw new Error(`Dial \"${k}\" must be a whole number from 1 to 5`);\n  }\n}\nfunction dialPhrases(dials = {}) {\n  checkDials(dials);\n  return Object.entries(DIALS).filter(([, d]) => d.stage === 'mockup').map(([k, d]) => d.levels[(dials[k] ?? 3) - 1]).filter(Boolean);\n}\nfunction cap(s) {\n  return s.charAt(0).toUpperCase() + s.slice(1);\n}\nfunction sizeBoost(p) {\n  if (typeof p.sizeBoost === 'number') return p.sizeBoost;\n  const setting = p.setting || (OUTDOOR.test(p.description) ? 'outdoor' : 'indoor');\n  return SIZE_BOOST[setting] ?? 1;\n}\nfunction buildPrompt(p) {\n  const view = p.view ? TOP_DOWN_VARIANTS[p.view] : PERSPECTIVES[p.perspective];\n  if (!view) throw new Error(`Unknown perspective \"${p.perspective}\"`);\n  const mood = MOODS[p.mood] || p.mood;\n  const [w, h] = p.squares;\n  const boost = sizeBoost(p);\n  return [\n    `Tabletop RPG battle map, ${view}.`,\n    `${cap(p.genre)} setting, ${p.style} art style, ${mood}.`,\n    `Scene: ${p.description}.`,\n    ...(typeof p.layout === 'string' && p.layout.trim() ? [p.layout.trim()] : []),\n    // Dark water came out as a flat black hole on night maps (Nov 3 crypt test).\n    ...(/water|river|lake|pond|pool|flood|sea|stream|canal|moat|swamp|marsh/i.test(p.description) ? ['Draw any water, even water described as dark or black, in deep teal or green-blue with visible ripples, reflections of nearby lights, and the floor or stones showing through where it is shallow. Never draw water as a flat black area.'] : []),\n    `The map covers an area of ${Math.round(w * boost)} by ${Math.round(h * boost)} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,\n    `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,\n    'Clear readable layout, the whole area fills the frame edge to edge.',\n    // Long layout plans pulled the camera into a tilted view (Nov 4 cave test), so repeat it last.\n    ...(p.perspective === 'top-down' && !p.view ? ['Camera: straight down from directly overhead, like a satellite photo. No wall faces, no ceilings, no tilt, no perspective.'] : []),\n    `Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark.${typeof p.layout === 'string' && p.layout.trim() ? ' Do not write any room names or labels on the map.' : ''} No people or creatures.`,\n  ].join(' ');\n}\nfunction pickAspect([w, h]) {\n  const target = w / h;\n  let best = ASPECTS[0];\n  for (const a of ASPECTS) {\n    if (Math.abs(Math.log(a[1] / target)) < Math.abs(Math.log(best[1] / target))) best = a;\n  }\n  return best[0];\n}\nfunction finalPrompt(p) {\n  return [\n    'The attached image is a rough layout mockup. Redraw it as a finished battle map.',\n    'Keep the same layout: room shapes, walls, doors, paths, and where every feature sits, and keep the same camera angle.',\n    'Ignore and remove any grid lines, text, or labels in the mockup.',\n    ...(p.perspective === 'top-down' ? ['If the mockup is tilted or shows the sides of walls, flatten it into a true straight-down view.'] : []),\n    buildPrompt(p),\n  ].join(' ');\n}\nconst PLAN_POSITIONS=[\"north-west\",\"north\",\"north-east\",\"west\",\"centre\",\"east\",\"south-west\",\"south\",\"south-east\"];\nfunction stripMeasurements(text) {\n  return String(text ?? '')\n    .replace(/\\(?\\s*(?:about|roughly|approximately|around|~)?\\s*\\d+(?:\\.\\d+)?\\s*(?:x|by|×)\\s*\\d+(?:\\.\\d+)?\\s*(?:squares?|ft|feet|foot|m|metres?|meters?|tiles?|cells?)?\\s*\\)?/gi, ' ')\n    .replace(/\\(?\\s*(?:about|roughly|approximately|around|~)?\\s*\\d+(?:\\.\\d+)?\\s*-?\\s*(?:squares?|ft|feet|foot|m|metres?|meters?|tiles?|cells?)\\b(?:\\s*(?:wide|long|across|deep|tall|high))?\\s*\\)?/gi, ' ')\n    .replace(/\\b\\d+(?:\\.\\d+)?\\b/g, ' ')\n    .replace(/\\s{2,}/g, ' ').replace(/\\s+([,.;])/g, '$1').replace(/^[,;\\s]+|[,;\\s]+$/g, '').trim();\n}\nfunction validatePlan(value) {\n  if (!value || typeof value !== 'object' || !Array.isArray(value.areas)) throw new Error('Missing areas.');\n  const normaliseWhere = input => {\n    const original = typeof input === 'string' ? input.trim().toLowerCase().slice(0, 30) : '';\n    const words = original.replace(/\\b(center|middle)\\b/g, 'centre')\n      .replace(/\\b(front|forward)\\b/g, 'south')\n      .replace(/\\b(rear|back)\\b/g, 'north')\n      .replace(/\\bleft\\b/g, 'west').replace(/\\bright\\b/g, 'east');\n    if (PLAN_POSITIONS.includes(words)) return words;\n    const compass = words.match(/\\b(north|south|east|west)\\b/g);\n    if (compass?.length > 1) return compass[0];\n    if (compass?.length) return compass[0];\n    if (/\\bcentre\\b/.test(words)) return 'centre';\n    return original;\n  };\n  const areas = value.areas.filter(area => area && typeof area === 'object' &&\n    typeof area.what === 'string' && stripMeasurements(area.what))\n    .slice(0, 8).map(area => ({ what: stripMeasurements(area.what),\n      ...(normaliseWhere(area.where) ? { where: normaliseWhere(area.where) } : {}),\n      ...(typeof area.size === 'string' && stripMeasurements(area.size) ? { size: stripMeasurements(area.size) } : {}) }));\n  if (!areas.length) throw new Error('A plan needs at least one valid area.');\n  return { areas, rawAreas: value.areas.length, connections: Array.isArray(value.connections) ? value.connections.filter(v => typeof v === 'string').map(stripMeasurements).filter(Boolean).slice(0, 16) : [], notes: typeof value.notes === 'string' ? stripMeasurements(value.notes) : '', ...(areas.length < 2 ? { warning: 'The layout plan was thin; check it before generating.' } : {}) };\n}\nfunction parsePlan(content) {\n  const raw = String(content ?? '').trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '');\n  return validatePlan(JSON.parse(raw));\n}\nfunction planText(plan, gmDescription = '') {\n  const request = stripMeasurements(gmDescription).replace(/[.\\s]+$/, '');\n  const openPlace = /\\b(cave|cavern|grotto|forest|clearing|beach|shore|swamp|field|desert|open ruins|ruins in the open)s?\\b/i.test(request);\n  const roomsRequested = /\\b(?:rooms?|chambers?)\\b/i.test(request) && !/\\bno (?:rooms?|chambers?)\\b/i.test(request);\n  const continuous = openPlace && !roomsRequested;\n  const clean = value => stripMeasurements(value).replace(/\\boblisk\\b/gi, 'obelisk')\n    .replace(/\\b(?:a |the )?(?:sunken cavern tier|vaulted stone threshold)\\s*(?:where\\s*)?/gi, '')\n    .replace(/\\bto the (north|south|east|west) there is a huge double door that is shut\\b/gi, 'a single huge closed double door, far wider than a normal door, against the $1 wall')\n    .replace(/\\bto the (north|south|east|west) there is a spiral stone staircase that is also huge\\b/gi, 'a huge spiral stone staircase, a ring of wedge-shaped stone steps around a central column at the $1 edge')\n    .replace(/\\bwhere to the (north|south|east|west) there is\\b/gi, 'at the $1 edge,')\n    .replace(/\\ba obelisk\\b/gi, 'an obelisk')\n    .replace(/\\s{2,}/g, ' ').replace(/^[,;\\s]+|[,;\\s]+$/g, '').trim();\n  const sourceAreas = continuous ? [{ what: plan.areas.map(a => a.what).join(', '), where: 'centre', size: 'one continuous space with irregular natural edges' }] : plan.areas;\n  const areas = sourceAreas.map(a => ({ ...a, details: clean(a.what).split(',').map(x => x.trim()).filter(Boolean) }));\n  const connections = continuous ? [] : [...plan.connections].map(clean).filter(Boolean);\n  let notes = continuous ? 'A single continuous space with natural irregular edges and an unbroken floor.' : clean(plan.notes);\n  const ending = 'Do not write any room names or labels on the map.';\n  const lead = request ? `GM request: ${request}. ` : '';\n  const make = () => lead + [\n    `Layout: ${areas.map(a => `${a.details.join(', ')}${a.size ? ` (${clean(a.size)})` : ''}${a.where ? ` at ${a.where}` : ''}`).join('; ')}.`,\n    connections.length && `Connections: ${connections.join('; ')}.`, notes, ending].filter(Boolean).join(' ');\n  const words = () => make().split(/\\s+/).length;\n  while (words() > 180 && connections.length) connections.pop();\n  if (words() > 180) notes = '';\n  for (const area of [...areas].reverse()) {\n    while (words() > 180 && area.details.length > 1) area.details.pop();\n  }\n  return make();\n}\nconst prior=$('Plan: Build Request').first().json;\nconst raw=$json||{};\ntry { const plan=parsePlan(raw.choices?.[0]?.message?.content); const layout=planText(plan,prior._map.map.description); const map={...prior._map.map,layout}; const _map={...prior._map,map,...(prior._map.action==='mockups'?{prompt:'Quick rough mockup for layout only. '+buildPrompt(map)}:{})}; return [{json:{...prior,_map,plan,layout,costUsd:Number(raw.usage?.cost)||0,ok:true}}]; } catch { return [{json:{ok:false,error:'PLAN_FAILED',message:'The layout plan could not be made.',usesCharged:0}}]; }"
+      },
+      "id": "map-23",
+      "position": [
+        5280,
+        0
+      ]
+    },
+    {
+      "id": "map-24",
+      "name": "IF: Plan OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5520,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-23",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-25",
+      "name": "IF: Standalone Plan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5760,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-24",
+              "leftValue": "={{ $json._map.action === \"plan\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Plan: Respond",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const {plan,layout,costUsd}=$json; return [{json:{ok:true,plan,layout,costUsd,rawAreas:plan.rawAreas,...(plan.warning?{warning:plan.warning}:{}),usesCharged:0}}];"
+      },
+      "id": "map-26",
+      "position": [
+        6000,
+        0
+      ]
+    },
+    {
+      "id": "map-27",
+      "name": "Respond: Plan",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6240,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-28",
+      "name": "Respond: 502 Plan Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6480,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "Rate Limit: Prepare Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const __in = $('Map: Prepare Request').first().json;\nconst TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nconst email=(__in.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=(__in.sessionKey||'').trim();\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst sessionTier=(__in.sessionTier||'').toLowerCase().trim();\nlet tier=sessionTier;\nif(__in.sessionIsSuperuser===true)tier='superuser';\nelse try {\n  const pages=$('Patreon: Members').all().map(i=>i.json);\n  if(!pages.length||pages.some(p=>!Array.isArray(p.data)))throw new Error('Patreon lookup failed');\n  const tierMap={};\n  let member=null;\n  for(const page of pages){\n    for(const inc of(page.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n    if(!member&&email)member=page.data.find(m=>(m.attributes?.email||'').toLowerCase()===email)||null;\n  }\n  if(member?.attributes?.patron_status==='active_patron'){\n    const names=(member.relationships?.currently_entitled_tiers?.data||[]).map(t=>tierMap[t.id]).filter(Boolean);\n    const paid=names.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    if(paid)tier=paid.toLowerCase();\n  }\n} catch {} \nconst monthlyLimit=Object.prototype.hasOwnProperty.call(TIER_LIMITS,tier)?TIER_LIMITS[tier]:3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nreturn [{json:{...__in,sessionTier:tier,_rateLimitCheck:{sessionKey:lookupKey+'::'+currentMonth,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
+      },
+      "id": "map-29",
+      "position": [
+        6720,
+        0
+      ]
+    },
+    {
+      "id": "map-30",
+      "name": "Patreon: Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6960,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.patreon.com/api/oauth2/v2/campaigns/9988159/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=1000",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ ($response.body.links || {}).next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !($response.body.links || {}).next }}"
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Uz6EY2337IetoYeC",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "map-31",
+      "name": "Get row(s)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        7200,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Y1GdmWbjIPOnDzeD",
+          "mode": "list",
+          "cachedResultName": "patreon_usage",
+          "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_key",
+              "keyValue": "={{ $json._rateLimitCheck.sessionKey }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "name": "Rate Limit: Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const originalData=$('Rate Limit: Prepare Check').first().json;\nconst rateLimitData=originalData._rateLimitCheck;\nconst cost=originalData._map.cost;\nconst usageData=$input.all().map(i=>i.json).find(r=>r?.session_key);\nconst currentCount=Number(usageData?.npc_count)||0;\nif(cost>0&&currentCount+cost>rateLimitData.monthlyLimit){\n  const resetDate=new Date();resetDate.setMonth(resetDate.getMonth()+1);resetDate.setDate(1);resetDate.setHours(0,0,0,0);\n  return [{json:{ok:false,rateLimitExceeded:true,error:'RATE_LIMIT_EXCEEDED',message:'A map '+(originalData._map.action==='mockups'?'mockups':originalData._map.action==='final'?'final ('+originalData._map.quality+')':originalData._map.action==='edit'?'edit ('+originalData._map.quality+')':'retrace')+' costs '+cost+' uses. You have used '+currentCount+' of your '+rateLimitData.monthlyLimit+' monthly uses.',currentUsage:currentCount,limit:rateLimitData.monthlyLimit,tier:rateLimitData.tier,resetDate:resetDate.toISOString(),upgradeUrl:'https://www.patreon.com/c/CelestiaTools/membership'}}];\n}\nreturn [{json:{...originalData,_rateLimitCheck:{...rateLimitData,currentCount,usageRecordExists:!!usageData,usageRecordId:usageData?.id||null}}}];"
+      },
+      "id": "map-32",
+      "position": [
+        7440,
+        0
+      ]
+    },
+    {
+      "id": "map-33",
+      "name": "IF: Rate Limit Exceeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7680,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "rate-limit-exceeded-condition",
+              "leftValue": "={{ $json.rateLimitExceeded }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-34",
+      "name": "IF: Check Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7920,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-33",
+              "leftValue": "={{ $json._map.action === \"check\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Check: Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nconst prep=$json._map; return [{json:{body:checkRequest(prep.image)}}];"
+      },
+      "id": "map-35",
+      "position": [
+        8160,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Standalone Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-36",
+      "position": [
+        8400,
+        0
+      ]
+    },
+    {
+      "name": "Check: Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst response=$json||{}; const prep=$('Rate Limit: Validate').first().json._map; try { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/,'').replace(/```\\s*$/,'')); const defects=mapDefects(raw,{perspective:prep.perspective}); return [{json:{ok:true,raw,defects,costUsd:Number(response.usage?.cost)||0,usesCharged:0}}]; } catch { return [{json:{ok:false,error:'CHECK_FAILED',message:'The map could not be checked.',usesCharged:0}}]; }"
+      },
+      "id": "map-37",
+      "position": [
+        8640,
+        0
+      ]
+    },
+    {
+      "id": "map-38",
+      "name": "IF: Check OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        8880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-37",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-39",
+      "name": "Respond: Check",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        9120,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "map-40",
+      "name": "IF: Edit Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        9360,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-39",
+              "leftValue": "={{ $json._map.action === \"edit\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Edit: Prepare Crop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$json._map; return [{json:{crop:prep.crop},binary:{map:{data:prep.image.b64,mimeType:prep.image.mediaType,fileName:'map.png'}}}];"
+      },
+      "id": "map-41",
+      "position": [
+        9600,
+        0
+      ]
+    },
+    {
+      "name": "Edit: Crop Image",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "parameters": {
+        "operation": "crop",
+        "dataPropertyName": "map",
+        "width": "={{ $json.crop.width }}",
+        "height": "={{ $json.crop.height }}",
+        "positionX": "={{ $json.crop.x }}",
+        "positionY": "={{ $json.crop.y }}",
+        "binaryPropertyName": "map"
+      },
+      "id": "map-42",
+      "position": [
+        9840,
+        0
+      ]
+    },
+    {
+      "name": "Edit: Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const bytes=await this.helpers.getBinaryDataBuffer(0,'map'); const binary=$input.first().binary.map; return [{json:{body:{n:1,model:prep.model,prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:prep.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+(binary.mimeType||'image/png')+';base64,'+bytes.toString('base64')}}]}}}];"
+      },
+      "id": "map-43",
+      "position": [
+        10080,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Edit Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-44",
+      "position": [
+        10320,
+        0
+      ]
+    },
+    {
+      "name": "Edit: Check Resolution Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Edit: Build Request').first().json.body.resolution}}];"
+      },
+      "id": "map-45",
+      "position": [
+        10560,
+        0
+      ]
+    },
+    {
+      "id": "map-46",
+      "name": "IF: Edit Resolution Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        10800,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-45",
+              "leftValue": "={{ $json._resolutionFallback }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Edit: Build Without Resolution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const {resolution,...body}=$('Edit: Build Request').first().json.body;\nreturn [{json:{body}}];"
+      },
+      "id": "map-47",
+      "position": [
+        11040,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Edit Image (no resolution)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-48",
+      "position": [
+        11280,
+        0
+      ]
+    },
+    {
+      "name": "Edit: Parse Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const raw=$json||{}; const img=raw.data?.[0]; const patch=img?.b64_json?{b64:img.b64_json,mediaType:img.media_type||'image/png'}:null; return [{json:patch?{ok:true,action:'edit',patch,crop:prep.crop,box:prep.box,costUsd:Number(raw.usage?.cost)||0}:{ok:false,error:'GENERATION_FAILED',message:'The image provider returned no patch.',usesCharged:0}}];"
+      },
+      "id": "map-49",
+      "position": [
+        11520,
+        0
+      ]
+    },
+    {
+      "id": "map-50",
+      "name": "IF: Edit Image OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        11760,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-49",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-51",
+      "name": "IF: Retrace Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        12000,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-50",
+              "leftValue": "={{ $json._map.action === \"retrace\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Retrace: Build Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$('Rate Limit: Validate').first().json._map; const WALLS_PROMPT=`You are tracing walls on a top-down tabletop RPG battle map for Foundry VTT.\nList every wall as straight line segments along the centre of the wall. Split walls at doors and windows, and list doors and windows as their own segments.\nReturn JSON only: {\"walls\":[{\"kind\":\"wall|door|window\",\"x1\":0-1000,\"y1\":0-1000,\"x2\":0-1000,\"y2\":0-1000}]}\nx runs left to right and y top to bottom, as a share of the image width and height out of 1000. Do not include furniture.`; const LIGHTS_PROMPT=`You are placing light sources on a tabletop RPG battle map for Foundry VTT.\nFind every visible light source: candles, lamps, lanterns, torches, braziers, fireplaces, campfires, glowing crystals, magic glows, screens and console lights, lava, and windows or holes letting in daylight or moonlight.\nReturn JSON only, in this shape:\n{\"lights\":[{\"kind\":\"<one of: candle, lamp, torch, brazier, fireplace, campfire, crystal, magic, screen, lava, window>\",\"x\":<0-1000, left to right>,\"y\":<0-1000, top to bottom>,\"color\":\"#rrggbb\"}]}\nx and y are the centre of the light source on the image. Group candles that are touching into one light. Do not add lights where there is no visible source.`; return [['walls',WALLS_PROMPT],['lights',LIGHTS_PROMPT]].map(([purpose,prompt])=>({json:{purpose,body:{model:'google/gemini-3.7-flash',response_format:{type:'json_object'},usage:{include:true},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+prep.image.mediaType+';base64,'+prep.image.b64}}]}]}}}));"
+      },
+      "id": "map-52",
+      "position": [
+        12240,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Retrace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-53",
+      "position": [
+        12480,
+        0
+      ]
+    },
+    {
+      "name": "Retrace: Collect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const UNIT_SYSTEMS = {\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst LIGHT_PRESETS = {\"candle\":{\"bright\":0.5,\"dim\":1.5,\"animation\":\"torch\",\"intensity\":2},\"lamp\":{\"bright\":1,\"dim\":3,\"animation\":null,\"intensity\":3},\"torch\":{\"bright\":2,\"dim\":4,\"animation\":\"torch\",\"intensity\":4},\"brazier\":{\"bright\":2,\"dim\":5,\"animation\":\"flame\",\"intensity\":4},\"fireplace\":{\"bright\":3,\"dim\":6,\"animation\":\"flame\",\"intensity\":5},\"campfire\":{\"bright\":4,\"dim\":8,\"animation\":\"flame\",\"intensity\":5},\"crystal\":{\"bright\":1,\"dim\":3,\"animation\":\"pulse\",\"intensity\":3},\"magic\":{\"bright\":2,\"dim\":4,\"animation\":\"energy\",\"intensity\":4},\"screen\":{\"bright\":0.5,\"dim\":2,\"animation\":null,\"intensity\":2},\"lava\":{\"bright\":2,\"dim\":5,\"animation\":\"fog\",\"intensity\":4},\"window\":{\"bright\":2,\"dim\":5,\"animation\":null,\"intensity\":3}};\nconst SENSE = { none: 0, normal: 20 };\nconst DOOR = { none: 0, door: 1 };\nfunction gridFit(width, height, [sw, sh], gridPx = 100) {\n  const scale = (sw * gridPx) / width;\n  return { width: sw * gridPx, height: sh * gridPx, scale, sharpen: scale > 1.2 ? 0.6 : 0 };\n}\nfunction toFoundryWalls(raw, { squares, gridPx = 100 }) {\n  const [w, h] = squares;\n  const clamp = v => Math.min(1000, Math.max(0, v));\n  const segs = raw\n    .filter(s => ['x1', 'y1', 'x2', 'y2'].every(k => Number.isFinite(s[k])))\n    .map(s => ({\n      kind: ['door', 'window'].includes(s.kind) ? s.kind : 'wall',\n      c: [clamp(s.x1) / 1000 * w * gridPx, clamp(s.y1) / 1000 * h * gridPx, clamp(s.x2) / 1000 * w * gridPx, clamp(s.y2) / 1000 * h * gridPx],\n    }))\n    .filter(s => Math.hypot(s.c[2] - s.c[0], s.c[3] - s.c[1]) >= gridPx / 5);\n  const pts = segs.flatMap(s => [[s, 0], [s, 2]]);\n  for (let i = 0; i < pts.length; i++) {\n    for (let j = i + 1; j < pts.length; j++) {\n      const [s1, k1] = pts[i], [s2, k2] = pts[j];\n      if (Math.hypot(s1.c[k1] - s2.c[k2], s1.c[k1 + 1] - s2.c[k2 + 1]) < gridPx / 3) { s2.c[k2] = s1.c[k1]; s2.c[k2 + 1] = s1.c[k1 + 1]; }\n    }\n  }\n  return segs.map(s => ({\n    c: s.c.map(Math.round),\n    kind: s.kind,\n    door: s.kind === 'door' ? DOOR.door : DOOR.none,\n    move: SENSE.normal,\n    sight: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    light: s.kind === 'window' ? SENSE.none : SENSE.normal,\n    sound: SENSE.normal,\n  }));\n}\nfunction toFoundryLights(raw, { squares, gridPx = 100, feetPerSquare = 5 }) {\n  const [w, h] = squares;\n  return raw\n    .filter(l => Number.isFinite(l.x) && Number.isFinite(l.y) && l.x >= 0 && l.x <= 1000 && l.y >= 0 && l.y <= 1000)\n    .map(l => {\n      const kind = LIGHT_PRESETS[l.kind] ? l.kind : 'lamp';\n      const p = LIGHT_PRESETS[kind];\n      return {\n        kind,\n        x: Math.round((l.x / 1000) * w * gridPx),\n        y: Math.round((l.y / 1000) * h * gridPx),\n        config: {\n          bright: p.bright * feetPerSquare,\n          dim: p.dim * feetPerSquare,\n          color: /^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ffb35c',\n          alpha: 0.5,\n          animation: p.animation ? { type: p.animation, speed: 3, intensity: p.intensity } : { type: null },\n        },\n      };\n    });\n}\nfunction convertTraceCore(trace, squares, units, systems, convertWalls, convertLights) {\n  const unit = systems[units];\n  const walls = convertWalls(trace.walls, { squares, gridPx: 100 }).map(({ c, door, move, sight, light, sound }) => ({ c, door, move, sight, light, sound }));\n  const lights = convertLights(trace.lights, { squares, gridPx: 100, feetPerSquare: unit.square }).map(({ x, y, config }) => ({ x, y, config }));\n  const counts = { walls: walls.filter(w => w.door === 0 && w.sight !== 0).length, doors: walls.filter(w => w.door === 1).length, windows: walls.filter(w => w.sight === 0).length, lights: lights.length };\n  return { walls, lights, counts };\n}\nconst prep=$('Rate Limit: Validate').first().json._map; const requests=$('Retrace: Build Requests').all().map(i=>i.json); const responses=$input.all().map((i,index)=>({purpose:requests[index]?.purpose,raw:i.json})); const trace={walls:[],lights:[]}; for(const {purpose,raw} of responses){try{const value=JSON.parse(String(raw.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/,'').replace(/```\\s*$/,''));if(Array.isArray(value?.[purpose]))trace[purpose]=value[purpose].filter(v=>v&&typeof v==='object'&&!Array.isArray(v));}catch{}} const {walls,lights,counts}=convertTraceCore(trace,prep.squares,prep.units,UNIT_SYSTEMS,toFoundryWalls,toFoundryLights); const costUsd=responses.reduce((sum,r)=>sum+(Number(r.raw.usage?.cost)||0),0); return [{json:walls.length||lights.length?{ok:true,action:'retrace',walls,lights,counts,costUsd}:{ok:false,error:'GENERATION_FAILED',message:'No walls or lights could be traced.',usesCharged:0}}];"
+      },
+      "id": "map-54",
+      "position": [
+        12720,
+        0
+      ]
+    },
+    {
+      "id": "map-55",
+      "name": "IF: Retrace OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        12960,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-54",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-56",
+      "name": "Switch: Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        13200,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-55",
+              "leftValue": "={{ $json._map.action === \"mockups\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-57",
+      "name": "IF: Auto Plan?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        13440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-56",
+              "leftValue": "={{ $json._map.autoPlan === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Mockups: Build Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$json._map?$json:$('Rate Limit: Validate').first().json;\nconst {prompt,aspect,count}=prep._map;\nreturn Array.from({length:count},()=>({json:{body:{n:1,model:'black-forest-labs/flux.2-klein-4b',prompt,aspect_ratio:aspect,resolution:'1K'}}}));"
+      },
+      "id": "map-58",
+      "position": [
+        13680,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Mockup Images",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-59",
+      "position": [
+        13920,
+        0
+      ]
+    },
+    {
+      "name": "Mockups: Collect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "let planned; try { const item=$('Plan: Parse').first().json; if(item?.ok&&item._map?.action==='mockups') planned=item; } catch {}\nconst prep=planned?._map||$('Rate Limit: Validate').first().json._map;\nconst responses=$input.all().map(i=>i.json);\nconst images=responses.flatMap(r=>(r.data||[]).filter(i=>i?.b64_json).map(i=>({b64:i.b64_json,mediaType:i.media_type||'image/png'})));\nconst costUsd=(planned?.costUsd||0)+responses.reduce((sum,r)=>sum+(Number(r.usage?.cost)||0),0);\nconst failed=prep.count-images.length;\nreturn [{json:images.length?{ok:true,action:'mockups',images,failed,aspect:prep.aspect,prompt:prep.prompt,...(planned?{layout:planned.layout}:{}),costUsd,ms:Date.now()-prep.startedAt}:{ok:false,error:'GENERATION_FAILED',message:'No mockup images were generated.',usesCharged:0}}];"
+      },
+      "id": "map-60",
+      "position": [
+        14160,
+        0
+      ]
+    },
+    {
+      "id": "map-61",
+      "name": "IF: Mockups OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        14400,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-60",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Final: Build Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$('Rate Limit: Validate').first().json._map;\nconst {prompt,aspect,mockup}=prep;\nconst quality={\"standard\":{\"label\":\"Standard\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"2K\",\"scaleCalls\":2,\"cost\":6},\"economy\":{\"label\":\"Economy\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"1K\",\"scaleCalls\":1,\"cost\":4},\"draft\":{\"label\":\"Draft\",\"model\":\"black-forest-labs/flux.2-klein-4b\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":2},\"high\":{\"label\":\"High detail\",\"model\":\"bytedance-seed/seedream-5-0-pro\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":6}}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt,aspect_ratio:aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+mockup.mediaType+';base64,'+mockup.b64}}]},costUsd:0}}];"
+      },
+      "id": "map-62",
+      "position": [
+        14640,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Final Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-63",
+      "position": [
+        14880,
+        0
+      ]
+    },
+    {
+      "name": "Final: Check Resolution Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Final: Build Request').first().json.body.resolution}}];"
+      },
+      "id": "map-64",
+      "position": [
+        15120,
+        0
+      ]
+    },
+    {
+      "id": "map-65",
+      "name": "IF: Final Resolution Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        15360,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-64",
+              "leftValue": "={{ $json._resolutionFallback }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Final: Build Without Resolution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const {resolution,...body}=$('Final: Build Request').first().json.body;\nreturn [{json:{body}}];"
+      },
+      "id": "map-66",
+      "position": [
+        15600,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Final Image (no resolution)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-67",
+      "position": [
+        15840,
+        0
+      ]
+    },
+    {
+      "name": "Final: Parse Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prior = $('Final: Build Request').first().json;\nconst raw = $json || {};\nconst img = raw.data?.[0];\nconst image = img?.b64_json ? {b64:img.b64_json,mediaType:img.media_type||'image/png'} : null;\nconst costUsd = (prior.costUsd||0)+(Number(raw.usage?.cost)||0);\n\nreturn [{json:{...prior,image,costUsd,...(image?{}:{ok:false,error:'GENERATION_FAILED',message:'The image provider returned no image.',usesCharged:0})}}];"
+      },
+      "id": "map-68",
+      "position": [
+        16080,
+        0
+      ]
+    },
+    {
+      "id": "map-69",
+      "name": "IF: Final Image OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16320,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-68",
+              "leftValue": "={{ !!$json.image }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Final: Build Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nreturn [{json:{body:checkRequest($json.image)}}];"
+      },
+      "id": "map-70",
+      "position": [
+        16560,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-71",
+      "position": [
+        16800,
+        0
+      ]
+    },
+    {
+      "name": "Final: Judge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst prior=$('Final: Parse Image').first().json;\nconst response=$json||{};\nlet defects={retry:false,reasons:[]}, warning;\ntry { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, '')); defects=mapDefects(raw,{perspective:$('Rate Limit: Validate').first().json._map.map.perspective}); } catch { warning='The map could not be checked.'; }\nreturn [{json:{...prior,defects,warning,costUsd:prior.costUsd+(Number(response.usage?.cost)||0),retried:false}}];"
+      },
+      "id": "map-72",
+      "position": [
+        17040,
+        0
+      ]
+    },
+    {
+      "id": "map-73",
+      "name": "IF: Retry Final?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        17280,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-72",
+              "leftValue": "={{ $json.defects.retry }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Final: Build Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const prep=$('Rate Limit: Validate').first().json._map;\nconst quality={\"standard\":{\"label\":\"Standard\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"2K\",\"scaleCalls\":2,\"cost\":6},\"economy\":{\"label\":\"Economy\",\"model\":\"google/gemini-3.1-flash-image\",\"resolution\":\"1K\",\"scaleCalls\":1,\"cost\":4},\"draft\":{\"label\":\"Draft\",\"model\":\"black-forest-labs/flux.2-klein-4b\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":2},\"high\":{\"label\":\"High detail\",\"model\":\"bytedance-seed/seedream-5-0-pro\",\"resolution\":\"2K\",\"scaleCalls\":1,\"cost\":6}}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+prep.mockup.mediaType+';base64,'+prep.mockup.b64}}]}}}];"
+      },
+      "id": "map-74",
+      "position": [
+        17520,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Final Image (retry)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-75",
+      "position": [
+        17760,
+        0
+      ]
+    },
+    {
+      "name": "Final: Check Retry Resolution Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('Final: Build Retry').first().json.body.resolution}}];"
+      },
+      "id": "map-76",
+      "position": [
+        18000,
+        0
+      ]
+    },
+    {
+      "id": "map-77",
+      "name": "IF: Retry Resolution Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        18240,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-76",
+              "leftValue": "={{ $json._resolutionFallback }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Final: Build Retry Without Resolution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const {resolution,...body}=$('Final: Build Retry').first().json.body;\nreturn [{json:{body}}];"
+      },
+      "id": "map-78",
+      "position": [
+        18480,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Final Image (retry, no resolution)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 240000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-79",
+      "position": [
+        18720,
+        0
+      ]
+    },
+    {
+      "name": "Final: Parse Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const first=$('Final: Judge').first().json;\nconst raw=$json||{};\nconst img=raw.data?.[0];\nconst retryImage=img?.b64_json?{b64:img.b64_json,mediaType:img.media_type||'image/png'}:null;\nreturn [{json:{...first,image:retryImage||first.image,retried:!!retryImage,retryImageFailed:!retryImage,warning:retryImage?first.warning:'The retry image could not be generated; the first image was kept.',costUsd:first.costUsd+(Number(raw.usage?.cost)||0)}}];"
+      },
+      "id": "map-80",
+      "position": [
+        18960,
+        0
+      ]
+    },
+    {
+      "name": "Final: Build Retry Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const CHECK_PROMPT = `You are checking an AI-generated tabletop RPG battle map before it goes into Foundry VTT, which adds its own grid.\nAnswer each question about the image:\ngrid: are there square or hex grid lines drawn over the map? Floor tiles, paving stones, deck planks, or floor grates that are part of the scenery do not count. Only a regular overlay of thin lines across the map counts, including faint ones.\ntext: is there any label, number, title, legend, scale bar, dimension, signature, or watermark? Writing that is part of the scene, such as a shop sign or a neon sign, does not count.\nframe: is there a drawn decorative border, picture frame, parchment edge, or blueprint sheet around the map? The outer walls of a building or room do not count.\nmargin: is the map drawn on plain paper, parchment, or a white, grey, or light background, with that blank area showing around it? Dark empty space or rock outside the walls of an interior is normal and does not count. Give the share of the image that is such blank background, from 0 to 1.\nReturn JSON only: {\"grid\":true|false,\"text\":true|false,\"frame\":true|false,\"margin\":0.0,\"notes\":\"one short sentence\"}`;\nfunction checkRequest(image) { return { model:'google/gemini-3.7-flash', response_format:{type:'json_object'}, usage:{include:true}, messages:[{role:'user',content:[{type:'text',text:CHECK_PROMPT},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}] }; }\nreturn [{json:{body:checkRequest($json.image)}}];"
+      },
+      "id": "map-81",
+      "position": [
+        19200,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Check (retry)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-82",
+      "position": [
+        19440,
+        0
+      ]
+    },
+    {
+      "name": "Final: Judge Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "function mapDefects(raw, { perspective = 'top-down', maxMargin = 0.08 } = {}) {\n  const reasons = ['grid', 'text', 'frame'].filter(k => raw[k] === true);\n  if (perspective === 'top-down' && Number(raw.margin) > maxMargin) reasons.push('margin');\n  return { retry: reasons.length > 0, reasons };\n}\nconst prior=$('Final: Parse Retry').first().json;\nconst response=$json||{};\nlet defects=prior.defects, warning=prior.warning;\nif(!prior.retryImageFailed) { try { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, '')); defects=mapDefects(raw,{perspective:$('Rate Limit: Validate').first().json._map.map.perspective}); if(defects.retry) warning='The final map still has: '+defects.reasons.join(', ')+'.'; } catch { warning='The map could not be checked.'; } }\nreturn [{json:{...prior,defects,warning,costUsd:prior.costUsd+(Number(response.usage?.cost)||0)}}];"
+      },
+      "id": "map-83",
+      "position": [
+        19680,
+        0
+      ]
+    },
+    {
+      "name": "Scale: Build Requests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const chosen=$json;\nconst prep=$('Rate Limit: Validate').first().json._map;\nconst SCALE_PROMPT=`This is a tabletop RPG battle map. Estimate the real-world size of the whole area shown in the image, edge to edge.\nUse objects of known size as rulers: a single door is about 0.9 m wide, a chair about 0.5 m, a bed about 2 m long, a round tavern table about 1.2 m across, a cart about 3 m long, a person about 0.5 m across from above.\nMeasure at least three different objects, work out metres per pixel from each, and combine them.\nReturn JSON only: {\"references\":[{\"object\":\"...\",\"size_m\":0.9,\"share_of_width\":0.03}],\"width_m\":<number>,\"height_m\":<number>}\nshare_of_width is how much of the image width the object spans.`;\nconst LIGHTS_PROMPT=`You are placing light sources on a tabletop RPG battle map for Foundry VTT.\nFind every visible light source: candles, lamps, lanterns, torches, braziers, fireplaces, campfires, glowing crystals, magic glows, screens and console lights, lava, and windows or holes letting in daylight or moonlight.\nReturn JSON only, in this shape:\n{\"lights\":[{\"kind\":\"<one of: candle, lamp, torch, brazier, fireplace, campfire, crystal, magic, screen, lava, window>\",\"x\":<0-1000, left to right>,\"y\":<0-1000, top to bottom>,\"color\":\"#rrggbb\"}]}\nx and y are the centre of the light source on the image. Group candles that are touching into one light. Do not add lights where there is no visible source.`;\nconst WALLS_PROMPT=`You are tracing walls on a top-down tabletop RPG battle map for Foundry VTT.\nList every wall as straight line segments along the centre of the wall. Split walls at doors and windows, and list doors and windows as their own segments.\nReturn JSON only: {\"walls\":[{\"kind\":\"wall|door|window\",\"x1\":0-1000,\"y1\":0-1000,\"x2\":0-1000,\"y2\":0-1000}]}\nx runs left to right and y top to bottom, as a share of the image width and height out of 1000. Do not include furniture.`;\nconst image=chosen.image;\nconst tasks=[...Array.from({length:prep.scaleCalls},()=>({purpose:'scale',prompt:SCALE_PROMPT})),...(prep.walls?[{purpose:'lights',prompt:LIGHTS_PROMPT},{purpose:'walls',prompt:WALLS_PROMPT}]:[])];\nreturn tasks.map(({purpose,prompt})=>({json:{purpose,chosen,body:{model:'google/gemini-3.7-flash',response_format:{type:'json_object'},usage:{include:true},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:'data:'+image.mediaType+';base64,'+image.b64}}]}]}}}));"
+      },
+      "id": "map-84",
+      "position": [
+        19920,
+        0
+      ]
+    },
+    {
+      "name": "OpenRouter: Scale",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Title",
+              "value": "Celestia Map Builder"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "openRouterApi": {
+          "id": "gYYHf4NcuzeBjKSk",
+          "name": "OpenRouter account"
+        }
+      },
+      "id": "map-85",
+      "position": [
+        20160,
+        0
+      ]
+    },
+    {
+      "name": "Scale: Combine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const UNIT_SYSTEMS = {\"imperial\":{\"units\":\"ft\",\"square\":5},\"metric\":{\"units\":\"m\",\"square\":1.5}};\nconst FEET_PER_METRE = 3.28084;\nfunction averageScale(a, b) {\n  const valid = value => Number.isFinite(value?.width_m) && value.width_m > 0 && Number.isFinite(value?.height_m) && value.height_m > 0;\n  const estimates = [a, b].filter(valid);\n  if (!estimates.length) throw new Error('At least one valid size estimate is required.');\n  return {\n    width_m: estimates.reduce((sum, value) => sum + value.width_m, 0) / estimates.length,\n    height_m: estimates.reduce((sum, value) => sum + value.height_m, 0) / estimates.length,\n  };\n}\nfunction sceneScale({ width_m, height_m }, { system = 'imperial', square, gridPx = 100 } = {}) {\n  if (!(width_m > 0 && height_m > 0)) throw new Error('The size estimate needs a positive width and height.');\n  const u = UNIT_SYSTEMS[system];\n  if (!u) throw new Error(`Unknown unit system \"${system}\"`);\n  const size = square || u.square;\n  const toUnits = m => (u.units === 'ft' ? m * FEET_PER_METRE : m);\n  const squares = [Math.max(1, Math.round(toUnits(width_m) / size)), Math.max(1, Math.round(toUnits(height_m) / size))];\n  return {\n    squares,\n    width: squares[0] * gridPx,\n    height: squares[1] * gridPx,\n    grid: { size: gridPx, distance: size, units: u.units },\n  };\n}\nconst WALLS_COST=1;\nconst prep=$('Rate Limit: Validate').first().json._map;\nconst requests=$('Scale: Build Requests').all().map(i=>i.json);\nconst chosen=requests[0].chosen;\nconst responses=$input.all().map((i,index)=>({purpose:requests[index]?.purpose,raw:i.json}));\nconst parsed=responses.map(({purpose,raw})=>{try{return {purpose,value:JSON.parse(String(raw.choices?.[0]?.message?.content||'').trim().replace(/^```(?:json)?\\s*/, '').replace(/```\\s*$/, ''))};}catch{return {purpose,value:null};}});\nconst estimates=parsed.filter(r=>r.purpose==='scale').map(r=>r.value).filter(e=>e&&Number.isFinite(e.width_m)&&e.width_m>0&&Number.isFinite(e.height_m)&&e.height_m>0);\nconst trace={walls:[],lights:[]};\nlet measured,scene,warning=chosen.warning;\nfor(const purpose of ['walls','lights']) if(prep.walls) {\n  const value=parsed.find(r=>r.purpose===purpose)?.value;\n  if(Array.isArray(value?.[purpose])) trace[purpose]=value[purpose].filter(v=>v&&typeof v==='object'&&!Array.isArray(v));\n  else warning=[warning,purpose==='walls'?'Walls could not be traced.':'Lights could not be placed.'].filter(Boolean).join(' ');\n}\nif(estimates.length){const avg=averageScale(estimates[0],estimates[1]);measured={...avg,estimates};scene=sceneScale(avg,{system:prep.units,square:prep.square});}\nelse {const size=prep.square||(prep.units==='metric'?1.5:5);const units=prep.units==='metric'?'m':'ft';const squares=prep.map.squares;measured={width_m:null,height_m:null,estimates:[]};scene={squares,width:squares[0]*100,height:squares[1]*100,grid:{size:100,distance:size,units}};warning=[warning,'Map size could not be measured; the requested squares were used.'].filter(Boolean).join(' ');}\nconst costUsd=chosen.costUsd+responses.reduce((sum,r)=>sum+(Number(r.raw.usage?.cost)||0),0);\nconst chargedCost=prep.cost-(prep.walls&&trace.walls.length===0&&trace.lights.length===0?WALLS_COST:0);\nreturn [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,defects:chosen.defects,retried:chosen.retried,...(warning?{warning}:{}),measured,scene,trace,costUsd,chargedCost,ms:Date.now()-prep.startedAt}}];"
+      },
+      "id": "map-86",
+      "position": [
+        20400,
+        0
+      ]
+    },
+    {
+      "id": "map-87",
+      "name": "IF: Scale OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        20640,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "map-condition-86",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "map-88",
+      "name": "Respond: 502 Generation Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        20880,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "Increment Usage Counter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const rateLimitData=$('Rate Limit: Validate').first().json._rateLimitCheck;\nlet cost=$('Rate Limit: Validate').first().json._map.cost;\ntry { const final=$('Scale: Combine').first().json; if(final?.ok) cost=final.chargedCost; } catch {}\nconst now=new Date().toISOString();\nreturn [{json:{session_key:rateLimitData.sessionKey,month:rateLimitData.currentMonth,npc_count:rateLimitData.currentCount+cost,last_created:now}}];"
+      },
+      "id": "map-89",
+      "position": [
+        21120,
+        0
+      ]
+    },
+    {
+      "id": "map-90",
+      "name": "Upsert Usage Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        21360,
+        0
+      ],
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Y1GdmWbjIPOnDzeD",
+          "mode": "list",
+          "cachedResultName": "patreon_usage",
+          "cachedResultUrl": "/projects/0YTGe8zzqME8sqKt/datatables/Y1GdmWbjIPOnDzeD"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_key",
+              "keyValue": "={{ $json.session_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_key": "={{ $json.session_key }}",
+            "month": "={{ $json.month }}",
+            "npc_count": "={{ $json.npc_count }}",
+            "last_created": "={{ $json.last_created }}"
+          },
+          "matchingColumns": [
+            "session_key"
+          ],
+          "schema": [
+            {
+              "id": "session_key",
+              "displayName": "session_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "month",
+              "displayName": "month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "npc_count",
+              "displayName": "npc_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_created",
+              "displayName": "last_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      }
+    },
+    {
+      "name": "Map: Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "let payload;\nfor(const name of ['Scale: Combine','Mockups: Collect','Edit: Parse Image','Retrace: Collect']) { try { const candidate=$(name).first().json; if(candidate?.ok){payload=candidate;break;} } catch {} }\nconst cost=payload.chargedCost??$('Rate Limit: Validate').first().json._map.cost;\nconst {chargedCost,...publicPayload}=payload;\nreturn [{json:{...publicPayload,usesCharged:cost}}];"
+      },
+      "id": "map-91",
+      "position": [
+        21600,
+        0
+      ]
+    },
+    {
+      "id": "map-92",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        21840,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "={{ $('Webhook: /webhook/map-builder').first().json.headers.origin || '*' }}"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Builder-Key, X-Foundry-Origin, x-session-token, x-builder-key, x-foundry-origin"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook OPTIONS map-builder": {
+      "main": [
+        [
+          {
+            "node": "IF OPTIONS Preflight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF OPTIONS Preflight": {
+      "main": [
+        [
+          {
+            "node": "Respond CORS Preflight",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond CORS Headers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: /webhook/map-builder": {
+      "main": [
+        [
+          {
+            "node": "Session Validation Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session Validation Node": {
+      "main": [
+        [
+          {
+            "node": "Data Table: Lookup Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Table: Lookup Session": {
+      "main": [
+        [
+          {
+            "node": "Validate Session & Check Expiration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Session & Check Expiration": {
+      "main": [
+        [
+          {
+            "node": "IF: Is Authorized?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Is Authorized?": {
+      "main": [
+        [
+          {
+            "node": "Map: Prepare Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Unauthorized Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Unauthorized Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map: Prepare Request": {
+      "main": [
+        [
+          {
+            "node": "IF: Bad Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Bad Request?": {
+      "main": [
+        [
+          {
+            "node": "Respond: 400 Bad Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Bake Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Bake Action?": {
+      "main": [
+        [
+          {
+            "node": "Bake: Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Plan Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Plan Action?": {
+      "main": [
+        [
+          {
+            "node": "Plan: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Patreon: Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patreon: Members": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit: Prepare Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan: Build Request": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Plan Layout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Plan Layout": {
+      "main": [
+        [
+          {
+            "node": "Plan: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan: Parse": {
+      "main": [
+        [
+          {
+            "node": "IF: Plan OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Plan OK?": {
+      "main": [
+        [
+          {
+            "node": "IF: Standalone Plan?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Plan Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Standalone Plan?": {
+      "main": [
+        [
+          {
+            "node": "Plan: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mockups: Build Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan: Respond": {
+      "main": [
+        [
+          {
+            "node": "Respond: Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bake: Prepare": {
+      "main": [
+        [
+          {
+            "node": "Bake: Resize Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bake: Resize Image": {
+      "main": [
+        [
+          {
+            "node": "Bake: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bake: Respond": {
+      "main": [
+        [
+          {
+            "node": "Respond: Bake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit: Prepare Check": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit: Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate Limit: Validate": {
+      "main": [
+        [
+          {
+            "node": "IF: Rate Limit Exceeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Rate Limit Exceeded?": {
+      "main": [
+        [
+          {
+            "node": "Build Unauthorized Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Check Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Check Action?": {
+      "main": [
+        [
+          {
+            "node": "Check: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Edit Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Build Request": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Standalone Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Standalone Check": {
+      "main": [
+        [
+          {
+            "node": "Check: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Parse": {
+      "main": [
+        [
+          {
+            "node": "IF: Check OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Check OK?": {
+      "main": [
+        [
+          {
+            "node": "Respond: Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Edit Action?": {
+      "main": [
+        [
+          {
+            "node": "Edit: Prepare Crop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Retrace Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Prepare Crop": {
+      "main": [
+        [
+          {
+            "node": "Edit: Crop Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Crop Image": {
+      "main": [
+        [
+          {
+            "node": "Edit: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Build Request": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Edit Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Edit Image": {
+      "main": [
+        [
+          {
+            "node": "Edit: Check Resolution Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Check Resolution Error": {
+      "main": [
+        [
+          {
+            "node": "IF: Edit Resolution Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Edit Resolution Retry?": {
+      "main": [
+        [
+          {
+            "node": "Edit: Build Without Resolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit: Parse Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Build Without Resolution": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Edit Image (no resolution)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Edit Image (no resolution)": {
+      "main": [
+        [
+          {
+            "node": "Edit: Parse Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit: Parse Image": {
+      "main": [
+        [
+          {
+            "node": "IF: Edit Image OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Edit Image OK?": {
+      "main": [
+        [
+          {
+            "node": "Increment Usage Counter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Retrace Action?": {
+      "main": [
+        [
+          {
+            "node": "Retrace: Build Requests",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch: Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrace: Build Requests": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Retrace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Retrace": {
+      "main": [
+        [
+          {
+            "node": "Retrace: Collect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrace: Collect": {
+      "main": [
+        [
+          {
+            "node": "IF: Retrace OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Retrace OK?": {
+      "main": [
+        [
+          {
+            "node": "Increment Usage Counter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Action": {
+      "main": [
+        [
+          {
+            "node": "IF: Auto Plan?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Auto Plan?": {
+      "main": [
+        [
+          {
+            "node": "Plan: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mockups: Build Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mockups: Build Requests": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Mockup Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Mockup Images": {
+      "main": [
+        [
+          {
+            "node": "Mockups: Collect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mockups: Collect": {
+      "main": [
+        [
+          {
+            "node": "IF: Mockups OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Mockups OK?": {
+      "main": [
+        [
+          {
+            "node": "Increment Usage Counter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Request": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Final Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Final Image": {
+      "main": [
+        [
+          {
+            "node": "Final: Check Resolution Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Check Resolution Error": {
+      "main": [
+        [
+          {
+            "node": "IF: Final Resolution Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Final Resolution Retry?": {
+      "main": [
+        [
+          {
+            "node": "Final: Build Without Resolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final: Parse Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Without Resolution": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Final Image (no resolution)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Final Image (no resolution)": {
+      "main": [
+        [
+          {
+            "node": "Final: Parse Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Parse Image": {
+      "main": [
+        [
+          {
+            "node": "IF: Final Image OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Final Image OK?": {
+      "main": [
+        [
+          {
+            "node": "Final: Build Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Check": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Check": {
+      "main": [
+        [
+          {
+            "node": "Final: Judge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Judge": {
+      "main": [
+        [
+          {
+            "node": "IF: Retry Final?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Retry Final?": {
+      "main": [
+        [
+          {
+            "node": "Final: Build Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Scale: Build Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Retry": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Final Image (retry)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Final Image (retry)": {
+      "main": [
+        [
+          {
+            "node": "Final: Check Retry Resolution Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Check Retry Resolution Error": {
+      "main": [
+        [
+          {
+            "node": "IF: Retry Resolution Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Retry Resolution Retry?": {
+      "main": [
+        [
+          {
+            "node": "Final: Build Retry Without Resolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final: Parse Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Retry Without Resolution": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Final Image (retry, no resolution)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Final Image (retry, no resolution)": {
+      "main": [
+        [
+          {
+            "node": "Final: Parse Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Parse Retry": {
+      "main": [
+        [
+          {
+            "node": "Final: Build Retry Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Build Retry Check": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Check (retry)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Check (retry)": {
+      "main": [
+        [
+          {
+            "node": "Final: Judge Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final: Judge Retry": {
+      "main": [
+        [
+          {
+            "node": "Scale: Build Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scale: Build Requests": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter: Scale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Scale": {
+      "main": [
+        [
+          {
+            "node": "Scale: Combine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scale: Combine": {
+      "main": [
+        [
+          {
+            "node": "IF: Scale OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Scale OK?": {
+      "main": [
+        [
+          {
+            "node": "Increment Usage Counter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 502 Generation Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Usage Counter": {
+      "main": [
+        [
+          {
+            "node": "Upsert Usage Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Usage Row": {
+      "main": [
+        [
+          {
+            "node": "Map: Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map: Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "_devNote": "POST /webhook/map-builder accepts free plan and bake, mockups, final, charged edit and retrace. OpenRouter requests use the built-in openRouterApi credential. Active Patreon tier is used when available; the session tier is the fallback."
+}

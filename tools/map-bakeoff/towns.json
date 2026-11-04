@@ -1,0 +1,5 @@
+[
+  { "id": "t01-town-topdown", "perspective": "top-down",      "genre": "fantasy", "style": "painted", "mood": "day",  "squares": [40, 30], "description": "a small walled market town with a central square and well, a stone church, a few dozen timber houses with slate roofs, cobbled streets, a river with a bridge along one side, and a gatehouse" },
+  { "id": "t02-town-iso",     "perspective": "isometric",     "genre": "fantasy", "style": "painted", "mood": "dusk", "squares": [40, 30], "description": "a small walled market town with a central square and well, a stone church, a few dozen timber houses with slate roofs, cobbled streets, a river with a bridge along one side, and a gatehouse" },
+  { "id": "t03-town-34",      "perspective": "three-quarter", "genre": "fantasy", "style": "painted", "mood": "day",  "squares": [40, 30], "description": "a small walled market town with a central square and well, a stone church, a few dozen timber houses with slate roofs, cobbled streets, a river with a bridge along one side, and a gatehouse" }
+]

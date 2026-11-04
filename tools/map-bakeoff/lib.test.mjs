@@ -2,31 +2,14 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pickAspect, buildPrompt, imageSize, extFor, sessionCost } from './lib.mjs';
+import { imageSize, extFor, sessionCost, buildPrompt, toFoundryWalls } from './lib.mjs';
+import { buildPrompt as sharedBuildPrompt, toFoundryWalls as sharedToFoundryWalls } from '../../shared/scripts/core/maps/index.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const prompts = JSON.parse(fs.readFileSync(path.join(HERE, 'prompts.json'), 'utf8'));
 const edits = JSON.parse(fs.readFileSync(path.join(HERE, 'edits.json'), 'utf8'));
 
 describe('map bake-off helpers', () => {
-  it('picks the nearest supported aspect ratio', () => {
-    expect(pickAspect([30, 20])).toBe('3:2');
-    expect(pickAspect([20, 20])).toBe('1:1');
-    expect(pickAspect([16, 36])).toBe('9:16');
-    expect(pickAspect([24, 18])).toBe('4:3');
-  });
-
-  it('builds a prompt with the perspective, size, and no-grid rule', () => {
-    const text = buildPrompt(prompts[0]);
-    expect(text).toContain('top-down');
-    expect(text).toContain('30 by 20');
-    expect(text).toContain('Do not draw any grid lines');
-  });
-
-  it('rejects an unknown perspective', () => {
-    expect(() => buildPrompt({ ...prompts[0], perspective: 'sideways' })).toThrow(/Unknown perspective/);
-  });
-
   it('reads PNG and JPEG dimensions', () => {
     const png = new Uint8Array(32);
     png.set([0x89, 0x50, 0x4e, 0x47]);
@@ -52,5 +35,9 @@ describe('map bake-off helpers', () => {
     expect(new Set(prompts.map(p => p.id)).size).toBe(20);
     for (const p of prompts) expect(() => buildPrompt(p)).not.toThrow();
     for (const e of edits) expect(prompts.some(p => p.id === e.source)).toBe(true);
+  });
+  it('re-exports the shared prompt and wall helpers by identity', () => {
+    expect(buildPrompt).toBe(sharedBuildPrompt);
+    expect(toFoundryWalls).toBe(sharedToFoundryWalls);
   });
 });
