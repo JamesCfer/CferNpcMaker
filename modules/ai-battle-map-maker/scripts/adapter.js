@@ -156,7 +156,13 @@ export class BattleMapAdapter extends SystemAdapter {
   async run(task) {
     if (this.busy) return;
     this.busy = true; this.error(''); this.update();
-    try { await task(); } catch (err) { this.error(err.message); this.status(''); }
+    try { await task(); } catch (err) {
+      const message = err?.message || String(err);
+      this.error(message);
+      this.form?.querySelector('.map-error')?.scrollIntoView?.({ block: 'nearest' });
+      if (typeof ui !== 'undefined') ui.notifications?.error?.(message);
+      this.status('');
+    }
     finally { this.busy = false; this.update(); }
   }
 
