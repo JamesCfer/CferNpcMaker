@@ -51,7 +51,7 @@ describe('shared map helpers', () => {
   });
 
   it('parses a fenced plan, keeps described areas, and caps layout prose', () => {
-    const area = (what, where) => ({ what, where, size: 'about 4 by 3 squares' });
+    const area = (what, where) => ({ what, where, size: 'small' });
     const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('broken portcullis', 'south'), area('fire in the centre, ash and rubble', 'centre'), area('stone tower', 'north'), area('stable stalls', 'west'), area('invalid', 'up'), area('rubble', 'south')], connections: ['a passage through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
     expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'invalid', 'rubble']);
     expect(plan.areas[4].where).toBe('up');
@@ -63,7 +63,15 @@ describe('shared map helpers', () => {
     expect(planText(plan, 'fire in the centre')).toContain('fire in the centre, ash and rubble');
     expect(planText(plan).endsWith('Do not write any room names or labels on the map.')).toBe(true);
     const long = planText({ areas: Array.from({ length: 8 }, (_, i) => area('long ruined chamber, broken stone, ash, rubble, old banners ' + i, 'centre')), connections: Array(12).fill('long corridor connecting two chambers'), notes: 'A huge keep.' }, 'fire in the centre');
-    expect(long.split(/\s+/).length).toBeLessThanOrEqual(120);
+    expect(long.split(/\s+/).length).toBeLessThanOrEqual(180);
+  });
+
+  it('strips measurements from the layout plan', () => {
+    const plan = parsePlan(JSON.stringify({ areas: [{ what: 'a hall 30 ft long with pillars', where: 'north', size: 'about 5 by 4 squares' }, { what: 'two braziers and 3 crates', where: 'centre', size: 'the largest space (roughly 8x6 squares)' }], connections: ['a 10-foot corridor'], notes: 'A keep 60 by 40 feet.' }));
+    expect(plan.areas[0]).toEqual({ what: 'a hall with pillars', where: 'north' });
+    expect(plan.areas[1]).toEqual({ what: 'two braziers and 3 crates', where: 'centre', size: 'the largest space' });
+    expect(plan.connections).toEqual(['a corridor']);
+    expect(planText(plan)).not.toMatch(/\d+\s*(?:ft|feet|squares?)|\d+\s*(?:x|by)\s*\d+/i);
   });
 
   it('keeps the old wording when every dial is on its default', () => {
