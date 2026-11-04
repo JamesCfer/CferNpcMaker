@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, loadMapTemplates, createMapScene, viewMapScene, notifyMapCreated, registerMapSceneControls } from '../../modules/ai-battle-map-maker/scripts/compat.js';
+import { filePicker, directoryExists, uploadMap, sceneData, getSceneBackground, setSceneBackground, wallData, lightData, loadMapTemplates, createMapScene, viewMapScene, notifyMapCreated, registerMapSceneControls } from '../../modules/ai-battle-map-maker/scripts/compat.js';
 import { drawingBox, rememberCreatedDrawing, selectRegionDrawing, sceneTraceOptions } from '../../modules/ai-battle-map-maker/scripts/map-logic.js';
 import { registerSidebar } from '../scripts/core/sidebar.js';
 
@@ -20,6 +20,39 @@ describe('map Foundry compatibility', () => {
     for (const version of [13, 14]) expect(sceneData(baked, 'map.webp', { release: { generation: version } })).toMatchObject({ ...baked, background: { src: 'map.webp' } });
     expect(wallData({ c: [0, 0, 1, 1], door: 1, move: 20, sight: 20, light: 20, sound: 20, extra: true })).not.toHaveProperty('extra');
     expect(lightData({ x: 1, y: 2, config: { bright: 3, dim: 4, color: '#fff', alpha: 0.5, animation: {}, extra: true } }).config).not.toHaveProperty('extra');
+  });
+  it('reads and updates the v13 scene background', async () => {
+    const scene = { background: { src: 'old.webp' } };
+    scene.update = vi.fn(async changes => { scene.background.src = changes['background.src']; });
+    expect(getSceneBackground(scene)).toBe('old.webp');
+    await setSceneBackground(scene, 'new.webp');
+    expect(scene.update).toHaveBeenCalledWith({ 'background.src': 'new.webp' });
+    expect(getSceneBackground(scene)).toBe('new.webp');
+  });
+  it('reads and updates the initial v14 level background', async () => {
+    const first = { id: 'first', background: { src: 'first.webp' }, update: vi.fn() };
+    const initial = { id: 'defaultLevel0000', background: { src: null } };
+    initial.update = vi.fn(async changes => { initial.background.src = changes['background.src']; });
+    const scene = { initialLevel: initial.id, background: { src: 'legacy.webp' },
+      levels: { contents: [first, initial], get: id => [first, initial].find(level => level.id === id) }, update: vi.fn() };
+    expect(getSceneBackground(scene)).toBeNull();
+    await setSceneBackground(scene, 'map.webp');
+    expect(initial.update).toHaveBeenCalledWith({ 'background.src': 'map.webp' });
+    expect(first.update).not.toHaveBeenCalled();
+    expect(scene.update).not.toHaveBeenCalled();
+    expect(getSceneBackground(scene)).toBe('map.webp');
+  });
+  it('falls back to the first v14 level and embedded document update', async () => {
+    const level = { _id: 'first', background: { src: 'old.webp' } };
+    const scene = { initialLevel: 'missing', levels: { contents: [level], get: () => undefined },
+      updateEmbeddedDocuments: vi.fn(async (_type, changes) => { level.background.src = changes[0]['background.src']; }) };
+    expect(getSceneBackground(scene)).toBe('old.webp');
+    await setSceneBackground(scene, 'new.webp');
+    expect(scene.updateEmbeddedDocuments).toHaveBeenCalledWith('Level', [{ _id: 'first', 'background.src': 'new.webp' }]);
+    expect(getSceneBackground(scene)).toBe('new.webp');
+    const empty = { levels: { contents: [], get: () => undefined }, updateEmbeddedDocuments: vi.fn() };
+    await setSceneBackground(empty, 'map.webp');
+    expect(empty.updateEmbeddedDocuments).toHaveBeenCalledWith('Level', [{ _id: 'defaultLevel0000', 'background.src': 'map.webp' }]);
   });
   it('loads templates from the namespaced or legacy API', () => {
     const modern = vi.fn(); const legacy = vi.fn();

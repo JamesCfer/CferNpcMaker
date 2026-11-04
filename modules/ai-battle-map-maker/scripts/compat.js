@@ -29,6 +29,28 @@ export function sceneData(baked, path, gameObject = globalThis.game) {
   return scene;
 }
 
+function sceneLevel(scene) {
+  const levels = scene?.levels;
+  if (!levels || (typeof levels.get !== 'function' && !Array.isArray(levels.contents))) return null;
+  const initialId = scene.initialLevel?.id || scene.initialLevel;
+  const level = (typeof levels.get === 'function' && initialId ? levels.get(initialId) : null)
+    || levels.contents?.find(item => item.id === initialId || item._id === initialId)
+    || levels.contents?.[0];
+  return { level, id: level?.id || level?._id || initialId || 'defaultLevel0000' };
+}
+
+export function getSceneBackground(scene) {
+  const target = sceneLevel(scene);
+  return target ? target.level?.background?.src : scene?.background?.src;
+}
+
+export async function setSceneBackground(scene, src) {
+  const target = sceneLevel(scene);
+  if (!target) return scene.update({ 'background.src': src });
+  if (typeof target.level?.update === 'function') return target.level.update({ 'background.src': src });
+  return scene.updateEmbeddedDocuments('Level', [{ _id: target.id, 'background.src': src }]);
+}
+
 export const wallData = wall => ({ c: wall.c, door: wall.door, move: wall.move, sight: wall.sight, light: wall.light, sound: wall.sound });
 export const lightData = light => ({ x: light.x, y: light.y, config: { bright: light.config.bright, dim: light.config.dim, color: light.config.color, alpha: light.config.alpha, animation: light.config.animation } });
 

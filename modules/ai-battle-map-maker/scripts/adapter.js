@@ -2,7 +2,7 @@ import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
 import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, selectRegionDrawing, sceneTraceOptions, plural } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
-import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated } from './compat.js';
+import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated, getSceneBackground, setSceneBackground } from './compat.js';
 import { pasteRegion } from './region-paste.js';
 import { Storage } from './core/storage.js';
 
@@ -281,6 +281,8 @@ export class BattleMapAdapter extends SystemAdapter {
     this.status('Creating Foundry scene…');
     const scene = await createMapScene(sceneData(bake.scene, path));
     if (!scene) throw new Error('Foundry did not create the scene.');
+    await setSceneBackground(scene, path);
+    if (!getSceneBackground(scene)) throw new Error('Foundry did not attach the map image to the scene.');
     if (bake.walls.length) await scene.createEmbeddedDocuments('Wall', bake.walls.map(wallData));
     if (bake.lights.length) await scene.createEmbeddedDocuments('AmbientLight', bake.lights.map(lightData));
     this.status('Opening scene…'); await viewMapScene(scene);
@@ -289,8 +291,9 @@ export class BattleMapAdapter extends SystemAdapter {
   }); }
 
   async sceneImage(scene) {
-    if (!scene?.background?.src) throw new Error('This scene has no background image.');
-    const response = await fetch(scene.background.src);
+    const src = getSceneBackground(scene);
+    if (!src) throw new Error('This scene has no background image.');
+    const response = await fetch(src);
     if (!response.ok) throw new Error('The scene background could not be loaded.');
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -339,7 +342,7 @@ export class BattleMapAdapter extends SystemAdapter {
       const extension = blob.type === 'image/png' ? 'png' : 'webp';
       const filename = sceneFileName(scene.name || 'battle-map', new Date(), extension).replace(`.${extension}`, `-${crypto.randomUUID().slice(0,8)}.${extension}`);
       const path = await uploadMap(picker, folder, new File([blob], filename, { type: blob.type }));
-      await scene.update({ 'background.src': path });
+      await setSceneBackground(scene, path);
       await scene.deleteEmbeddedDocuments('Drawing', [selected?.document?.id || selected.id]);
       ui.notifications?.success?.(`Region edited (${result.usesCharged} uses).`);
     } catch (err) { ui.notifications?.error?.(err.message); }
