@@ -62,6 +62,9 @@ build_module() {
         *) echo "ERROR: unsupported build exclusion: $excluded" >&2; return 1 ;;
       esac
     done < "${overlay}/build.exclude"
+  else
+    # Maps are opt-in; modules without build exclusions do not ship them.
+    rm -rf "$out/scripts/core/maps"
   fi
 
   # Per-module scripts (entry, adapter, sanitizer)
