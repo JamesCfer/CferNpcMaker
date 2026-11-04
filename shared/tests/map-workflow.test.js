@@ -52,16 +52,21 @@ describe('generated map workflow', () => {
   });
 
   it('uses the selected final quality for cost, image resolution, retry, and scale calls', () => {
-    for (const [quality, cost, resolution, scaleCalls] of [
-      ['standard', 6, '2K', 2],
-      ['economy', 4, '1K', 1],
+    for (const [quality, cost, model, resolution, scaleCalls] of [
+      ['standard', 6, 'google/gemini-3.1-flash-image', '2K', 2],
+      ['economy', 4, 'google/gemini-3.1-flash-image', '1K', 1],
+      ['draft', 2, 'black-forest-labs/flux.2-klein-4b', '2K', 1],
+      ['high', 6, 'bytedance-seed/seedream-5-0-pro', '2K', 1],
     ]) {
       const prepared = run('Map: Prepare Request', { body: { action: 'final', quality, map: sample, mockup: { b64: 'YWJj' } } });
       expect(prepared._map.quality).toBe(quality);
       expect(prepared._map.cost).toBe(cost);
       const named = { 'Rate Limit: Validate': prepared, 'Final: Judge': {} };
-      expect(run('Final: Build Request', {}, [], named).body.resolution).toBe(resolution);
-      expect(run('Final: Build Retry', {}, [], named).body.resolution).toBe(resolution);
+      for (const request of ['Final: Build Request', 'Final: Build Retry']) {
+        const body = run(request, {}, [], named).body;
+        expect(body).toMatchObject({ model, resolution, prompt: finalPrompt(sample), aspect_ratio: prepared._map.aspect });
+        expect(body.input_references).toEqual([{ type: 'image_url', image_url: { url: 'data:image/png;base64,YWJj' } }]);
+      }
       const chosen = { image: { b64: 'YWJj', mediaType: 'image/png' } };
       expect(runAll('Scale: Build Requests', chosen, [], named)).toHaveLength(scaleCalls);
       const limited = run('Rate Limit: Validate', {}, [], {
@@ -69,6 +74,23 @@ describe('generated map workflow', () => {
       });
       expect(limited.message).toContain(`A map final (${quality}) costs ${cost} uses.`);
     }
+  });
+
+  it('retries a resolution 400 once without resolution for either final attempt', () => {
+    const prepared = run('Map: Prepare Request', { body: { action: 'final', quality: 'high', map: sample, mockup: { b64: 'YWJj' } } });
+    for (const [request, check, fallback] of [
+      ['Final: Build Request', 'Final: Check Resolution Error', 'Final: Build Without Resolution'],
+      ['Final: Build Retry', 'Final: Check Retry Resolution Error', 'Final: Build Retry Without Resolution'],
+    ]) {
+      const named = { 'Rate Limit: Validate': prepared, 'Final: Judge': {} };
+      const original = run(request, {}, [], named);
+      const checked = run(check, { statusCode: 400, error: { message: 'Unsupported resolution 2K' } }, [], { [request]: original });
+      expect(checked._resolutionFallback).toBe(true);
+      expect(run(fallback, {}, [], { [request]: original }).body).toEqual(Object.fromEntries(Object.entries(original.body).filter(([key]) => key !== 'resolution')));
+      expect(run(check, { statusCode: 400, error: { message: 'Invalid aspect ratio' } }, [], { [request]: original })._resolutionFallback).toBe(false);
+    }
+    expect(node('OpenRouter: Final Image (no resolution)').parameters.options.timeout).toBe(240000);
+    expect(node('OpenRouter: Final Image (retry, no resolution)').parameters.options.timeout).toBe(240000);
   });
 
   it('combines two scale estimates using the shared math', () => {

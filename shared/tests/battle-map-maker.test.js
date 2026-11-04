@@ -8,6 +8,8 @@ describe('AI Battle Map Maker logic', () => {
     expect(costSummary({ quality: 'standard', includeMockups: false })).toMatchObject({ mockups: 0, final: 6, total: 6 });
     expect(costSummary({ quality: 'standard', walls: true })).toMatchObject({ final: 6, total: 10 });
     expect(costSummary({ quality: 'economy', walls: true })).toMatchObject({ final: 4, total: 8 });
+    expect(costSummary({ quality: 'draft', walls: true })).toMatchObject({ mockups: 3, final: 2, total: 6 });
+    expect(costSummary({ quality: 'high', walls: true })).toMatchObject({ mockups: 3, final: 6, total: 10 });
     expect(costSummary({ walls: true, perspective: 'isometric' }).total).toBe(9);
     expect(costSummary({ walls: true }).text).toBe('Mockups 3 uses + Standard final 6 uses + walls 1 use = 10 uses');
   });

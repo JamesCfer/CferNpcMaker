@@ -2,6 +2,7 @@ import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
 import { buildMapRequest, costSummary, measuredLabel, sceneFileName } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
+import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated } from './compat.js';
 
 const imageUrl = image => `data:${image.mediaType || 'image/png'};base64,${image.b64}`;
 const loadImage = image => new Promise((resolve, reject) => {
@@ -103,7 +104,7 @@ export class BattleMapAdapter extends SystemAdapter {
       if (!response.ok || data.ok === false) throw new Error(data.message || `Map service returned ${response.status}.`);
       return data;
     } catch (err) {
-      if (err.name === 'AbortError') throw new Error('The map request timed out after 150 seconds. Please try again.');
+      if (err.name === 'AbortError') throw new Error(`The map request timed out after ${Math.round(timeout / 1000)} seconds. Please try again.`);
       if (err instanceof AuthError) {
         this.app.storage.setKey(''); this.app.accessKey = ''; this.app.authenticated = false;
         this.app._applyAuthStateUI();
@@ -152,10 +153,10 @@ export class BattleMapAdapter extends SystemAdapter {
     const units = game.settings.get(this.module.id, 'units');
     this.finalUnits = units;
     const started = Date.now();
-    const tick = () => this.status(`Making final map… ${Math.floor((Date.now() - started) / 1000)} seconds elapsed. This can take about 100 seconds.`);
+    const tick = () => this.status(`Making final map… ${Math.floor((Date.now() - started) / 1000)} seconds elapsed. This can take several minutes.`);
     tick(); const clock = setInterval(tick, 1000);
     let data;
-    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units, walls: this.form.elements.walls.checked && map.perspective === 'top-down' }); }
+    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units, walls: this.form.elements.walls.checked && map.perspective === 'top-down' }, 900000); }
     finally { clearInterval(clock); }
     if (!data.image || !data.scene) throw new Error('The final map response was incomplete.');
     this.sourceImage = await loadImage(data.image);
@@ -220,22 +221,21 @@ export class BattleMapAdapter extends SystemAdapter {
     if (!blob) throw new Error('The map image could not be encoded.');
     const extension = blob.type === 'image/png' ? 'png' : 'webp';
     const filename = sceneFileName(description, new Date(), extension);
-    const picker = foundry.applications.apps.FilePicker?.implementation || globalThis.FilePicker;
+    const picker = filePicker();
     if (!picker) throw new Error('Foundry FilePicker is unavailable.');
     const folder = `worlds/${game.world.id}/battle-maps`;
     this.status('Creating battle-maps folder…');
     try { await picker.createDirectory('data', folder); }
-    catch (err) { if (!/already exists|EEXIST/i.test(String(err?.message || err))) throw err; }
+    catch (err) { if (!directoryExists(err)) throw err; }
     this.status('Uploading map image…');
-    const upload = await picker.upload('data', folder, new File([blob], filename, { type: blob.type }), {});
-    const path = upload?.path || `${folder}/${filename}`;
+    const path = await uploadMap(picker, folder, new File([blob], filename, { type: blob.type }));
     this.status('Creating Foundry scene…');
-    const scene = await Scene.create({ ...bake.scene, background: { src: path } });
+    const scene = await createMapScene(sceneData(bake.scene, path));
     if (!scene) throw new Error('Foundry did not create the scene.');
-    if (bake.walls.length) await scene.createEmbeddedDocuments('Wall', bake.walls);
-    if (bake.lights.length) await scene.createEmbeddedDocuments('AmbientLight', bake.lights);
-    this.status('Opening scene…'); await scene.view();
+    if (bake.walls.length) await scene.createEmbeddedDocuments('Wall', bake.walls.map(wallData));
+    if (bake.lights.length) await scene.createEmbeddedDocuments('AmbientLight', bake.lights.map(lightData));
+    this.status('Opening scene…'); await viewMapScene(scene);
     this.status(`Created scene “${name}”.`);
-    ui.notifications.success(`Created battle map scene “${name}”.`);
+    notifyMapCreated(`Created battle map scene “${name}”.`);
   }); }
 }

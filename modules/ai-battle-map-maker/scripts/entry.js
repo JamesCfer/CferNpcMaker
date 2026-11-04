@@ -4,6 +4,7 @@ import { registerSidebar } from './core/sidebar.js';
 import { startHeartbeat } from './core/heartbeat.js';
 import { Storage } from './core/storage.js';
 import { BattleMapAdapter } from './adapter.js';
+import { loadMapTemplates } from './compat.js';
 
 const adapter = new BattleMapAdapter();
 const ID = adapter.module.id;
@@ -30,10 +31,10 @@ Hooks.once('ready', () => {
     ui.notifications?.info?.('AI Battle Map Maker was updated, please sign in again.');
   }
   if (version) storage.setVersion(version);
-  foundry.applications.handlebars.loadTemplates([`modules/${ID}/templates/builder.html`]);
+  loadMapTemplates([`modules/${ID}/templates/builder.html`]);
   startHeartbeat(ID);
   if (game.user.isGM && !game.settings.get(ID, 'welcomeMessageShown')) {
-    ChatMessage.create({ content: '<h3>Welcome to AI Battle Map Maker!</h3><p>Create four mockups for 3 uses, then make a final map for 6 uses (Standard) or 4 uses (Economy). Open the maker from the Scenes sidebar.</p>',
+    ChatMessage.create({ content: '<h3>Welcome to AI Battle Map Maker!</h3><p>Create four mockups for 3 uses, then make a final map for 2 to 6 uses. Open the maker from the Scenes sidebar.</p>',
       whisper: game.users.filter(user => user.isGM).map(user => user.id) });
     game.settings.set(ID, 'welcomeMessageShown', true);
     open();
