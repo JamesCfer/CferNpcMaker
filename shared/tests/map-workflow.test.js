@@ -21,6 +21,10 @@ const sample = {
 };
 
 describe('generated map workflow', () => {
+  it('allows five minutes for an execution', () => {
+    expect(workflow.settings).toEqual({ executionOrder: 'v1', executionTimeout: 300 });
+  });
+
   it('matches its committed artifact', () => {
     expect(JSON.parse(readFileSync(path.resolve('n8n-map-builder-workflow.json'), 'utf8'))).toEqual(workflow);
   });

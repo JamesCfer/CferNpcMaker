@@ -201,7 +201,7 @@ return [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,de
   link('Scale: Build Requests','OpenRouter: Scale'); link('OpenRouter: Scale','Scale: Combine'); link('Scale: Combine','IF: Scale OK?');
   link('IF: Scale OK?','Increment Usage Counter',0); link('IF: Scale OK?','Respond: 502 Generation Failed',1);
   link('Increment Usage Counter','Upsert Usage Row'); link('Upsert Usage Row','Map: Build Response'); link('Map: Build Response','Respond to Webhook');
-  return { name:'Map Builder', settings:{executionOrder:'v1'}, nodes, connections,
+  return { name:'Map Builder', settings:{executionOrder:'v1',executionTimeout:300}, nodes, connections,
     _devNote:'POST /webhook/map-builder accepts mockups, final (optional walls), or free bake {image:{b64,mediaType},squares,units,trace?,mood?,name?}. Bake returns resized image, scene, walls, lights, counts, sharpen, usesCharged:0. OpenRouter requests use the built-in openRouterApi credential OpenRouter account (id gYYHf4NcuzeBjKSk). Session tier is authoritative.' };
 }
 
