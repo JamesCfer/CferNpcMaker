@@ -88,10 +88,11 @@ describe('generated map workflow', () => {
     expect(request.body).toMatchObject({ model: 'google/gemini-3.7-flash', response_format: { type: 'json_object' } });
     expect(request.body.messages[0].content).toContain(PLAN_PROMPT);
     expect(request.body.messages[0].content).toContain(sample.description);
-    const plan = { areas: [{ name: 'gatehouse', where: 'south', size: 'about 4 by 3 squares', features: 'broken portcullis' }, ...['centre', 'north', 'west'].map(where => ({ name: where, where, size: 'about 4 by 3 squares', features: 'rubble' })), { name: 'bad', where: 'above', size: 'large', features: 'stone' }], connections: ['gatehouse to courtyard'], notes: 'A ruined keep.' };
+    const plan = { areas: [{ what: 'broken portcullis', where: 'south', size: 'about 4 by 3 squares' }, { what: 'torchlit tables', where: 'centre', size: 'about 4 by 3 squares' }, { what: 'river stones', where: 'north', size: 'about 4 by 3 squares' }, { what: 'bad', where: 'above', size: 'large' }], connections: ['a passage between the tables and river'], notes: 'A ruined keep.' };
     const parsed = run('Plan: Parse', { choices: [{ message: { content: '```json\n' + JSON.stringify(plan) + '\n```' } }], usage: { cost: 0.001 } }, [], { 'Plan: Build Request': request });
-    expect(parsed.plan.areas).toHaveLength(4);
-    expect(parsed.layout).toContain('gatehouse');
+    expect(parsed.plan.areas).toHaveLength(3);
+    expect(parsed.layout).toContain('broken portcullis');
+    expect(parsed.layout).toContain(sample.description);
     expect(run('Plan: Respond', parsed)).toMatchObject({ ok: true, usesCharged: 0, costUsd: 0.001 });
     expect(run('Plan: Parse', {}, [], { 'Plan: Build Request': request })).toMatchObject({ ok: false, error: 'PLAN_FAILED', message: 'The layout plan could not be made.', usesCharged: 0 });
     expect(workflow.connections['IF: Plan OK?'].main[1][0].node).toBe('Respond: 502 Plan Failed');
@@ -108,7 +109,7 @@ describe('generated map workflow', () => {
     expect(workflow.connections['IF: Auto Plan?'].main[0]).toHaveLength(1);
     expect(workflow.connections['IF: Auto Plan?'].main[0][0].node).toBe('Plan: Build Request');
     const request = run('Plan: Build Request', prepared);
-    const plan = { areas: ['centre', 'north', 'south', 'west'].map(where => ({ name: where === 'centre' ? 'fire' : where, where, size: 'about 3 by 3 squares', features: where === 'centre' ? 'flames' : 'stone' })), connections: [], notes: '' };
+    const plan = { areas: ['centre', 'north'].map(where => ({ what: where === 'centre' ? 'fire in the centre' : 'stone floor', where, size: 'about 3 by 3 squares' })), connections: [], notes: '' };
     const parsed = run('Plan: Parse', { choices: [{ message: { content: JSON.stringify(plan) } }] }, [], { 'Plan: Build Request': request });
     const mockups = runAll('Mockups: Build Requests', parsed, [], { 'Rate Limit: Validate': prepared });
     expect(mockups).toHaveLength(2);
@@ -116,6 +117,28 @@ describe('generated map workflow', () => {
     expect(workflow.connections['IF: Standalone Plan?'].main[1][0].node).toBe('Mockups: Build Requests');
     const collected = run('Mockups: Collect', {}, [{ data: [{ b64_json: 'YWJj' }] }], { 'Rate Limit: Validate': prepared, 'Plan: Parse': parsed });
     expect(collected.layout).toBe(parsed.layout);
+  });
+
+  it('checks an image after session validation without charging usage', () => {
+    const prepared = run('Map: Prepare Request', { body: { action: 'check', image: { b64: 'YWJj', mediaType: 'image/png' }, perspective: 'isometric' } });
+    expect(prepared._map).toMatchObject({ action: 'check', cost: 0, perspective: 'isometric' });
+    expect(run('Map: Prepare Request', { body: { action: 'check', image: { b64: 'bad', mediaType: 'image/png' } } }).error).toBe('BAD_REQUEST');
+    const rate = run('Rate Limit: Validate', {}, [], { 'Rate Limit: Prepare Check': { ...prepared, _rateLimitCheck: { monthlyLimit: 3, tier: 'free' } } });
+    expect(rate._map.cost).toBe(0);
+    const exhausted = run('Rate Limit: Validate', {}, [{ session_key: 'x', npc_count: 5 }], { 'Rate Limit: Prepare Check': { ...prepared, _rateLimitCheck: { monthlyLimit: 3, tier: 'free' } } });
+    expect(exhausted._map.action).toBe('check');
+    const request = run('Check: Build Request', prepared);
+    expect(request.body.model).toBe('google/gemini-3.7-flash');
+    expect(request.body.messages[0].content[0].text).toBe(CHECK_PROMPT);
+    const result = run('Check: Parse', { choices: [{ message: { content: JSON.stringify({ grid: false, text: true, frame: false, margin: 0.5 }) } }], usage: { cost: 0.002 } }, [], { 'Rate Limit: Validate': prepared });
+    expect(result).toMatchObject({ ok: true, defects: { retry: true, reasons: ['text'] }, costUsd: 0.002, usesCharged: 0 });
+    expect(result.raw.margin).toBe(0.5);
+    expect(workflow.connections['IF: Is Authorized?'].main[0][0].node).toBe('Map: Prepare Request');
+    expect(workflow.connections['IF: Check Action?'].main[0][0].node).toBe('Check: Build Request');
+    const reached = new Set();
+    const walk = at => { if (reached.has(at)) return; reached.add(at); for (const output of workflow.connections[at]?.main || []) for (const edge of output) walk(edge.node); };
+    walk('Check: Build Request');
+    expect(reached.has('Increment Usage Counter')).toBe(false);
   });
 
   it('validates mockup counts and charges the selected count', () => {

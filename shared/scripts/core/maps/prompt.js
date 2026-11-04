@@ -90,7 +90,7 @@ export function buildPrompt(p) {
     `The map covers an area of ${Math.round(w * boost)} by ${Math.round(h * boost)} five-foot squares, so a doorway is about one square wide and a person fits in one square.`,
     `Look: ${[...dialPhrases(p.dials), 'crisp textures'].join('; ')}.`,
     'Clear readable layout, the whole area fills the frame edge to edge.',
-    'Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark. No people or creatures.',
+    `Do not draw any grid lines, text, labels, legend, compass, border, frame, or watermark.${typeof p.layout === 'string' && p.layout.trim() ? ' Do not write any room names or labels on the map.' : ''} No people or creatures.`,
   ].join(' ');
 }
 

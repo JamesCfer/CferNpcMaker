@@ -46,17 +46,21 @@ describe('shared map helpers', () => {
     const base = buildPrompt(prompts[0]);
     const laid = buildPrompt({ ...prompts[0], layout: 'Layout: fire in the centre.' });
     expect(laid).toContain(`Scene: ${prompts[0].description}. Layout: fire in the centre.`);
-    expect(laid.replace(' Layout: fire in the centre.', '')).toBe(base);
+    expect(laid).toContain('Do not write any room names or labels on the map.');
+    expect(base).not.toContain('Do not write any room names or labels on the map.');
   });
 
   it('parses a fenced plan, drops bad areas, and caps layout prose', () => {
-    const area = (name, where) => ({ name, where, size: 'about 4 by 3 squares', features: 'broken stone, ash, rubble, old banners, torch sconces' });
-    const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('gatehouse', 'south'), area('courtyard', 'centre'), area('tower', 'north'), area('stable', 'west'), area('invalid', 'up'), area('duplicate', 'south')], connections: ['gatehouse to courtyard through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
-    expect(plan.areas.map(a => a.name)).toEqual(['gatehouse', 'courtyard', 'tower', 'stable']);
-    expect(plan.connections).toEqual(['gatehouse to courtyard through a broken portcullis']);
-    expect(() => parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 3) }))).toThrow(/four valid areas/);
-    expect(planText(plan)).toContain('Layout: the gatehouse (about 4 by 3 squares) sits at the south');
-    expect(planText({ areas: Array.from({ length: 10 }, (_, i) => area('long ruined chamber ' + i, ['north-west','north','north-east','west','centre','east','south-west','south','south-east','south'][i])), connections: Array(12).fill('long corridor connecting two chambers'), notes: 'A huge keep.' }).length).toBeLessThanOrEqual(900);
+    const area = (what, where) => ({ what, where, size: 'about 4 by 3 squares' });
+    const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('broken portcullis', 'south'), area('fire in the centre, ash and rubble', 'centre'), area('stone tower', 'north'), area('stable stalls', 'west'), area('invalid', 'up'), area('rubble', 'south')], connections: ['a passage through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
+    expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'rubble']);
+    expect(plan.connections).toEqual(['a passage through a broken portcullis']);
+    expect(parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 2) })).areas).toHaveLength(2);
+    expect(planText(plan, 'fire in the centre')).toMatch(/^GM request: fire in the centre/);
+    expect(planText(plan, 'fire in the centre')).toContain('fire in the centre, ash and rubble');
+    expect(planText(plan).endsWith('Do not write any room names or labels on the map.')).toBe(true);
+    const long = planText({ areas: Array.from({ length: 8 }, (_, i) => area('long ruined chamber, broken stone, ash, rubble, old banners ' + i, 'centre')), connections: Array(12).fill('long corridor connecting two chambers'), notes: 'A huge keep.' }, 'fire in the centre');
+    expect(long.split(/\s+/).length).toBeLessThanOrEqual(120);
   });
 
   it('keeps the old wording when every dial is on its default', () => {
