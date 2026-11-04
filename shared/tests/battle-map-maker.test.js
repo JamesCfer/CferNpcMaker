@@ -13,6 +13,17 @@ describe('AI Battle Map Maker logic', () => {
     expect(costSummary({ walls: true, perspective: 'isometric' }).total).toBe(9);
     expect(costSummary({ walls: true }).text).toBe('Mockups 3 uses + Standard final 6 uses + walls 1 use = 10 uses');
   });
+  it('summarizes every mockup count with each quality and walls choice', () => {
+    for (const [count, mockupCost] of [[1, 1], [2, 2], [4, 3]]) {
+      for (const [quality, final] of [['standard', 6], ['economy', 4], ['draft', 2], ['high', 6]]) {
+        for (const walls of [false, true]) {
+          const summary = costSummary({ mockups: count, quality, walls });
+          expect(summary).toMatchObject({ mockups: mockupCost, final, total: mockupCost + final + Number(walls) });
+          expect(summary.text).toContain(`Mockups ${mockupCost} uses`);
+        }
+      }
+    }
+  });
   it('builds a content-only request with valid defaults and limits', () => {
     const map = buildMapRequest({ description: '  forest camp  ', perspective: 'top-down', genre: 'other', genreOther: '  mythic  ', style: 'painted', mood: 'day', width: 1, height: 99, dials: { detail: 7, clutter: 0, wear: '', color: 5 } });
     expect(map).toEqual({ description: 'forest camp', perspective: 'top-down', genre: 'mythic', style: 'painted', mood: 'day', squares: [5, 60], setting: 'outdoor', dials: { detail: 5, clutter: 1, wear: 3 } });

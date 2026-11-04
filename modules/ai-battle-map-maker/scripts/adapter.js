@@ -21,6 +21,7 @@ export class BattleMapAdapter extends SystemAdapter {
   get moduleFolder() { return 'ai-battle-map-maker'; }
   get module() { return { id: 'ai-battle-map-maker', label: 'AI Battle Map Maker', icon: 'fa-solid fa-map',
     githubUrl: 'https://github.com/JamesCfer/CferNpcMaker', historyLabel: 'Created Maps' }; }
+  get windowTitle() { return 'AI Battle Map Maker'; }
   get systemId() { return 'agnostic'; }
   get formConfig() { return { documentNoun: 'map' }; }
   gatherFormData(form) { return buildMapRequest(Object.fromEntries(new FormData(form))); }
@@ -49,9 +50,15 @@ export class BattleMapAdapter extends SystemAdapter {
         label.textContent = DIAL_LABELS[key];
         const slider = document.createElement('input');
         slider.type = 'range'; slider.name = key; slider.min = '1'; slider.max = '5'; slider.step = '1'; slider.value = '3';
+        slider.id = `map-dial-${key}`;
+        label.htmlFor = slider.id;
         const value = document.createElement('output'); value.textContent = '3';
+        value.htmlFor = slider.id;
         slider.addEventListener('input', () => { value.textContent = slider.value; if (['color', 'tint', 'contrast', 'sharpness'].includes(key)) this.renderPreview(); });
-        wrapper.append(label, slider, value);
+        wrapper.classList.add('map-dial');
+        const heading = document.createElement('div'); heading.className = 'map-dial-heading';
+        heading.append(label, value);
+        wrapper.append(heading, slider);
         container.append(wrapper);
       }
     };
@@ -61,8 +68,9 @@ export class BattleMapAdapter extends SystemAdapter {
       for (const kind of ['genre', 'style']) field(`${kind}Other`).hidden = field(kind).value !== 'other';
       const perspective = field('perspective').value;
       form.querySelector('.map-walls-option').hidden = perspective !== 'top-down';
-      const summary = costSummary({ quality: field('quality').value, walls: field('walls').checked, perspective });
+      const summary = costSummary({ quality: field('quality').value, mockups: Number(field('mockups').value), walls: field('walls').checked, perspective });
       form.querySelector('.map-cost').textContent = summary.text;
+      form.querySelector('.map-mockups').textContent = `${this.mockups.length ? 'Regenerate' : 'Generate mockups'} (${summary.mockups} ${summary.mockups === 1 ? 'use' : 'uses'})`;
       form.querySelector('.map-final').textContent = `Make final map (${summary.final + (field('walls').checked && perspective === 'top-down' ? 1 : 0)} uses)`;
       const signed = !!this.app?.authenticated && !this.app?._isOffline;
       form.querySelector('.map-mockups').disabled = this.busy || !signed;
@@ -125,11 +133,12 @@ export class BattleMapAdapter extends SystemAdapter {
 
   generateMockups() { return this.run(async () => {
     const map = buildMapRequest(this.values());
-    this.status('Generating four mockups…');
+    const count = Number(this.form.elements.mockups.value);
+    this.status(`Generating ${count} ${count === 1 ? 'mockup' : 'mockups'}…`);
     this.mockups = []; this.selected = -1; this.final = null; this.sourceImage = null;
     this.form.querySelector('.map-result').hidden = true;
-    const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren();
-    const data = await this.request({ action: 'mockups', map });
+    const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren(); box.dataset.count = String(count);
+    const data = await this.request({ action: 'mockups', map, count });
     if (!Array.isArray(data.images) || !data.images.length) throw new Error('No mockups were returned.');
     this.mockups = data.images;
     data.images.forEach((image, index) => {
@@ -144,7 +153,6 @@ export class BattleMapAdapter extends SystemAdapter {
       });
       box.append(button);
     });
-    this.form.querySelector('.map-mockups').textContent = 'Regenerate (3 uses)';
     this.status(data.failed ? `${data.images.length} mockups ready; ${data.failed} failed. Choose one.` : 'Choose a mockup to make the final map.');
   }); }
 

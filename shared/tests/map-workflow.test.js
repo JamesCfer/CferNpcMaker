@@ -80,6 +80,22 @@ describe('generated map workflow', () => {
     }
   });
 
+  it('validates mockup counts and charges the selected count', () => {
+    for (const [count, cost] of [[1, 1], [2, 2], [4, 3]]) {
+      const prepared = run('Map: Prepare Request', { body: { action: 'mockups', map: sample, count } });
+      expect(prepared._map).toMatchObject({ count, cost });
+      const named = { 'Rate Limit: Validate': prepared };
+      expect(runAll('Mockups: Build Requests', {}, [], named)).toHaveLength(count);
+      const limited = run('Rate Limit: Validate', {}, [], { 'Rate Limit: Prepare Check': { ...prepared, _rateLimitCheck: { monthlyLimit: cost - 1, tier: 'free' } } });
+      expect(limited.message).toContain(`costs ${cost} uses`);
+      const collected = run('Mockups: Collect', {}, [{ data: [{ b64_json: 'YWJj' }] }], named);
+      expect(collected.failed).toBe(count - 1);
+      expect(run('Map: Build Response', {}, [], { ...named, 'Mockups: Collect': collected }).usesCharged).toBe(cost);
+      expect(run('Increment Usage Counter', {}, [], { 'Rate Limit: Validate': { ...prepared, _rateLimitCheck: { currentCount: 0, sessionKey: 'x', currentMonth: '2026-11' } } }).npc_count).toBe(cost);
+    }
+    for (const count of [0, 3, '2', null]) expect(run('Map: Prepare Request', { body: { action: 'mockups', map: sample, count } }).error).toBe('BAD_REQUEST');
+  });
+
   it('retries a resolution 400 once without resolution for either final attempt', () => {
     const prepared = run('Map: Prepare Request', { body: { action: 'final', quality: 'high', map: sample, mockup: { b64: 'YWJj' } } });
     for (const [request, check, fallback] of [
