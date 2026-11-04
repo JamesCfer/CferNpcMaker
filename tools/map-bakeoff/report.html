@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map bake-off</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6a66; --line: #dddbd5;
+    --accent: #2b62c9; --good: #2e7d4f; --bad: #b3362f; --grid: rgba(255, 255, 255, 0.55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --panel: #21211f; --text: #ecebe7; --muted: #a09f99; --line: #3a3936; --accent: #6f9bf0; --good: #5fbf86; --bad: #e0766f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 20px 24px 8px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  h2 { font-size: 16px; margin: 28px 0 10px; }
+  .muted { color: var(--muted); }
+  main { padding: 0 24px 60px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+  select, button, input { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .best { color: var(--good); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .grid { display: grid; gap: 14px; }
+  .row { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .row h3 { margin: 0 0 2px; font-size: 15px; }
+  .row .desc { margin: 0 0 10px; color: var(--muted); }
+  .cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .cell { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .thumb { position: relative; aspect-ratio: 3 / 2; background: #0002; cursor: zoom-in; }
+  .thumb img, .thumb canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .thumb .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 10px; color: var(--bad); text-align: center; font-size: 12px; }
+  .meta { padding: 8px 10px; font-size: 12px; }
+  .meta b { font-size: 13px; }
+  .scores { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 0 10px 10px; font-size: 12px; align-items: center; }
+  .scores select { padding: 2px 4px; }
+  dialog { border: none; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; }
+  dialog::backdrop { background: rgba(0, 0, 0, .8); }
+  .lb { position: relative; display: inline-block; }
+  .lb img { display: block; max-width: 94vw; max-height: 86vh; }
+  .lb.full img { max-width: none; max-height: none; }
+  .lb canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .lbbar { display: flex; gap: 8px; margin-bottom: 8px; color: #fff; align-items: center; flex-wrap: wrap; }
+  .lbbar button { background: #fff; color: #1d1d1b; border-color: #fff; }
+  .lbwrap { overflow: auto; max-width: 96vw; max-height: 88vh; }
+  @media (max-width: 600px) { header, main { padding-left: 16px; padding-right: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Battle map bake-off</h1>
+  <div class="muted" id="sub">Loading results.js…</div>
+</header>
+<main>
+  <h2>Summary by model</h2>
+  <div class="scroll"><table id="summary"></table></div>
+  <p class="muted" id="sumnote"></p>
+
+  <h2>Score the images</h2>
+  <p class="muted">Score each image 1 (poor) to 5 (great). Scores save in this browser. Click an image to view it full size with the grid on top. Grid fit = how well walls, doors, and objects line up with the squares.</p>
+  <div class="bar">
+    <label>Show <select id="fkind"><option value="map">New maps</option><option value="edit">Edits</option></select></label>
+    <label>Perspective <select id="fpersp"><option value="">All</option><option>top-down</option><option>isometric</option><option>three-quarter</option></select></label>
+    <label><input type="checkbox" id="fgrid" checked> Grid on thumbnails</label>
+    <button id="export">Export scores (CSV)</button>
+    <button id="exportjson">Save scores (JSON)</button>
+    <label><button id="importbtn" type="button">Load scores (JSON)</button><input type="file" id="import" accept=".json" hidden></label>
+  </div>
+  <div class="grid" id="rows"></div>
+</main>
+
+<dialog id="lb">
+  <div class="lbbar">
+    <b id="lbtitle"></b>
+    <label><input type="checkbox" id="lbgrid" checked> Grid</label>
+    <label><input type="checkbox" id="lbfull"> Actual size</label>
+    <button id="lbclose">Close</button>
+  </div>
+  <div class="lbwrap"><div class="lb" id="lbbox"><img id="lbimg" alt=""><canvas id="lbcanvas"></canvas></div></div>
+</dialog>
+
+<script src="results.js"></script>
+<script>
+(() => {
+  const B = window.BAKEOFF;
+  const $ = s => document.querySelector(s);
+  if (!B) { $('#sub').textContent = 'results.js not found. Run run.mjs first; it writes results.js next to this page.'; return; }
+
+  const CRIT_MAP = [['detail', 'Detail'], ['persp', 'Perspective'], ['grid', 'Grid fit'], ['match', 'Matches prompt']];
+  const CRIT_EDIT = [['detail', 'Detail'], ['keep', 'Rest unchanged'], ['match', 'Edit applied'], ['seam', 'No seams']];
+  const storeKey = 'bakeoff-scores:' + B.createdAt;
+  let scores = {};
+  try { scores = JSON.parse(localStorage.getItem(storeKey) || '{}'); } catch (_) {}
+  const saveScores = () => { try { localStorage.setItem(storeKey, JSON.stringify(scores)); } catch (_) {} renderSummary(); };
+  const sk = r => `${r.kind}|${r.id}|${r.modelKey}`;
+
+  const models = B.models;
+  const promptById = Object.fromEntries(B.prompts.map(p => [p.id, p]));
+  const editById = Object.fromEntries((B.edits || []).map(e => [e.id, e]));
+  const res = (kind, id, mk) => B.results.find(r => r.kind === kind && r.id === id && r.modelKey === mk);
+
+  $('#sub').textContent = `${B.results.filter(r => r.ok).length} images from ${models.length} models` +
+    `${B.dryRun ? ' (dry run, placeholder images)' : ''}. Updated ${new Date(B.updatedAt).toLocaleString()}.`;
+
+  const avg = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+  const usd = v => v == null ? 'n/a' : '$' + v.toFixed(v < 1 ? 3 : 2);
+
+  function renderSummary() {
+    const rows = models.map(m => {
+      const mine = B.results.filter(r => r.modelKey === m.key);
+      const maps = mine.filter(r => r.kind === 'map'), eds = mine.filter(r => r.kind === 'edit');
+      const okMaps = maps.filter(r => r.ok), okEds = eds.filter(r => r.ok);
+      const cost = xs => avg(xs.map(r => r.costUsd).filter(v => typeof v === 'number'));
+      const mapCost = cost(okMaps), editCost = cost(okEds);
+      const sc = {};
+      for (const [k] of CRIT_MAP) sc[k] = avg(okMaps.map(r => scores[sk(r)]?.[k]).filter(Boolean));
+      const editScore = avg(okEds.flatMap(r => CRIT_EDIT.map(([k]) => scores[sk(r)]?.[k])).filter(Boolean));
+      const mapScore = avg(CRIT_MAP.map(([k]) => sc[k]).filter(v => v != null));
+      const session = mapCost != null ? 8 * mapCost + 4 * (editCost ?? mapCost) : null;
+      return { m, okMaps, maps, okEds, eds, mapCost, editCost, session, sc, mapScore, editScore,
+        ms: avg(okMaps.map(r => r.ms)), pps: avg(okMaps.map(r => r.pxPerSquare).filter(Boolean)) };
+    });
+    const best = (key, low) => {
+      const vals = rows.map(r => r[key]).filter(v => v != null);
+      return vals.length ? (low ? Math.min(...vals) : Math.max(...vals)) : null;
+    };
+    const bSession = best('session', true), bScore = best('mapScore', false);
+    const f1 = v => v == null ? 'n/a' : v.toFixed(1);
+    $('#summary').innerHTML = `<tr><th>Model</th><th>Maps ok</th><th>Edits ok</th><th>Cost per map</th><th>Cost per edit</th><th>Session (8 maps, 4 edits)</th><th>Time per map</th><th>Pixels per square</th>${CRIT_MAP.map(c => `<th>${c[1]}</th>`).join('')}<th>Map score</th><th>Edit score</th></tr>` +
+      rows.map(r => `<tr><td><b>${r.m.label}</b><div class="muted">${r.m.model}</div></td>
+        <td class="num">${r.okMaps.length}/${r.maps.length}</td><td class="num">${r.okEds.length}/${r.eds.length}</td>
+        <td class="num">${usd(r.mapCost)}</td><td class="num">${usd(r.editCost)}</td>
+        <td class="num ${r.session != null && r.session === bSession ? 'best' : ''}">${usd(r.session)}</td>
+        <td class="num">${r.ms == null ? 'n/a' : (r.ms / 1000).toFixed(1) + 's'}</td>
+        <td class="num">${r.pps == null ? 'n/a' : Math.round(r.pps)}</td>
+        ${CRIT_MAP.map(([k]) => `<td class="num">${f1(r.sc[k])}</td>`).join('')}
+        <td class="num ${r.mapScore != null && r.mapScore === bScore ? 'best' : ''}">${f1(r.mapScore)}</td>
+        <td class="num">${f1(r.editScore)}</td></tr>`).join('');
+    $('#sumnote').textContent = 'Costs are what OpenRouter billed. Session cost uses the edit cost when edits ran, otherwise the map cost. Foundry wants about 100 pixels per square; lower means the map will need upscaling.';
+  }
+
+  function drawGrid(canvas, w, h, squares, color) {
+    const [sx, sy] = squares;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, w / 1200);
+    ctx.beginPath();
+    for (let i = 1; i < sx; i++) { const x = Math.round(i * w / sx) + .5; ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    for (let j = 1; j < sy; j++) { const y = Math.round(j * h / sy) + .5; ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    ctx.stroke();
+  }
+
+  function cellFor(kind, id, m, squares) {
+    const r = res(kind, id, m.key);
+    const cell = document.createElement('div'); cell.className = 'cell';
+    const thumb = document.createElement('div'); thumb.className = 'thumb';
+    cell.append(thumb);
+    if (!r || !r.ok) {
+      thumb.innerHTML = `<div class="err">${r ? 'Failed: ' + escapeHtml(r.error || '') : 'Not run yet'}</div>`;
+      cell.insertAdjacentHTML('beforeend', `<div class="meta"><b>${m.label}</b></div>`);
+      return cell;
+    }
+    const img = new Image(); img.src = r.file; img.alt = `${m.label} ${id}`; img.loading = 'lazy';
+    const cv = document.createElement('canvas');
+    thumb.append(img, cv);
+    img.onload = () => { if ($('#fgrid').checked) fitGrid(thumb, img, cv, squares); };
+    thumb.onclick = () => openLb(r, m, squares);
+    cell.insertAdjacentHTML('beforeend', `<div class="meta"><b>${m.label}</b><br>${r.width}×${r.height}, ${r.pxPerSquare ?? '?'} px per square, ${usd(r.costUsd)}, ${(r.ms / 1000).toFixed(1)}s${r.note ? '<br>' + escapeHtml(r.note) : ''}</div>`);
+    const sc = document.createElement('div'); sc.className = 'scores';
+    for (const [k, label] of (kind === 'edit' ? CRIT_EDIT : CRIT_MAP)) {
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="">–</option>' + [1, 2, 3, 4, 5].map(n => `<option>${n}</option>`).join('');
+      sel.value = scores[sk(r)]?.[k] ?? '';
+      sel.onchange = () => { scores[sk(r)] = { ...(scores[sk(r)] || {}), [k]: sel.value ? Number(sel.value) : undefined }; saveScores(); };
+      sc.append(Object.assign(document.createElement('span'), { textContent: label }), sel);
+    }
+    cell.append(sc);
+    return cell;
+  }
+
+  // Draw the grid only over the letterboxed image area inside the thumbnail.
+  function fitGrid(thumb, img, cv, squares) {
+    const box = thumb.getBoundingClientRect();
+    const s = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const w = img.naturalWidth * s, h = img.naturalHeight * s;
+    Object.assign(cv.style, { inset: 'auto', left: (box.width - w) / 2 + 'px', top: (box.height - h) / 2 + 'px', width: w + 'px', height: h + 'px' });
+    drawGrid(cv, Math.round(w * 2), Math.round(h * 2), squares, 'rgba(255,255,255,.5)');
+  }
+
+  function renderRows() {
+    const kind = $('#fkind').value, persp = $('#fpersp').value;
+    const host = $('#rows'); host.innerHTML = '';
+    const items = kind === 'map'
+      ? B.prompts.filter(p => !persp || p.perspective === persp).map(p => ({ id: p.id, title: `${p.id}: ${p.perspective}, ${p.genre}, ${p.style}, ${p.mood}, ${p.squares[0]}×${p.squares[1]} squares`, desc: p.description, squares: p.squares }))
+      : (B.edits || []).filter(e => !persp || promptById[e.source]?.perspective === persp).map(e => ({ id: e.id, title: `${e.id} (edit of ${e.source})`, desc: e.instruction, squares: promptById[e.source]?.squares || [1, 1], source: e.source }));
+    if (!items.length) { host.innerHTML = '<p class="muted">Nothing to show for this filter.</p>'; return; }
+    for (const it of items) {
+      const row = document.createElement('div'); row.className = 'row';
+      row.innerHTML = `<h3>${escapeHtml(it.title)}</h3><p class="desc">${escapeHtml(it.desc)}</p>`;
+      const cells = document.createElement('div'); cells.className = 'cells';
+      for (const m of models) {
+        if (it.source) {
+          const before = res('map', it.source, m.key);
+          const c = cellFor(kind, it.id, m, it.squares);
+          if (before?.ok) c.querySelector('.meta')?.insertAdjacentHTML('beforeend', `<br><a href="${before.file}" target="_blank" rel="noopener">See the original map</a>`);
+          cells.append(c);
+        } else cells.append(cellFor(kind, it.id, m, it.squares));
+      }
+      row.append(cells); host.append(row);
+    }
+  }
+
+  let lbCurrent = null;
+  function openLb(r, m, squares) {
+    lbCurrent = { r, squares };
+    $('#lbtitle').textContent = `${m.label}: ${r.id}`;
+    const img = $('#lbimg');
+    img.onload = () => paintLb();
+    img.src = r.file;
+    $('#lb').showModal();
+  }
+  function paintLb() {
+    if (!lbCurrent) return;
+    const img = $('#lbimg'), cv = $('#lbcanvas');
+    $('#lbbox').classList.toggle('full', $('#lbfull').checked);
+    if ($('#lbgrid').checked) drawGrid(cv, img.naturalWidth, img.naturalHeight, lbCurrent.squares, 'rgba(255,255,255,.55)');
+    else cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+  }
+  $('#lbgrid').onchange = paintLb; $('#lbfull').onchange = paintLb;
+  $('#lbclose').onclick = () => $('#lb').close();
+  $('#lb').addEventListener('click', e => { if (e.target === $('#lb')) $('#lb').close(); });
+
+  $('#fkind').onchange = renderRows; $('#fpersp').onchange = renderRows; $('#fgrid').onchange = renderRows;
+
+  $('#export').onclick = () => {
+    const head = ['kind', 'id', 'model', 'cost_usd', 'seconds', 'width', 'height', 'px_per_square', ...new Set([...CRIT_MAP, ...CRIT_EDIT].map(c => c[0]))];
+    const lines = [head.join(',')];
+    for (const r of B.results) {
+      const s = scores[sk(r)] || {};
+      lines.push([r.kind, r.id, r.modelKey, r.costUsd ?? '', r.ms ? (r.ms / 1000).toFixed(1) : '', r.width ?? '', r.height ?? '', r.pxPerSquare ?? '', ...head.slice(8).map(k => s[k] ?? '')].join(','));
+    }
+    download('bakeoff-scores.csv', lines.join('\n'), 'text/csv');
+  };
+  $('#exportjson').onclick = () => download('bakeoff-scores.json', JSON.stringify(scores, null, 2), 'application/json');
+  $('#importbtn').onclick = () => $('#import').click();
+  $('#import').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { scores = { ...scores, ...JSON.parse(await f.text()) }; saveScores(); renderRows(); } catch (_) { alert('That file is not a scores JSON.'); }
+  };
+
+  function download(name, text, type) {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type })), download: name });
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  renderSummary();
+  renderRows();
+})();
+</script>
+</body>
+</html>

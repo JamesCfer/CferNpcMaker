@@ -1,0 +1,6 @@
+[
+  { "id": "e01-bridge-fire",  "source": "p04-bridge",    "instruction": "The bridge has been destroyed by dragonfire: the middle span has collapsed into the chasm, the remaining stones are charred black with glowing embers and rising smoke. Keep everything else on the map exactly the same." },
+  { "id": "e02-tavern-brawl", "source": "p02-tavern",    "instruction": "A brawl has wrecked the tavern: tables overturned, broken chairs and spilled ale across the floor near the bar. Keep the walls, layout, and everything else exactly the same." },
+  { "id": "e03-ship-breach",  "source": "p05-spaceship", "instruction": "The cargo bay hull has been breached: a jagged hole in the outer wall, scattered crates, sparks from torn cables, and frost around the breach. Keep everything else exactly the same." },
+  { "id": "e04-forest-winter","source": "p03-forest-road","instruction": "Make it deep winter: snow covers the ground and trees, the stream is frozen, the road is a muddy track through the snow. Keep the layout exactly the same." }
+]

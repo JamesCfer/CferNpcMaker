@@ -66,7 +66,7 @@ jobs:
       - name: Build all module packages
         run: |
           chmod +x ./build.sh
-          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator Pf2eStoreGenerator Dnd5eStoreGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline
+          ./build.sh Pf2eNpcMaker DnD5eNpcMaker Hero6eNpcMaker Pf2eItemGenerator Dnd5eItemGenerator Pf2eStoreGenerator Dnd5eStoreGenerator Pf2eNationsAndCitiesMaker Pf2eCalendarTimeline ai-battle-map-maker
 
       - name: Inject version + manifest URLs into each module.json
         run: |
@@ -91,6 +91,7 @@ jobs:
           inject Pf2eItemGenerator Pf2eItemMaker
           inject Dnd5eItemGenerator D-Ditemmaker
           inject Pf2eStoreGenerator
+          inject ai-battle-map-maker
           inject Dnd5eStoreGenerator
           inject Pf2eNationsAndCitiesMaker
           inject Pf2eCalendarTimeline
@@ -103,6 +104,7 @@ jobs:
           zip -r Pf2eItemGenerator.zip          Pf2eItemGenerator/
           zip -r Dnd5eItemGenerator.zip         Dnd5eItemGenerator/
           zip -r Pf2eStoreGenerator.zip         Pf2eStoreGenerator/
+          zip -r ai-battle-map-maker.zip        ai-battle-map-maker/
           zip -r Dnd5eStoreGenerator.zip        Dnd5eStoreGenerator/
           zip -r Pf2eNationsAndCitiesMaker.zip  Pf2eNationsAndCitiesMaker/
           zip -r Pf2eCalendarTimeline.zip       Pf2eCalendarTimeline/
@@ -120,6 +122,7 @@ jobs:
             Pf2eItemGenerator/
             Dnd5eItemGenerator/
             Pf2eStoreGenerator/
+            ai-battle-map-maker/
             Dnd5eStoreGenerator/
             Pf2eNationsAndCitiesMaker/
             Pf2eCalendarTimeline/
@@ -129,11 +132,12 @@ jobs:
             Pf2eItemGenerator.zip
             Dnd5eItemGenerator.zip
             Pf2eStoreGenerator.zip
+            ai-battle-map-maker.zip
             Dnd5eStoreGenerator.zip
             Pf2eNationsAndCitiesMaker.zip
             Pf2eCalendarTimeline.zip
 
-  # ── Release 1 of 9: Pf2eNpcMaker (immediate) ─────────────────────────────────
+  # ── Release 1 of 10: Pf2eNpcMaker (immediate) ─────────────────────────────────
   release-pf2e-npc:
     needs: build
     runs-on: ubuntu-latest
@@ -279,7 +283,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 2 of 9: DnD5eNpcMaker ───────────────────────────────────────────
+  # ── Release 2 of 10: DnD5eNpcMaker ───────────────────────────────────────────
   release-dnd5e-npc:
     needs: [build, release-pf2e-npc]
     runs-on: ubuntu-latest
@@ -428,7 +432,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 3 of 9: Hero6eNpcMaker ──────────────────────────────────────────
+  # ── Release 3 of 10: Hero6eNpcMaker ──────────────────────────────────────────
   release-hero6e-npc:
     needs: [build, release-dnd5e-npc]
     runs-on: ubuntu-latest
@@ -577,7 +581,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_HERO6E_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 4 of 9: Pf2eItemMaker ───────────────────────────────────────────
+  # ── Release 4 of 10: Pf2eItemMaker ───────────────────────────────────────────
   release-pf2e-item:
     needs: [build, release-hero6e-npc]
     runs-on: ubuntu-latest
@@ -726,7 +730,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_PF2E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 5 of 9: D-Ditemmaker ────────────────────────────────────────────
+  # ── Release 5 of 10: D-Ditemmaker ────────────────────────────────────────────
   release-dnd5e-item:
     needs: [build, release-pf2e-item]
     runs-on: ubuntu-latest
@@ -875,7 +879,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_ITEM_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 6 of 9: Pf2eNationsAndCitiesMaker ───────────────────────────────
+  # ── Release 6 of 10: Pf2eNationsAndCitiesMaker ───────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eNationsAndCitiesMaker to exist and
   # MODULES_RELEASE_PAT to have push access. The Foundry-API notify step is
   # intentionally skipped — add it once the Foundry package id is registered
@@ -980,7 +984,7 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eNationsAndCitiesMaker/module.json'], ['Pf2eNationsAndCitiesMaker.zip', 'Pf2eNationsAndCitiesMaker.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-  # ── Release 7 of 9: Pf2eCalendarTimeline ────────────────────────────────────
+  # ── Release 7 of 10: Pf2eCalendarTimeline ────────────────────────────────────
   release-pf2e-calendar:
     needs: [build, release-pf2e-settlements]
     runs-on: ubuntu-latest
@@ -1081,7 +1085,7 @@ jobs:
             for (const [name, path] of [['module.json', 'Pf2eCalendarTimeline/module.json'], ['Pf2eCalendarTimeline.zip', 'Pf2eCalendarTimeline.zip']])
               await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
 
-  # ── Release 8 of 9: Pf2eStoreGenerator ──────────────────────────────────────
+  # ── Release 8 of 10: Pf2eStoreGenerator ──────────────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Pf2eStoreGenerator to exist and
   # MODULES_RELEASE_PAT to have push access.
   release-pf2e-store:
@@ -1239,7 +1243,7 @@ jobs:
             }"
           notify_foundry "$FOUNDRYVTT_PF2E_STORE_RELEASE_TOKEN" "$PAYLOAD"
 
-  # ── Release 9 of 9: Dnd5eStoreGenerator ─────────────────────────────────────
+  # ── Release 9 of 10: Dnd5eStoreGenerator ─────────────────────────────────────
   # NOTE: Requires GitHub repo JamesCfer/Dnd5eStoreGenerator to exist and
   # MODULES_RELEASE_PAT to have push access.
   release-dnd5e-store:
@@ -1396,3 +1400,163 @@ jobs:
               }
             }"
           notify_foundry "$FOUNDRYVTT_DND5E_STORE_RELEASE_TOKEN" "$PAYLOAD"
+
+  # ── Release 10 of 10: ai-battle-map-maker ──────────────────────────────────────
+  # NOTE: Requires GitHub repo JamesCfer/ai-battle-map-maker to exist and
+  # MODULES_RELEASE_PAT to have push access.
+  release-ai-battle-map-maker:
+    needs: [build, release-dnd5e-store]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Stagger release (skipped for major versions)
+        if: needs.build.outputs.release_type != 'major'
+        run: sleep 10800
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version version.json)" >> $GITHUB_OUTPUT
+
+      - name: Push source to ai-battle-map-maker
+        id: push
+        env:
+          MODULES_PAT: ${{ secrets.MODULES_RELEASE_PAT }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf _ai_battle_map_maker_repo
+          if ! git clone https://x-access-token:${MODULES_PAT}@github.com/JamesCfer/ai-battle-map-maker.git _ai_battle_map_maker_repo; then
+            echo "::warning::Clone failed (does the repo exist?). Skipping ai-battle-map-maker release."
+            echo "repo_exists=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "repo_exists=true" >> $GITHUB_OUTPUT
+          # Preserve the README maintained in the module repo when deleting stale files.
+          rsync -a --exclude=.git --exclude=README.md --delete ai-battle-map-maker/ _ai_battle_map_maker_repo/
+          cd _ai_battle_map_maker_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Release v${VERSION}"
+          git push -u origin HEAD
+
+      - name: Create ai-battle-map-maker versioned release
+        if: steps.push.outputs.repo_exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'ai-battle-map-maker';
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ owner, repo, tag })).data;
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `v${version}`,
+                body: `ai-battle-map-maker v${version}`, draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'ai-battle-map-maker/module.json'], ['ai-battle-map-maker.zip', 'ai-battle-map-maker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+      - name: Update ai-battle-map-maker latest release
+        if: steps.push.outputs.repo_exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.MODULES_RELEASE_PAT }}
+          script: |
+            const fs = require('fs');
+            const owner = 'JamesCfer';
+            const repo = 'ai-battle-map-maker';
+            const tag = 'latest';
+            const version = '${{ steps.version.outputs.version }}';
+            const list = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            let release = list.data.find(r => r.tag_name === tag);
+            if (release) {
+              for (const asset of release.assets)
+                await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+              await github.rest.repos.updateRelease({
+                owner, repo, release_id: release.id,
+                name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+              });
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner, repo, tag_name: tag, name: `latest (v${version})`,
+                body: `Always points to the latest release. Current: v${version}`,
+                draft: false, prerelease: false,
+              })).data;
+            }
+            for (const [name, path] of [['module.json', 'ai-battle-map-maker/module.json'], ['ai-battle-map-maker.zip', 'ai-battle-map-maker.zip']])
+              await github.rest.repos.uploadReleaseAsset({ owner, repo, release_id: release.id, name, data: fs.readFileSync(path) });
+
+
+      - name: Notify Foundry ai-battle-map-maker Package
+        if: steps.push.outputs.repo_exists == 'true'
+        env:
+          FOUNDRYVTT_AI_BATTLE_MAP_MAKER_RELEASE_TOKEN: ${{ secrets.FOUNDRYVTT_AI_BATTLE_MAP_MAKER_RELEASE_TOKEN }}
+        run: |
+          # Retry on transient Foundry API errors with exponential backoff.
+          notify_foundry() {
+            local token="$1" payload="$2"
+            local attempt=1 max_attempts=5 delay=15
+            while :; do
+              local response http_code body
+              response=$(curl -s -w "\n%{http_code}" -X POST https://foundryvtt.com/_api/packages/release_version/ \
+                -H "Content-Type: application/json" \
+                -H "Authorization: ${token}" \
+                -d "$payload")
+              http_code=$(echo "$response" | tail -1)
+              body=$(echo "$response" | head -n -1)
+              echo "Attempt ${attempt}/${max_attempts} — HTTP status: $http_code"
+              echo "Response body: $body"
+              if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+                echo "Foundry VTT release published."
+                return 0
+              fi
+              if [ "$http_code" -eq 400 ] && echo "$body" | grep -q "already exists"; then
+                echo "This version is already registered with Foundry VTT — treating as success."
+                return 0
+              fi
+              if { [ "$http_code" -eq 429 ] || [ "$http_code" -ge 500 ]; } && [ "$attempt" -lt "$max_attempts" ]; then
+                echo "Transient error (HTTP $http_code). Retrying in ${delay}s..."
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+              echo "::warning::Foundry VTT notify failed (HTTP $http_code) — the release itself succeeded, continuing."
+              return 0
+            done
+          }
+          VERSION="${{ steps.version.outputs.version }}"
+          PAYLOAD="{
+              \"id\": \"ai-battle-map-maker\",
+              \"dry-run\": false,
+              \"release\": {
+                \"version\": \"${VERSION}\",
+                \"manifest\": \"https://github.com/JamesCfer/ai-battle-map-maker/releases/download/latest/module.json\",
+                \"notes\": \"https://github.com/JamesCfer/ai-battle-map-maker/releases/tag/v${VERSION}\",
+                \"compatibility\": {
+                  \"minimum\": \"13\",
+                  \"verified\": \"14\"
+                }
+              }
+            }"
+          notify_foundry "$FOUNDRYVTT_AI_BATTLE_MAP_MAKER_RELEASE_TOKEN" "$PAYLOAD"
