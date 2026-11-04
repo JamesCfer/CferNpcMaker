@@ -1,6 +1,6 @@
 import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
-import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, sceneTraceOptions, plural } from './map-logic.js';
+import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, selectRegionDrawing, sceneTraceOptions, plural } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
 import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated } from './compat.js';
 import { pasteRegion } from './region-paste.js';
@@ -156,7 +156,13 @@ export class BattleMapAdapter extends SystemAdapter {
   async run(task) {
     if (this.busy) return;
     this.busy = true; this.error(''); this.update();
-    try { await task(); } catch (err) { this.error(err.message); this.status(''); }
+    try { await task(); } catch (err) {
+      const message = err?.message || String(err);
+      this.error(message);
+      this.form?.querySelector('.map-error')?.scrollIntoView?.({ block: 'nearest' });
+      if (typeof ui !== 'undefined') ui.notifications?.error?.(message);
+      this.status('');
+    }
     finally { this.busy = false; this.update(); }
   }
 
@@ -301,9 +307,13 @@ export class BattleMapAdapter extends SystemAdapter {
 
   async editRegion() {
     const scene = canvas?.scene;
-    const selected = canvas?.drawings?.controlled || [];
-    const box = selected.length === 1 ? drawingBox(selected[0], scene, canvas.dimensions) : null;
-    if (!box) { ui.notifications?.warn?.('Draw a rectangle with the Drawings tool, select it, then click AI edit region.'); return; }
+    const selected = selectRegionDrawing(scene, canvas?.drawings?.controlled || [], game.user?.id);
+    const box = drawingBox(selected, scene, canvas?.dimensions);
+    if (!box) {
+      ui.notifications?.warn?.('Click Draw edit box, drag a box over the area, then click Edit region.');
+      ui.controls?.activate({ control: 'drawings', tool: 'rect' });
+      return;
+    }
     const Dialog = foundry?.applications?.api?.DialogV2;
     if (!Dialog?.wait) { ui.notifications?.error?.('Foundry DialogV2 is unavailable.'); return; }
     const choice = await Dialog.wait({ window: { title: 'AI edit region' }, content: '<label>Change<textarea name="change" maxlength="500" rows="4" style="width:100%"></textarea></label><label>Quality<select name="quality"><option value="standard">Standard (4 uses)</option><option value="economy">Economy (4 uses)</option><option value="draft">Draft (4 uses)</option><option value="high">High detail (6 uses)</option></select></label>', buttons: [
@@ -330,7 +340,7 @@ export class BattleMapAdapter extends SystemAdapter {
       const filename = sceneFileName(scene.name || 'battle-map', new Date(), extension).replace(`.${extension}`, `-${crypto.randomUUID().slice(0,8)}.${extension}`);
       const path = await uploadMap(picker, folder, new File([blob], filename, { type: blob.type }));
       await scene.update({ 'background.src': path });
-      await scene.deleteEmbeddedDocuments('Drawing', [selected[0].document.id]);
+      await scene.deleteEmbeddedDocuments('Drawing', [selected?.document?.id || selected.id]);
       ui.notifications?.success?.(`Region edited (${result.usesCharged} uses).`);
     } catch (err) { ui.notifications?.error?.(err.message); }
   }

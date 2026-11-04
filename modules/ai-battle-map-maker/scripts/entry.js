@@ -5,6 +5,7 @@ import { startHeartbeat } from './core/heartbeat.js';
 import { Storage } from './core/storage.js';
 import { BattleMapAdapter } from './adapter.js';
 import { loadMapTemplates, registerMapSceneControls } from './compat.js';
+import { rememberCreatedDrawing } from './map-logic.js';
 
 const adapter = new BattleMapAdapter();
 const ID = adapter.module.id;
@@ -15,7 +16,8 @@ const open = () => {
 
 registerSidebar(ID, open, { buttonLabel: 'AI Battle Map Maker', buttonIcon: adapter.module.icon,
   directories: ['scenes'] });
-Hooks.on('getSceneControlButtons', controls => registerMapSceneControls(controls, () => adapter.editRegion(), () => adapter.retraceWalls()));
+Hooks.on('getSceneControlButtons', controls => registerMapSceneControls(controls, () => adapter.editRegion(), () => adapter.retraceWalls(), open));
+Hooks.on('createDrawing', (drawing, _options, userId) => rememberCreatedDrawing(drawing, userId, game.user?.id));
 
 Hooks.once('init', () => {
   game.settings.register(ID, 'devMode', { name: 'Developer Mode', hint: 'Other shared service calls use development endpoints. Map generation always uses the production webhook.', scope: 'world', config: true, type: Boolean, default: false });

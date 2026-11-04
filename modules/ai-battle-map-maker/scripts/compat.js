@@ -53,19 +53,48 @@ export function notifyMapCreated(message, uiObject = globalThis.ui) {
   uiObject?.notifications?.success?.(message);
 }
 
-export function registerMapSceneControls(controls, edit, retrace, isGM = globalThis.game?.user?.isGM) {
+export function registerMapSceneControls(controls, edit, retrace, open, isGM = globalThis.game?.user?.isGM) {
   if (!isGM || !controls || typeof controls !== 'object') return false;
-  const groups = Array.isArray(controls) ? controls : Object.values(controls);
-  const drawings = controls.drawings || groups.find(group => group?.name === 'drawings');
-  const walls = controls.walls || groups.find(group => group?.name === 'walls');
-  const add = (group, name, title, icon, handler) => {
-    if (!group?.tools) return false;
-    const tool = { name, title, icon, button: true, visible: true, onChange: active => { if (active !== false) handler(); } };
-    if (Array.isArray(group.tools)) { if (!group.tools.some(t => t.name === name)) group.tools.push(tool); return true; }
-    if (typeof group.tools === 'object') { group.tools[name] = tool; return true; }
-    return false;
+  const legacy = Array.isArray(controls);
+  const groups = legacy ? controls : Object.values(controls);
+  const order = Math.max(-1, ...groups.filter(group => group?.name !== 'ai-battle-map').map((group, index) =>
+    Number.isFinite(group?.order) ? group.order : index)) + 1;
+  const button = (name, title, icon, order, handler) => ({
+    name, title, icon, order, button: true,
+    onChange: active => { if (active !== false) handler(); },
+  });
+  const tools = [
+    { name: 'ai-pointer', title: 'AI Battle Map tools', icon: 'fa-solid fa-map', order: 0 },
+    button('ai-draw-box', 'Draw edit box', 'fa-regular fa-square', 1, () => {
+      globalThis.ui?.controls?.activate({ control: 'drawings', tool: 'rect' });
+      globalThis.ui?.notifications?.info('Drag a box over the area you want to change, then click Edit region.');
+    }),
+    button('ai-edit-region', 'Edit region (4 uses)', 'fa-solid fa-wand-magic-sparkles', 2, edit),
+    button('ai-retrace-walls', 'Re-trace walls (1 use)', 'fa-solid fa-draw-polygon', 3, retrace),
+    button('ai-open-builder', 'Open AI Battle Map Maker', 'fa-solid fa-map-location-dot', 4, open),
+  ];
+  const group = { name: 'ai-battle-map', title: 'AI Battle Map', icon: 'fa-solid fa-map', layer: 'drawings',
+    order, activeTool: 'ai-pointer', visible: true,
+    onChange: () => {},
+    tools: legacy ? tools : Object.fromEntries(tools.map(tool => [tool.name, tool])),
   };
-  const a = add(drawings, 'ai-edit-region', 'AI edit region', 'fa-solid fa-wand-magic-sparkles', edit);
-  const b = add(walls, 'ai-retrace-walls', 'Re-trace walls (1 use)', 'fa-solid fa-draw-polygon', retrace);
-  return a || b;
+  const drawings = legacy ? controls.find(existing => existing?.name === 'drawings') : controls.drawings;
+  if (drawings?.tools) {
+    const existingTools = Array.isArray(drawings.tools) ? drawings.tools : Object.values(drawings.tools);
+    const lastOrder = Math.max(-1, ...existingTools.filter(tool => tool?.name !== 'ai-edit-region')
+      .map((tool, index) => Number.isFinite(tool?.order) ? tool.order : index));
+    const editButton = button('ai-edit-region', 'Edit region (4 uses)', 'fa-solid fa-wand-magic-sparkles',
+      lastOrder + 1, edit);
+    if (Array.isArray(drawings.tools)) {
+      const index = drawings.tools.findIndex(tool => tool?.name === editButton.name);
+      if (index < 0) drawings.tools.push(editButton);
+      else drawings.tools[index] = editButton;
+    } else drawings.tools[editButton.name] = editButton;
+  }
+  if (legacy) {
+    const index = controls.findIndex(existing => existing?.name === group.name);
+    if (index < 0) controls.push(group);
+    else controls[index] = group;
+  } else controls[group.name] = group;
+  return true;
 }

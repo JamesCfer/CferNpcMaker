@@ -61,6 +61,29 @@ export function drawingBox(drawing, scene, dimensions) {
   return r - l >= 0.02 && b - t >= 0.02 ? [l,t,r,b] : null;
 }
 
+const lastCreatedDrawingIds = new Map();
+
+export function rememberCreatedDrawing(drawing, userId, currentUserId) {
+  const sceneId = drawing?.parent?.id;
+  if (userId === currentUserId && sceneId && drawing?.id && drawing?.shape?.type === 'r') {
+    lastCreatedDrawingIds.set(sceneId, drawing.id);
+  }
+}
+
+export function selectRegionDrawing(scene, controlled = [], userId, recentIds = lastCreatedDrawingIds) {
+  const rectangles = controlled.filter(drawing => (drawing?.document?.shape || drawing?.shape)?.type === 'r');
+  if (rectangles.length === 1) return rectangles[0];
+  const drawings = Array.from(scene?.drawings?.contents || scene?.drawings || []);
+  const tracked = drawings.find(drawing => drawing.id === recentIds.get(scene?.id) && drawing?.shape?.type === 'r');
+  if (tracked) return tracked;
+  const owned = drawings.filter(drawing => {
+    const author = drawing?.author?.id ?? drawing?.author ?? drawing?.user?.id ?? drawing?.user;
+    return drawing?.shape?.type === 'r' && author === userId;
+  });
+  return owned.sort((a, b) => (Number(b.sort) || 0) - (Number(a.sort) || 0)
+    || (Number(b._stats?.createdTime) || 0) - (Number(a._stats?.createdTime) || 0))[0] || null;
+}
+
 export function sceneTraceOptions(scene) {
   const size = scene?.grid?.size;
   if (!(size > 0) || !(scene.width > 0) || !(scene.height > 0)) throw new Error('Scene grid is unavailable.');

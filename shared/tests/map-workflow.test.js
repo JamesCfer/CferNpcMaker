@@ -21,6 +21,22 @@ const sample = {
 };
 
 describe('generated map workflow', () => {
+  it('prepares multi-megabyte bake and edit images without overflowing the stack', () => {
+    const png = Buffer.alloc(24);
+    png.set([0x89, 0x50, 0x4e, 0x47, 13, 10, 26, 10]);
+    png.writeUInt32BE(2400, 16);
+    png.writeUInt32BE(1792, 20);
+    for (const [action, bytes] of [['bake', 6 * 1024 * 1024], ['edit', 5 * 1024 * 1024]]) {
+      const image = { b64: Buffer.concat([png, Buffer.alloc(bytes)]).toString('base64'), mediaType: 'image/png' };
+      const body = action === 'bake'
+        ? { action, image, squares: [24, 18], units: 'imperial' }
+        : { action, image, box: [0.1, 0.1, 0.3, 0.3], change: 'Add a doorway' };
+      const result = run('Map: Prepare Request', { body });
+      expect(result.error).toBeUndefined();
+      expect(result._map).toMatchObject({ action, image: { width: 2400, height: 1792, mediaType: 'image/png' } });
+      expect(result._map.image.b64).toBe(image.b64);
+    }
+  });
   it('looks up live Patreon tiers with a credential and preserves fallback tiers', () => {
     const patreon = node('Patreon: Members');
     expect(patreon.credentials.httpHeaderAuth).toEqual({ id: 'Uz6EY2337IetoYeC', name: 'Header Auth account' });
