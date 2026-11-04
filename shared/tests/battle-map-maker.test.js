@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { costSummary, buildMapRequest, buildSceneData, measuredLabel, sceneFileName } from '../../modules/BattleMapMaker/scripts/map-logic.js';
+import { costSummary, buildMapRequest, buildSceneData, measuredLabel, sceneFileName } from '../../modules/ai-battle-map-maker/scripts/map-logic.js';
 
-describe('Battle Map Maker logic', () => {
+describe('AI Battle Map Maker logic', () => {
   it('uses the shared action costs', () => {
     expect(costSummary({ quality: 'standard' })).toMatchObject({ mockups: 3, final: 6, total: 9 });
     expect(costSummary({ quality: 'economy' })).toMatchObject({ mockups: 3, final: 4, total: 7 });

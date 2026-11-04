@@ -15,8 +15,8 @@ const loadImage = image => new Promise((resolve, reject) => {
 const canvasBlob = (canvas, type) => new Promise(resolve => canvas.toBlob(resolve, type, .9));
 
 export class BattleMapAdapter extends SystemAdapter {
-  get moduleFolder() { return 'BattleMapMaker'; }
-  get module() { return { id: 'BattleMapMaker', label: 'Battle Map', icon: 'fa-solid fa-map',
+  get moduleFolder() { return 'ai-battle-map-maker'; }
+  get module() { return { id: 'ai-battle-map-maker', label: 'AI Battle Map Maker', icon: 'fa-solid fa-map',
     githubUrl: 'https://github.com/JamesCfer/CferNpcMaker', historyLabel: 'Created Maps' }; }
   get systemId() { return 'agnostic'; }
   get formConfig() { return { documentNoun: 'map' }; }

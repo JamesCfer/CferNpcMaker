@@ -8,7 +8,7 @@
 /Pf2eCalendarTimeline/
 /Pf2eStoreGenerator/
 /Dnd5eStoreGenerator/
-/BattleMapMaker/
+/ai-battle-map-maker/
 *.zip
 node_modules/
 

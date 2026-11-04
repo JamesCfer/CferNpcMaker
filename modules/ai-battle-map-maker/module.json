@@ -1,0 +1,10 @@
+{
+  "id": "ai-battle-map-maker",
+  "title": "AI Battle Map Maker",
+  "description": "Generate a battle map from a text description and turn it into a ready Foundry scene. Pick from 4 layout mockups, then get a finished battlemap fitted to the grid in feet or metres, for D&D 5e, Pathfinder 2e or any system.",
+  "authors": [{ "name": "JamesCfer" }],
+  "compatibility": { "minimum": "13", "verified": "14" },
+  "esmodules": ["scripts/preload-templates.js", "scripts/entry.js"],
+  "styles": ["styles/builder.css"],
+  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }]
+}

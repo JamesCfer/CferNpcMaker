@@ -12,7 +12,7 @@ const open = () => {
   checkForModuleUpdate(ID, adapter.module.githubUrl).catch(() => {});
 };
 
-registerSidebar(ID, open, { buttonLabel: 'Battle Map Maker', buttonIcon: adapter.module.icon,
+registerSidebar(ID, open, { buttonLabel: 'AI Battle Map Maker', buttonIcon: adapter.module.icon,
   directories: ['scenes'] });
 
 Hooks.once('init', () => {
@@ -27,13 +27,13 @@ Hooks.once('ready', () => {
   const storage = new Storage(ID);
   if (version && storage.getVersion() && storage.getVersion() !== version) {
     storage.setKey('');
-    ui.notifications?.info?.('Battle Map Maker was updated, please sign in again.');
+    ui.notifications?.info?.('AI Battle Map Maker was updated, please sign in again.');
   }
   if (version) storage.setVersion(version);
   foundry.applications.handlebars.loadTemplates([`modules/${ID}/templates/builder.html`]);
   startHeartbeat(ID);
   if (game.user.isGM && !game.settings.get(ID, 'welcomeMessageShown')) {
-    ChatMessage.create({ content: '<h3>Welcome to Battle Map Maker!</h3><p>Create four mockups for 3 uses, then make a final map for 6 uses (Standard) or 4 uses (Economy). Open the maker from the Scenes sidebar.</p>',
+    ChatMessage.create({ content: '<h3>Welcome to AI Battle Map Maker!</h3><p>Create four mockups for 3 uses, then make a final map for 6 uses (Standard) or 4 uses (Economy). Open the maker from the Scenes sidebar.</p>',
       whisper: game.users.filter(user => user.isGM).map(user => user.id) });
     game.settings.set(ID, 'welcomeMessageShown', true);
     open();
