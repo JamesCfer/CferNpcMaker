@@ -1440,7 +1440,8 @@ jobs:
             exit 0
           fi
           echo "repo_exists=true" >> $GITHUB_OUTPUT
-          rsync -a --exclude=.git --delete ai-battle-map-maker/ _ai_battle_map_maker_repo/
+          # Preserve the README maintained in the module repo when deleting stale files.
+          rsync -a --exclude=.git --exclude=README.md --delete ai-battle-map-maker/ _ai_battle_map_maker_repo/
           cd _ai_battle_map_maker_repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
