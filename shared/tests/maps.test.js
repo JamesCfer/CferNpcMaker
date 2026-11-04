@@ -74,9 +74,14 @@ describe('shared map helpers', () => {
     expect(PLAN_PROMPT).toContain('never paste GM wording');
     expect(PLAN_PROMPT).toContain('A double door is ONE doorway with two leaves');
     expect(PLAN_PROMPT).toContain('mention each once and early');
-    expect(PLAN_PROMPT).toContain('irregular natural rock walls');
+    expect(PLAN_PROMPT).toContain('jagged natural rock edges and boulders');
+    expect(PLAN_PROMPT).toContain('never say walls, brick, masonry, or blocks unless the GM specifies built, carved, masonry, or brick construction');
     expect(PLAN_PROMPT).toContain('ring of wedge-shaped steps around a central column');
-    expect(PLAN_PROMPT).toContain('square stone base with a pointed tip casting a long shadow');
+    expect(PLAN_PROMPT).toContain('four triangular faces meeting at a central point');
+    expect(PLAN_PROMPT).toContain('on a wider square base with a long shadow on the floor');
+    expect(PLAN_PROMPT).toContain('Describe tall things only by their top outline and shadow on the floor, never their height or sides');
+    expect(PLAN_PROMPT).toContain('two thick wooden leaves meeting in the middle, lying in a wide gap in the north rock edge');
+    expect(PLAN_PROMPT).toContain('Doors and gates are thin strips in the wall line seen from above');
     expect(PLAN_PROMPT).toContain('one requested staircase means exactly one');
     expect(PLAN_PROMPT).toContain('Ban ceilings, stalactites, hanging things, wall faces, front-view arches');
     const description = 'A cave where the walls are made of stone, there is a oblisk in the centre, to the north there is a huge double door that is shut, to the south there is a spiral stone staircase that is also huge.';
