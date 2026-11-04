@@ -13,12 +13,12 @@
     <div class="field"><label>Quality</label><select name="quality"><option value="standard">Standard (6 uses)</option><option value="economy">Economy (4 uses)</option></select></div>
   </div>
   <div class="map-content-dials"></div>
-  <div class="field"><label><input type="checkbox" disabled> Integrated walls and lighting</label><span class="field-hint">Coming soon</span></div>
-  <p class="map-cost" aria-live="polite">Mockups 3 uses + Standard final 6 uses = 9 uses</p>
+  <div class="field map-walls-option"><label><input type="checkbox" name="walls" checked> Integrated walls and lighting (+1 use)</label></div>
+  <p class="map-cost" aria-live="polite">Mockups 3 uses + Standard final 6 uses + walls 1 use = 10 uses</p>
   <div class="form-actions"><button type="button" class="btn-primary map-mockups">Generate mockups (3 uses)</button><button type="button" class="btn-secondary map-final" disabled>Make final map (6 uses)</button></div>
   <p class="map-status" role="status" aria-live="polite"></p><p class="map-error" role="alert" hidden></p>
   <div class="map-thumbnails" aria-label="Choose a mockup"></div>
-  <div class="map-result" hidden><p class="map-warning" hidden></p><canvas class="map-preview"></canvas><div class="map-look-dials"></div>
+  <div class="map-result" hidden><p class="map-trace-counts"></p><p class="map-warning" hidden></p><img class="map-preview" alt="Finished battle map preview"><div class="map-look-dials"></div>
     <p class="map-measured"></p><div class="map-row"><div class="field"><label>Scene width (squares)</label><input name="sceneWidth" type="number" min="1" max="200"></div><div class="field"><label>Scene height (squares)</label><input name="sceneHeight" type="number" min="1" max="200"></div></div>
     <button type="button" class="btn-primary map-create">Create scene</button></div>
 </form>

@@ -1,18 +1,18 @@
 import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
-import { DIALS } from './core/maps/prompt.js';
+import { buildMapRequest, costSummary, measuredLabel, sceneFileName } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
-import { gridFit, UNIT_SYSTEMS } from './core/maps/foundry.js';
-import { buildMapRequest, buildSceneData, costSummary, measuredLabel, sceneFileName } from './map-logic.js';
 
 const imageUrl = image => `data:${image.mediaType || 'image/png'};base64,${image.b64}`;
 const loadImage = image => new Promise((resolve, reject) => {
   const img = new Image();
   img.onload = () => resolve(img);
-  img.onerror = () => reject(new Error('The returned image could not be opened.'));
+  img.onerror = () => reject(new Error('The map image could not be decoded.'));
   img.src = imageUrl(image);
 });
-const canvasBlob = (canvas, type) => new Promise(resolve => canvas.toBlob(resolve, type, .9));
+const encodeCanvas = (canvas, type) => new Promise(resolve => canvas.toBlob(resolve, type, type === 'image/webp' ? 0.9 : undefined));
+const DIAL_LABELS = { detail: 'Detail', clutter: 'Props', wear: 'Wear', color: 'Color', tint: 'Color temperature', contrast: 'Lighting contrast', sharpness: 'Sharpness' };
+const UNIT_LABELS = { imperial: { distance: 5, units: 'ft' }, metric: { distance: 1.5, units: 'm' } };
 
 export class BattleMapAdapter extends SystemAdapter {
   get moduleFolder() { return 'ai-battle-map-maker'; }
@@ -31,6 +31,7 @@ export class BattleMapAdapter extends SystemAdapter {
     this.mockups = [];
     this.selected = -1;
     this.final = null;
+    this.sourceImage = null;
     this.busy = false;
     const field = name => form.elements.namedItem(name);
     const status = message => { form.querySelector('.map-status').textContent = message; };
@@ -42,11 +43,11 @@ export class BattleMapAdapter extends SystemAdapter {
         const wrapper = document.createElement('div');
         wrapper.className = 'field';
         const label = document.createElement('label');
-        label.textContent = DIALS[key].label;
+        label.textContent = DIAL_LABELS[key];
         const slider = document.createElement('input');
         slider.type = 'range'; slider.name = key; slider.min = '1'; slider.max = '5'; slider.step = '1'; slider.value = '3';
         const value = document.createElement('output'); value.textContent = '3';
-        slider.addEventListener('input', () => { value.textContent = slider.value; if (DIALS[key].stage === 'filter') this.renderPreview().catch(e => error(e.message)); });
+        slider.addEventListener('input', () => { value.textContent = slider.value; if (['color', 'tint', 'contrast', 'sharpness'].includes(key)) this.renderPreview(); });
         wrapper.append(label, slider, value);
         container.append(wrapper);
       }
@@ -55,9 +56,11 @@ export class BattleMapAdapter extends SystemAdapter {
     makeDials(form.querySelector('.map-look-dials'), ['color', 'tint', 'contrast', 'sharpness']);
     const update = () => {
       for (const kind of ['genre', 'style']) field(`${kind}Other`).hidden = field(kind).value !== 'other';
-      const summary = costSummary({ quality: field('quality').value });
+      const perspective = field('perspective').value;
+      form.querySelector('.map-walls-option').hidden = perspective !== 'top-down';
+      const summary = costSummary({ quality: field('quality').value, walls: field('walls').checked, perspective });
       form.querySelector('.map-cost').textContent = summary.text;
-      form.querySelector('.map-final').textContent = `Make final map (${summary.final} uses)`;
+      form.querySelector('.map-final').textContent = `Make final map (${summary.final + (field('walls').checked && perspective === 'top-down' ? 1 : 0)} uses)`;
       const signed = !!this.app?.authenticated && !this.app?._isOffline;
       form.querySelector('.map-mockups').disabled = this.busy || !signed;
       form.querySelector('.map-final').disabled = this.busy || !signed || this.selected < 0;
@@ -120,7 +123,7 @@ export class BattleMapAdapter extends SystemAdapter {
   generateMockups() { return this.run(async () => {
     const map = buildMapRequest(this.values());
     this.status('Generating four mockups…');
-    this.mockups = []; this.selected = -1; this.final = null;
+    this.mockups = []; this.selected = -1; this.final = null; this.sourceImage = null;
     this.form.querySelector('.map-result').hidden = true;
     const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren();
     const data = await this.request({ action: 'mockups', map });
@@ -152,32 +155,38 @@ export class BattleMapAdapter extends SystemAdapter {
     const tick = () => this.status(`Making final map… ${Math.floor((Date.now() - started) / 1000)} seconds elapsed. This can take about 100 seconds.`);
     tick(); const clock = setInterval(tick, 1000);
     let data;
-    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units }); }
+    try { data = await this.request({ action: 'final', quality, map, mockup: this.mockups[this.selected], units, walls: this.form.elements.walls.checked && map.perspective === 'top-down' }); }
     finally { clearInterval(clock); }
     if (!data.image || !data.scene) throw new Error('The final map response was incomplete.');
+    this.sourceImage = await loadImage(data.image);
     this.final = data;
-    this.fullImage = await loadImage(data.image);
     const warning = this.form.querySelector('.map-warning');
     warning.textContent = data.warning || ''; warning.hidden = !data.warning;
     const result = this.form.querySelector('.map-result'); result.hidden = false;
+    const trace = data.trace || {};
+    const walls = Array.isArray(trace.walls) ? trace.walls : [];
+    const lights = Array.isArray(trace.lights) ? trace.lights : [];
+    this.form.querySelector('.map-trace-counts').textContent = `Found ${walls.filter(w => w.kind !== 'door' && w.kind !== 'window').length} walls, ${walls.filter(w => w.kind === 'door').length} doors, ${lights.length} lights`;
     this.form.elements.sceneWidth.value = data.scene.squares[0];
     this.form.elements.sceneHeight.value = data.scene.squares[1];
     this.updateMeasured();
-    await this.renderPreview();
+    this.renderPreview();
     this.status('Final map ready. Adjust its look and create a scene.');
   }); }
 
   lookDials() { return Object.fromEntries(['color', 'tint', 'contrast', 'sharpness'].map(key => [key, Number(this.form.elements[key].value)])); }
-  async renderPreview() {
-    if (!this.fullImage) return;
-    const img = this.fullImage; const scale = Math.min(1, 900 / img.width);
-    const canvas = this.form.querySelector('.map-preview');
-    canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+  renderPreview() {
+    if (!this.sourceImage) return;
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 900 / this.sourceImage.naturalWidth);
+    canvas.width = Math.max(1, Math.round(this.sourceImage.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(this.sourceImage.naturalHeight * scale));
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.imageSmoothingQuality = 'high'; ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(this.sourceImage, 0, 0, canvas.width, canvas.height);
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
     applyLook(pixels.data, canvas.width, canvas.height, this.lookDials());
     ctx.putImageData(pixels, 0, 0);
+    this.form.querySelector('.map-preview').src = canvas.toDataURL('image/png');
   }
   squares() {
     return [Number(this.form.elements.sceneWidth.value), Number(this.form.elements.sceneHeight.value)].map(v =>
@@ -185,29 +194,31 @@ export class BattleMapAdapter extends SystemAdapter {
   }
   updateMeasured() {
     if (!this.final) return;
-    const system = UNIT_SYSTEMS[this.finalUnits];
-    this.form.querySelector('.map-measured').textContent = measuredLabel({ squares: this.squares(), grid: { distance: system.square, units: system.units } });
+    const system = UNIT_LABELS[this.finalUnits];
+    this.form.querySelector('.map-measured').textContent = measuredLabel({ squares: this.squares(), grid: system });
   }
 
   createScene() { return this.run(async () => {
-    if (!this.final || !this.fullImage) throw new Error('Make a final map first.');
-    const img = this.fullImage, squares = this.squares();
-    const fit = gridFit(img.width, img.height, squares);
-    this.status('Applying look at full resolution…');
-    const source = document.createElement('canvas'); source.width = img.width; source.height = img.height;
-    const srcCtx = source.getContext('2d', { willReadFrequently: true }); srcCtx.drawImage(img, 0, 0);
-    const original = srcCtx.getImageData(0, 0, img.width, img.height);
-    applyLook(original.data, img.width, img.height, this.lookDials()); srcCtx.putImageData(original, 0, 0);
-    this.status('Fitting image to the scene grid…');
-    const canvas = document.createElement('canvas'); canvas.width = fit.width; canvas.height = fit.height;
-    const ctx = canvas.getContext('2d', { willReadFrequently: !!fit.sharpen }); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(source, 0, 0, fit.width, fit.height);
-    if (fit.sharpen) { const pixels = ctx.getImageData(0, 0, fit.width, fit.height); applyLook(pixels.data, fit.width, fit.height, { sharpness: 4 }); ctx.putImageData(pixels, 0, 0); }
-    let blob = await canvasBlob(canvas, 'image/webp'); let extension = 'webp';
-    if (!blob || blob.type !== 'image/webp') { blob = await canvasBlob(canvas, 'image/png'); extension = 'png'; }
-    if (!blob) throw new Error('Could not encode the map image.');
+    if (!this.final) throw new Error('Make a final map first.');
     const description = this.form.elements.description.value.trim();
     const name = description.slice(0, 60) || 'Battle map';
+    this.status('Fitting image and preparing the scene…');
+    const image = { ...this.final.image, width: this.sourceImage.naturalWidth, height: this.sourceImage.naturalHeight };
+    const bake = await this.request({ action: 'bake', image, squares: this.squares(), units: this.finalUnits,
+      trace: this.final.trace, mood: this.form.elements.mood.value, name });
+    if (!bake.image?.b64 || !bake.scene || !Array.isArray(bake.walls) || !Array.isArray(bake.lights)) throw new Error('The baked map response was incomplete.');
+    const resized = await loadImage(bake.image);
+    const canvas = document.createElement('canvas');
+    canvas.width = resized.naturalWidth; canvas.height = resized.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(resized, 0, 0);
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    applyLook(pixels.data, canvas.width, canvas.height, this.lookDials());
+    if (bake.sharpen > 0) applyLook(pixels.data, canvas.width, canvas.height, { sharpness: 4 });
+    ctx.putImageData(pixels, 0, 0);
+    const blob = await encodeCanvas(canvas, 'image/webp') || await encodeCanvas(canvas, 'image/png');
+    if (!blob) throw new Error('The map image could not be encoded.');
+    const extension = blob.type === 'image/png' ? 'png' : 'webp';
     const filename = sceneFileName(description, new Date(), extension);
     const picker = foundry.applications.apps.FilePicker?.implementation || globalThis.FilePicker;
     if (!picker) throw new Error('Foundry FilePicker is unavailable.');
@@ -219,10 +230,10 @@ export class BattleMapAdapter extends SystemAdapter {
     const upload = await picker.upload('data', folder, new File([blob], filename, { type: blob.type }), {});
     const path = upload?.path || `${folder}/${filename}`;
     this.status('Creating Foundry scene…');
-    const data = buildSceneData({ name, src: path, squares, units: this.finalUnits,
-      imageSize: { width: img.width, height: img.height } });
-    const scene = await Scene.create(data);
+    const scene = await Scene.create({ ...bake.scene, background: { src: path } });
     if (!scene) throw new Error('Foundry did not create the scene.');
+    if (bake.walls.length) await scene.createEmbeddedDocuments('Wall', bake.walls);
+    if (bake.lights.length) await scene.createEmbeddedDocuments('AmbientLight', bake.lights);
     this.status('Opening scene…'); await scene.view();
     this.status(`Created scene “${name}”.`);
     ui.notifications.success(`Created battle map scene “${name}”.`);

@@ -1,25 +1,26 @@
 import { ACTION_COSTS } from './core/plans.js';
-import { gridFit, UNIT_SYSTEMS } from './core/maps/foundry.js';
-import { OUTDOOR, PERSPECTIVES, MOODS } from './core/maps/prompt.js';
+
+const OUTDOOR = /\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\b/i;
 
 const price = id => ACTION_COSTS.find(action => action.id === id).cost;
 const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) && String(value).trim() !== ''
   ? Math.max(min, Math.min(max, Math.round(Number(value)))) : fallback;
 
-export function costSummary({ quality = 'standard', includeMockups = true } = {}) {
+export function costSummary({ quality = 'standard', includeMockups = true, walls = false, perspective = 'top-down' } = {}) {
   const mockups = includeMockups ? price('map-mockups') : 0;
   const final = price(quality === 'economy' ? 'map-final-economy' : 'map-final');
-  const total = mockups + final;
+  const wallCost = walls && perspective === 'top-down' ? price('map-walls') : 0;
+  const total = mockups + final + wallCost;
   return { mockups, final, total, text: includeMockups
-    ? `Mockups ${mockups} uses + ${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses = ${total} uses`
-    : `${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses` };
+    ? `Mockups ${mockups} uses + ${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''} = ${total} uses`
+    : `${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''}` };
 }
 
 export function buildMapRequest(values) {
   const description = String(values.description ?? '').trim();
   if (!description) throw new Error('Describe the map before generating mockups.');
-  const perspective = PERSPECTIVES[values.perspective] ? values.perspective : 'top-down';
-  const mood = MOODS[values.mood] ? values.mood : 'day';
+  const perspective = ['top-down', 'isometric', 'three-quarter'].includes(values.perspective) ? values.perspective : 'top-down';
+  const mood = ['day', 'dusk', 'night'].includes(values.mood) ? values.mood : 'day';
   const genre = String(values.genre === 'other' ? values.genreOther : values.genre ?? 'fantasy').trim();
   const style = String(values.style === 'other' ? values.styleOther : values.style ?? 'painted').trim();
   if (!genre || !style) throw new Error('Enter a genre and style for Other.');
@@ -28,14 +29,6 @@ export function buildMapRequest(values) {
   const source = values.dials ?? values;
   const dials = Object.fromEntries(['detail', 'clutter', 'wear'].map(key => [key, clamp(source[key], 1, 5, 3)]));
   return { description, perspective, genre, style, mood, squares, setting, dials };
-}
-
-export function buildSceneData({ name, src, squares, units = 'imperial', square, imageSize }) {
-  const unit = UNIT_SYSTEMS[units];
-  if (!unit) throw new Error(`Unknown unit system "${units}"`);
-  const fit = gridFit(imageSize.width, imageSize.height, squares);
-  return { name, width: fit.width, height: fit.height, padding: 0, background: { src },
-    grid: { type: 1, size: 100, distance: square ?? unit.square, units: unit.units } };
 }
 
 export function measuredLabel(scene) {

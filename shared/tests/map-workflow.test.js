@@ -3,14 +3,14 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import path from 'node:path';
 import { buildMapWorkflow } from '../../tools/n8n/build-map-workflow.mjs';
-import { buildPrompt, finalPrompt, CHECK_PROMPT, SCALE_PROMPT, averageScale, sceneScale } from '../scripts/core/maps/index.js';
+import { buildPrompt, finalPrompt, CHECK_PROMPT, SCALE_PROMPT, LIGHTS_PROMPT, WALLS_PROMPT, averageScale, sceneScale, toFoundryWalls, toFoundryLights, gridFit, UNIT_SYSTEMS } from '../scripts/core/maps/index.js';
 
 const workflow = buildMapWorkflow();
 const node = name => workflow.nodes.find(n => n.name === name);
 const runAll = (name, json, records = [], named = {}) => runInNewContext(`(function(){${node(name).parameters.jsCode}\n})()`, {
   $json: json,
-  $input: { all: () => records.map(json => ({ json })) },
-  $: key => ({ first: () => ({ json: named[key] }) }),
+  $input: { all: () => records.map(json => ({ json })), first: () => ({ binary: named._binary }) },
+  $: key => ({ first: () => ({ json: Array.isArray(named[key]) ? named[key][0] : named[key] }), all: () => (Array.isArray(named[key]) ? named[key] : [named[key]]).map(json => ({ json })) }),
   Date, JSON, Number, String, Object, Array, Math, RegExp,
 }).map(item => item.json);
 const run = (name, json, records = [], named = {}) => runAll(name, json, records, named)[0];
@@ -29,6 +29,8 @@ describe('generated map workflow', () => {
     const scripts = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.code').map(n => n.parameters.jsCode).join('\n');
     expect(scripts).toContain(CHECK_PROMPT);
     expect(scripts).toContain(SCALE_PROMPT);
+    expect(scripts).toContain(LIGHTS_PROMPT);
+    expect(scripts).toContain(WALLS_PROMPT);
     expect(scripts).toContain('The attached image is a rough layout mockup. Redraw it as a finished battle map.');
   });
 
@@ -40,6 +42,9 @@ describe('generated map workflow', () => {
     const final = run('Map: Prepare Request', { body: { action: 'final', map: sample, mockup: { b64: 'YWJj' } } });
     expect(final._map.prompt).toBe(finalPrompt(sample));
     expect(final._map.cost).toBe(6);
+    expect(run('Map: Prepare Request', { body: { action: 'final', map: sample, mockup: { b64: 'YWJj' }, walls: true } })._map.cost).toBe(7);
+    expect(run('Map: Prepare Request', { body: { action: 'final', quality: 'economy', map: sample, mockup: { b64: 'YWJj' }, walls: true } })._map.cost).toBe(5);
+    expect(run('Map: Prepare Request', { body: { action: 'final', map: { ...sample, perspective: 'isometric' }, mockup: { b64: 'YWJj' }, walls: true } })._map.cost).toBe(6);
     expect(final._map.quality).toBe('standard');
     expect(final._map.mockup.mediaType).toBe('image/png');
     expect(run('Map: Prepare Request', { body: { action: 'final', map: sample, mockup: { b64: 'YWJj' }, quality: 'invalid' } }).error).toBe('BAD_REQUEST');
@@ -72,7 +77,7 @@ describe('generated map workflow', () => {
     const responses = [a, b].map(v => ({ choices: [{ message: { content: JSON.stringify(v) } }], usage: { cost: 0.01 } }));
     const prep = { _map: { units: 'metric', square: 2, map: sample, startedAt: Date.now() } };
     const chosen = { image: { b64: 'YWJj', mediaType: 'image/png' }, defects: { retry: false, reasons: [] }, retried: false, costUsd: 0.1 };
-    const result = run('Scale: Combine', {}, responses, { 'Rate Limit: Validate': prep, 'Scale: Build Requests': { chosen } });
+    const result = run('Scale: Combine', {}, responses, { 'Rate Limit: Validate': prep, 'Scale: Build Requests': [{ chosen, purpose: 'scale' }, { chosen, purpose: 'scale' }] });
     const avg = averageScale(a, b);
     expect(result.measured.width_m).toBe(avg.width_m);
     expect(result.measured.height_m).toBe(avg.height_m);
@@ -85,12 +90,80 @@ describe('generated map workflow', () => {
     const response = { choices: [{ message: { content: JSON.stringify(estimate) } }], usage: { cost: 0.01 } };
     const prep = { _map: { quality: 'economy', units: 'metric', square: 2, map: sample, startedAt: Date.now() } };
     const chosen = { image: { b64: 'YWJj', mediaType: 'image/png' }, defects: { retry: false, reasons: [] }, retried: false, costUsd: 0.1 };
-    const result = run('Scale: Combine', {}, [response], { 'Rate Limit: Validate': prep, 'Scale: Build Requests': { chosen } });
+    const result = run('Scale: Combine', {}, [response], { 'Rate Limit: Validate': prep, 'Scale: Build Requests': [{ chosen, purpose: 'scale' }] });
     const avg = averageScale(estimate, undefined);
     expect(result.quality).toBe('economy');
     expect(result.measured.width_m).toBe(avg.width_m);
     expect(result.measured.height_m).toBe(avg.height_m);
     expect(result.scene).toEqual(sceneScale(avg, { system: 'metric', square: 2 }));
+  });
+
+  it('sorts scale, walls, and lights, and drops the surcharge if both traces fail', () => {
+    const prep = { _map: { quality: 'standard', cost: 7, walls: true, scaleCalls: 1, units: 'imperial', map: sample, startedAt: Date.now() } };
+    const chosen = { image: { b64: 'YWJj', mediaType: 'image/png' }, costUsd: 0.1 };
+    const requests = runAll('Scale: Build Requests', chosen, [], { 'Rate Limit: Validate': prep });
+    expect(requests.map(r => r.purpose)).toEqual(['scale', 'lights', 'walls']);
+    const response = value => ({ choices: [{ message: { content: '```json\n' + JSON.stringify(value) + '\n```' } }], usage: { cost: 0.01 } });
+    const records = [response({ width_m: 30, height_m: 20 }), response({ lights: [{ kind: 'torch', x: 500, y: 500 }, null, 'bad' ] }), response({ walls: [{ kind: 'door', x1: 0, y1: 0, x2: 100, y2: 0 }, null] })];
+    const named = { 'Rate Limit: Validate': prep, 'Scale: Build Requests': requests };
+    const result = run('Scale: Combine', {}, records, named);
+    expect(result.trace.lights).toHaveLength(1);
+    expect(result.trace.walls).toHaveLength(1);
+    expect(result.chargedCost).toBe(7);
+    expect(result.costUsd).toBeCloseTo(0.13);
+    const limit = run('Rate Limit: Validate', {}, [], { 'Rate Limit: Prepare Check': { ...prep, _rateLimitCheck: { monthlyLimit: 6, tier: 'free' } } });
+    expect(limit.message).toContain('costs 7 uses');
+    expect(run('Map: Build Response', {}, [], { 'Scale: Combine': result, 'Rate Limit: Validate': prep }).usesCharged).toBe(7);
+    const failed = run('Scale: Combine', {}, [records[0], {}, {}], named);
+    expect(failed.chargedCost).toBe(6);
+    expect(failed.warning).toContain('Walls could not be traced.');
+    expect(failed.warning).toContain('Lights could not be placed.');
+    expect(run('Map: Build Response', {}, [], { 'Scale: Combine': failed, 'Rate Limit: Validate': prep }).usesCharged).toBe(6);
+    expect(run('Increment Usage Counter', {}, [], { 'Rate Limit: Validate': { ...prep, _rateLimitCheck: { currentCount: 3, sessionKey: 'x', currentMonth: '2026-11' } }, 'Scale: Combine': failed }).npc_count).toBe(9);
+  });
+
+  it('bakes the scene and Foundry documents using shared helpers', () => {
+    const trace = { walls: [{ kind: 'door', x1: 0, y1: 0, x2: 200, y2: 0 }, { kind: 'window', x1: 300, y1: 0, x2: 500, y2: 0 }], lights: [{ kind: 'torch', x: 500, y: 500 }] };
+    for (const units of ['imperial', 'metric']) {
+      const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png', width: 1200, height: 900 }, squares: [20, 15], units, trace, mood: 'night', name: 'Camp' } });
+      expect(prepared._map.cost).toBe(0);
+      const baked = run('Bake: Prepare', prepared);
+      const distance = UNIT_SYSTEMS[units].square;
+      expect(baked.scene).toEqual({ name: 'Camp', width: gridFit(1, 1, [20, 15]).width, height: 1500, padding: 0, grid: { type: 1, size: 100, distance, units: UNIT_SYSTEMS[units].units }, environment: { darknessLevel: 0.7 } });
+      expect(baked.walls).toEqual(toFoundryWalls(trace.walls, { squares: [20, 15], gridPx: 100 }).map(({ kind, ...wall }) => wall));
+      expect(baked.lights).toEqual(toFoundryLights(trace.lights, { squares: [20, 15], gridPx: 100, feetPerSquare: distance }).map(({ kind, ...light }) => light));
+      expect(baked.counts).toEqual({ walls: 0, doors: 1, windows: 1, lights: 1 });
+      expect(baked.sharpen).toBe(0.6);
+    }
+    const resize = node('Bake: Resize Image');
+    expect(resize.type).toBe('n8n-nodes-base.editImage');
+    expect(resize.parameters.operation).toBe('resize');
+    expect(resize.parameters.options.ignoreAspectRatio).toBe(true);
+    expect(workflow.connections['Bake: Prepare'].main[0][0].node).toBe('Bake: Resize Image');
+    const seen = new Set();
+    const visit = at => { if (seen.has(at)) return; seen.add(at); for (const output of workflow.connections[at]?.main || []) for (const edge of output) visit(edge.node); };
+    visit('IF: Bake Action?');
+    expect(workflow.connections['IF: Bake Action?'].main[0][0].node).toBe('Bake: Prepare');
+    const bakeOnly = new Set();
+    const walkBake = at => { if (bakeOnly.has(at)) return; bakeOnly.add(at); for (const output of workflow.connections[at]?.main || []) for (const edge of output) walkBake(edge.node); };
+    walkBake('Bake: Prepare');
+    expect(bakeOnly.has('Increment Usage Counter')).toBe(false);
+  });
+
+  it('returns the resized binary image and leaves day scenes bright', async () => {
+    expect(run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png' }, squares: [8, 6], units: 'imperial' } }).error).toBe('BAD_REQUEST');
+    const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png', width: 1200, height: 900 }, squares: [8, 6], units: 'imperial', mood: 'day' } });
+    const baked = run('Bake: Prepare', prepared);
+    expect(baked.scene).not.toHaveProperty('environment');
+    const output = await runInNewContext(`(async function(){${node('Bake: Respond').parameters.jsCode}\n}).call({helpers:{getBinaryDataBuffer:async()=>Buffer.from('resized')}})`, {
+      $input: { first: () => ({ binary: { map: { mimeType: 'image/png' } } }) },
+      $: () => ({ first: () => ({ json: baked }) }),
+      Buffer,
+    });
+    expect(output[0].json.image).toEqual({ b64: Buffer.from('resized').toString('base64'), mediaType: 'image/png' });
+    expect(output[0].json.sharpen).toBe(0);
+    expect(output[0].json).not.toHaveProperty('look');
+    expect(output[0].json.usesCharged).toBe(0);
   });
 
   it('uses the built-in OpenRouter credential on every OpenRouter node and nowhere else', () => {
