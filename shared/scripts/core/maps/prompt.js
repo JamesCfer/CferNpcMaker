@@ -1,4 +1,5 @@
 /** Pure map prompt builders and options. */
+import { LOOK_DIALS } from './dials.js';
 
 export const PERSPECTIVES = {
   // Chosen Nov 3, 2026 after testing four wordings ("combo" won: flattest walls, no labels, no white borders).
@@ -33,10 +34,7 @@ export const DIALS = {
   detail:    { label: 'Detail',            stage: 'mockup', levels: ['simple and clean, with large plain areas and only the key features', 'lightly detailed, with simple textures', 'highly detailed', 'very highly detailed, with rich textures on every surface', 'extremely intricate, with fine texture and small details everywhere'] },
   clutter:   { label: 'Props',             stage: 'mockup', levels: ['almost empty, with only essential furniture', 'sparse props', null, 'plenty of props and furnishings', 'crowded with props, debris, and small objects, while keeping clear floor space to walk on'] },
   wear:      { label: 'Wear',              stage: 'mockup', levels: ['everything pristine and brand new', 'everything clean and well kept', null, 'surfaces worn, dirty, and cracked', 'ruined, broken, and overgrown surroundings'] },
-  color:     { label: 'Color',             stage: 'filter', levels: [0.35, 0.7, 1, 1.3, 1.6] },   // saturation
-  tint:      { label: 'Color temperature', stage: 'filter', levels: [-1, -0.5, 0, 0.5, 1] },      // cool to warm
-  contrast:  { label: 'Lighting contrast', stage: 'filter', levels: [0.75, 0.88, 1, 1.15, 1.3] },
-  sharpness: { label: 'Sharpness',         stage: 'filter', levels: [-1, -0.5, 0, 0.6, 1.2] },    // blur to sharpen
+  ...LOOK_DIALS,
 };
 export function checkDials(dials) {
   for (const [k, v] of Object.entries(dials)) {

@@ -1,6 +1,6 @@
 /** Pixel look controls for battle maps. */
 
-import { DIALS, checkDials } from './prompt.js';
+import { LOOK_DIALS, checkLookDials } from './dials.js';
 
 /**
  * Filter amounts for the look dials.
@@ -8,8 +8,8 @@ import { DIALS, checkDials } from './prompt.js';
  * @returns {{saturation: number, temperature: number, contrast: number, sharpen: number}}
  */
 export function lookFilters(dials = {}) {
-  checkDials(dials);
-  const v = k => DIALS[k].levels[(dials[k] ?? 3) - 1];
+  checkLookDials(dials);
+  const v = k => LOOK_DIALS[k].levels[(dials[k] ?? 3) - 1];
   return { saturation: v('color'), temperature: v('tint'), contrast: v('contrast'), sharpen: v('sharpness') };
 }
 
