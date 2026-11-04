@@ -8,12 +8,14 @@ const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) && S
 
 export function costSummary({ quality = 'standard', includeMockups = true, walls = false, perspective = 'top-down' } = {}) {
   const mockups = includeMockups ? price('map-mockups') : 0;
-  const final = price(quality === 'economy' ? 'map-final-economy' : 'map-final');
+  const qualities = { standard: ['map-final', 'Standard'], economy: ['map-final-economy', 'Economy'], draft: ['map-final-draft', 'Draft'], high: ['map-final-high', 'High detail'] };
+  const [action, label] = qualities[quality] || qualities.standard;
+  const final = price(action);
   const wallCost = walls && perspective === 'top-down' ? price('map-walls') : 0;
   const total = mockups + final + wallCost;
   return { mockups, final, total, text: includeMockups
-    ? `Mockups ${mockups} uses + ${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''} = ${total} uses`
-    : `${quality === 'economy' ? 'Economy' : 'Standard'} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''}` };
+    ? `Mockups ${mockups} uses + ${label} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''} = ${total} uses`
+    : `${label} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''}` };
 }
 
 export function buildMapRequest(values) {

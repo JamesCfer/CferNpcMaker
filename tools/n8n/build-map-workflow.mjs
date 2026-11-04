@@ -14,8 +14,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const store = JSON.parse(fs.readFileSync(path.join(root, 'n8n-dnd5e-store-builder-workflow.json'), 'utf8'));
 const clone = value => structuredClone(value);
 const FINAL_QUALITIES = {
-  standard: { resolution: '2K', scaleCalls: 2, cost: 6 },
-  economy: { resolution: '1K', scaleCalls: 1, cost: 4 },
+  standard: { label: 'Standard', model: 'google/gemini-3.1-flash-image', resolution: '2K', scaleCalls: 2, cost: 6 },
+  economy: { label: 'Economy', model: 'google/gemini-3.1-flash-image', resolution: '1K', scaleCalls: 1, cost: 4 },
+  draft: { label: 'Draft', model: 'black-forest-labs/flux.2-klein-4b', resolution: '2K', scaleCalls: 1, cost: 2 },
+  high: { label: 'High detail', model: 'bytedance-seed/seedream-5-0-pro', resolution: '2K', scaleCalls: 1, cost: 6 },
 };
 const WALLS_COST = 1;
 const sharedPrompt = [
@@ -68,13 +70,13 @@ export function buildMapWorkflow() {
     node.parameters.options.responseCode = status;
     return node;
   };
-  const http = (name, url) => add({
+  const http = (name, url, timeout = 180000) => add({
     name, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2,
     parameters: {
       method: 'POST', url, authentication: 'predefinedCredentialType', nodeCredentialType: 'openRouterApi',
       sendHeaders: true, headerParameters: { parameters: [{ name: 'X-Title', value: 'Celestia Map Builder' }] },
       sendBody: true, specifyBody: 'json', jsonBody: '={{ JSON.stringify($json.body) }}',
-      options: { timeout: 180000, response: { response: { neverError: true, fullResponse: false } } },
+      options: { timeout, response: { response: { neverError: true, fullResponse: false } } },
     },
     onError: 'continueRegularOutput', credentials: { openRouterApi: { id: 'gYYHf4NcuzeBjKSk', name: 'OpenRouter account' } },
   });
@@ -109,16 +111,26 @@ export function buildMapWorkflow() {
   http('OpenRouter: Mockup Images', 'https://openrouter.ai/api/v1/images');
   code('Mockups: Collect', `const prep=$('Rate Limit: Validate').first().json._map;\nconst responses=$input.all().map(i=>i.json);\nconst images=responses.flatMap(r=>(r.data||[]).filter(i=>i?.b64_json).map(i=>({b64:i.b64_json,mediaType:i.media_type||'image/png'})));\nconst costUsd=responses.reduce((sum,r)=>sum+(Number(r.usage?.cost)||0),0);\nconst failed=4-images.length;\nreturn [{json:images.length?{ok:true,action:'mockups',images,failed,aspect:prep.aspect,prompt:prep.prompt,costUsd,ms:Date.now()-prep.startedAt}:{ok:false,error:'GENERATION_FAILED',message:'No mockup images were generated.',usesCharged:0}}];`);
   branch('IF: Mockups OK?', 'ok');
-  code('Final: Build Request', `const prep=$('Rate Limit: Validate').first().json._map;\nconst {prompt,aspect,mockup}=prep;\nreturn [{json:{body:{n:1,model:'google/gemini-3.1-flash-image',prompt,aspect_ratio:aspect,resolution:prep.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+mockup.mediaType+';base64,'+mockup.b64}}]},costUsd:0}}];`);
-  http('OpenRouter: Final Image', 'https://openrouter.ai/api/v1/images');
+  code('Final: Build Request', `const prep=$('Rate Limit: Validate').first().json._map;\nconst {prompt,aspect,mockup}=prep;\nconst quality=${JSON.stringify(FINAL_QUALITIES)}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt,aspect_ratio:aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+mockup.mediaType+';base64,'+mockup.b64}}]},costUsd:0}}];`);
+  http('OpenRouter: Final Image', 'https://openrouter.ai/api/v1/images', 240000);
+  const fallbackCheck = (name, request) => code(name, `const raw=$json||{};\nconst message=String(raw.error?.message??raw.message??raw.error??'');\nconst status=Number(raw.statusCode??raw.status??raw.httpCode??raw.error?.statusCode??raw.error?.status??raw.error?.httpCode??(message.match(/\\b400\\b/)||[])[0]);\nreturn [{json:{...raw,_resolutionFallback:status===400&&/resolution/i.test(message)&&!!$('${request}').first().json.body.resolution}}];`);
+  const fallbackBody = (name, request) => code(name, `const {resolution,...body}=$('${request}').first().json.body;\nreturn [{json:{body}}];`);
+  fallbackCheck('Final: Check Resolution Error', 'Final: Build Request');
+  branch('IF: Final Resolution Retry?', '_resolutionFallback');
+  fallbackBody('Final: Build Without Resolution', 'Final: Build Request');
+  http('OpenRouter: Final Image (no resolution)', 'https://openrouter.ai/api/v1/images', 240000);
   code('Final: Parse Image', parseImage('Final: Build Request'));
   branch('IF: Final Image OK?', 'ok').parameters.conditions.conditions[0].leftValue = '={{ !!$json.image }}';
   code('Final: Build Check', `${checkBody}\nreturn [{json:{body:checkRequest($json.image)}}];`);
   http('OpenRouter: Check', 'https://openrouter.ai/api/v1/chat/completions');
   code('Final: Judge', `${mapDefects.toString()}\nconst prior=$('Final: Parse Image').first().json;\nconst response=$json||{};\nlet defects={retry:false,reasons:[]}, warning;\ntry { const raw=JSON.parse(String(response.choices?.[0]?.message?.content||'').trim().replace(/^\x60\x60\x60(?:json)?\\s*/, '').replace(/\x60\x60\x60\\s*$/, '')); defects=mapDefects(raw,{perspective:$('Rate Limit: Validate').first().json._map.map.perspective}); } catch { warning='The map could not be checked.'; }\nreturn [{json:{...prior,defects,warning,costUsd:prior.costUsd+(Number(response.usage?.cost)||0),retried:false}}];`);
   branch('IF: Retry Final?', 'retry').parameters.conditions.conditions[0].leftValue = '={{ $json.defects.retry }}';
-  code('Final: Build Retry', `const prep=$('Rate Limit: Validate').first().json._map;\nconst first=$('Final: Judge').first().json;\nreturn [{json:{body:{n:1,model:'google/gemini-3.1-flash-image',prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:prep.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+prep.mockup.mediaType+';base64,'+prep.mockup.b64}}]}}}];`);
-  http('OpenRouter: Final Image (retry)', 'https://openrouter.ai/api/v1/images');
+  code('Final: Build Retry', `const prep=$('Rate Limit: Validate').first().json._map;\nconst quality=${JSON.stringify(FINAL_QUALITIES)}[prep.quality];\nreturn [{json:{body:{n:1,model:quality.model,prompt:prep.prompt,aspect_ratio:prep.aspect,resolution:quality.resolution,input_references:[{type:'image_url',image_url:{url:'data:'+prep.mockup.mediaType+';base64,'+prep.mockup.b64}}]}}}];`);
+  http('OpenRouter: Final Image (retry)', 'https://openrouter.ai/api/v1/images', 240000);
+  fallbackCheck('Final: Check Retry Resolution Error', 'Final: Build Retry');
+  branch('IF: Retry Resolution Retry?', '_resolutionFallback');
+  fallbackBody('Final: Build Retry Without Resolution', 'Final: Build Retry');
+  http('OpenRouter: Final Image (retry, no resolution)', 'https://openrouter.ai/api/v1/images', 240000);
   code('Final: Parse Retry', `const first=$('Final: Judge').first().json;\nconst raw=$json||{};\nconst img=raw.data?.[0];\nconst retryImage=img?.b64_json?{b64:img.b64_json,mediaType:img.media_type||'image/png'}:null;\nreturn [{json:{...first,image:retryImage||first.image,retried:!!retryImage,retryImageFailed:!retryImage,warning:retryImage?first.warning:'The retry image could not be generated; the first image was kept.',costUsd:first.costUsd+(Number(raw.usage?.cost)||0)}}];`);
   code('Final: Build Retry Check', `${checkBody}\nreturn [{json:{body:checkRequest($json.image)}}];`);
   http('OpenRouter: Check (retry)', 'https://openrouter.ai/api/v1/chat/completions');
@@ -174,16 +186,22 @@ return [{json:{ok:true,action:'final',quality:prep.quality,image:chosen.image,de
   link('Switch: Action','Mockups: Build Requests',0); link('Switch: Action','Final: Build Request',1);
   link('Mockups: Build Requests','OpenRouter: Mockup Images'); link('OpenRouter: Mockup Images','Mockups: Collect'); link('Mockups: Collect','IF: Mockups OK?');
   link('IF: Mockups OK?','Increment Usage Counter',0); link('IF: Mockups OK?','Respond: 502 Generation Failed',1);
-  link('Final: Build Request','OpenRouter: Final Image'); link('OpenRouter: Final Image','Final: Parse Image'); link('Final: Parse Image','IF: Final Image OK?');
+  link('Final: Build Request','OpenRouter: Final Image'); link('OpenRouter: Final Image','Final: Check Resolution Error');
+  link('Final: Check Resolution Error','IF: Final Resolution Retry?');
+  link('IF: Final Resolution Retry?','Final: Build Without Resolution',0); link('IF: Final Resolution Retry?','Final: Parse Image',1);
+  link('Final: Build Without Resolution','OpenRouter: Final Image (no resolution)'); link('OpenRouter: Final Image (no resolution)','Final: Parse Image'); link('Final: Parse Image','IF: Final Image OK?');
   link('IF: Final Image OK?','Final: Build Check',0); link('IF: Final Image OK?','Respond: 502 Generation Failed',1);
   link('Final: Build Check','OpenRouter: Check'); link('OpenRouter: Check','Final: Judge'); link('Final: Judge','IF: Retry Final?');
   link('IF: Retry Final?','Final: Build Retry',0); link('IF: Retry Final?','Scale: Build Requests',1);
-  link('Final: Build Retry','OpenRouter: Final Image (retry)'); link('OpenRouter: Final Image (retry)','Final: Parse Retry');
+  link('Final: Build Retry','OpenRouter: Final Image (retry)'); link('OpenRouter: Final Image (retry)','Final: Check Retry Resolution Error');
+  link('Final: Check Retry Resolution Error','IF: Retry Resolution Retry?');
+  link('IF: Retry Resolution Retry?','Final: Build Retry Without Resolution',0); link('IF: Retry Resolution Retry?','Final: Parse Retry',1);
+  link('Final: Build Retry Without Resolution','OpenRouter: Final Image (retry, no resolution)'); link('OpenRouter: Final Image (retry, no resolution)','Final: Parse Retry');
   link('Final: Parse Retry','Final: Build Retry Check'); link('Final: Build Retry Check','OpenRouter: Check (retry)'); link('OpenRouter: Check (retry)','Final: Judge Retry'); link('Final: Judge Retry','Scale: Build Requests');
   link('Scale: Build Requests','OpenRouter: Scale'); link('OpenRouter: Scale','Scale: Combine'); link('Scale: Combine','IF: Scale OK?');
   link('IF: Scale OK?','Increment Usage Counter',0); link('IF: Scale OK?','Respond: 502 Generation Failed',1);
   link('Increment Usage Counter','Upsert Usage Row'); link('Upsert Usage Row','Map: Build Response'); link('Map: Build Response','Respond to Webhook');
-  return { name:'Map Builder', settings:{executionOrder:'v1'}, nodes, connections,
+  return { name:'Map Builder', settings:{executionOrder:'v1',executionTimeout:300}, nodes, connections,
     _devNote:'POST /webhook/map-builder accepts mockups, final (optional walls), or free bake {image:{b64,mediaType},squares,units,trace?,mood?,name?}. Bake returns resized image, scene, walls, lights, counts, sharpen, usesCharged:0. OpenRouter requests use the built-in openRouterApi credential OpenRouter account (id gYYHf4NcuzeBjKSk). Session tier is authoritative.' };
 }
 

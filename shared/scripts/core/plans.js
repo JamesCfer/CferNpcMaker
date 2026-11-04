@@ -42,6 +42,8 @@ export const ACTION_COSTS = [
   { id: 'map-mockups', label: 'Map mockups (four)', cost: 3 },
   { id: 'map-final',   label: 'Final map', cost: 6 },
   { id: 'map-final-economy', label: 'Final map (economy)', cost: 4 },
+  { id: 'map-final-draft', label: 'Final map (draft)', cost: 2 },
+  { id: 'map-final-high', label: 'Final map (high detail)', cost: 6 },
   { id: 'map-walls', label: 'Walls and lighting', cost: 1 },
 ];
 
