@@ -4,7 +4,7 @@ Runs the same 20 battle map prompts and 4 edit tests against several image
 models, saves every image with its real cost and timing, and gives you a page
 to score them side by side with a grid laid over each map.
 
-This is a test tool for choosing the battle map maker's model. It is not
+This is a test tool for choosing AI Battle Map Maker's model. It is not
 shipped with any module.
 
 ## What it costs

@@ -1,0 +1,24 @@
+<form class="npc-form map-form" autocomplete="off">
+  <div class="field"><label for="map-description">Description</label><textarea id="map-description" name="description" rows="4" placeholder="A ruined riverside fortress with a broken bridge…"></textarea></div>
+  <div class="map-row">
+    <div class="field"><label>Perspective</label><select name="perspective"><option value="top-down">Top-down</option><option value="isometric">Isometric</option><option value="three-quarter">Three-quarter</option></select></div>
+    <div class="field"><label>Genre</label><select name="genre"><option value="fantasy">Fantasy</option><option value="sci-fi">Sci-fi</option><option value="modern">Modern</option><option value="horror">Horror</option><option value="post-apocalyptic">Post-apocalyptic</option><option value="steampunk">Steampunk</option><option value="other">Other</option></select><input name="genreOther" type="text" placeholder="Other genre" hidden></div>
+    <div class="field"><label>Style</label><select name="style"><option value="painted">Painted</option><option value="hand-drawn ink">Hand-drawn ink</option><option value="realistic">Realistic</option><option value="cartoon">Cartoon</option><option value="other">Other</option></select><input name="styleOther" type="text" placeholder="Other style" hidden></div>
+    <div class="field"><label>Mood</label><select name="mood"><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></div>
+  </div>
+  <div class="map-row">
+    <div class="field"><label>Width (squares)</label><input name="width" type="number" min="5" max="60" value="24"></div>
+    <div class="field"><label>Height (squares)</label><input name="height" type="number" min="5" max="60" value="18"></div>
+    <div class="field"><label>Setting</label><select name="setting"><option value="indoor">Indoor</option><option value="outdoor">Outdoor</option></select></div>
+    <div class="field"><label>Quality</label><select name="quality"><option value="standard">Standard (6 uses)</option><option value="economy">Economy (4 uses)</option></select></div>
+  </div>
+  <div class="map-content-dials"></div>
+  <div class="field"><label><input type="checkbox" disabled> Integrated walls and lighting</label><span class="field-hint">Coming soon</span></div>
+  <p class="map-cost" aria-live="polite">Mockups 3 uses + Standard final 6 uses = 9 uses</p>
+  <div class="form-actions"><button type="button" class="btn-primary map-mockups">Generate mockups (3 uses)</button><button type="button" class="btn-secondary map-final" disabled>Make final map (6 uses)</button></div>
+  <p class="map-status" role="status" aria-live="polite"></p><p class="map-error" role="alert" hidden></p>
+  <div class="map-thumbnails" aria-label="Choose a mockup"></div>
+  <div class="map-result" hidden><p class="map-warning" hidden></p><canvas class="map-preview"></canvas><div class="map-look-dials"></div>
+    <p class="map-measured"></p><div class="map-row"><div class="field"><label>Scene width (squares)</label><input name="sceneWidth" type="number" min="1" max="200"></div><div class="field"><label>Scene height (squares)</label><input name="sceneHeight" type="number" min="1" max="200"></div></div>
+    <button type="button" class="btn-primary map-create">Create scene</button></div>
+</form>
