@@ -87,13 +87,17 @@ describe('generated map workflow', () => {
     const request = run('Plan: Build Request', prepared);
     expect(request.body).toMatchObject({ model: 'google/gemini-3.7-flash', response_format: { type: 'json_object' } });
     expect(request.body.messages[0].content).toContain(PLAN_PROMPT);
+    expect(request.body.messages[0].content).toContain('including the main or largest space');
     expect(request.body.messages[0].content).toContain(sample.description);
     const plan = { areas: [{ what: 'broken portcullis', where: 'south', size: 'about 4 by 3 squares' }, { what: 'torchlit tables', where: 'centre', size: 'about 4 by 3 squares' }, { what: 'river stones', where: 'north', size: 'about 4 by 3 squares' }, { what: 'bad', where: 'above', size: 'large' }], connections: ['a passage between the tables and river'], notes: 'A ruined keep.' };
     const parsed = run('Plan: Parse', { choices: [{ message: { content: '```json\n' + JSON.stringify(plan) + '\n```' } }], usage: { cost: 0.001 } }, [], { 'Plan: Build Request': request });
     expect(parsed.plan.areas).toHaveLength(3);
+    expect(parsed.plan).not.toHaveProperty('warning');
     expect(parsed.layout).toContain('broken portcullis');
     expect(parsed.layout).toContain(sample.description);
     expect(run('Plan: Respond', parsed)).toMatchObject({ ok: true, usesCharged: 0, costUsd: 0.001 });
+    const thin = run('Plan: Parse', { choices: [{ message: { content: JSON.stringify({ areas: [plan.areas[0], plan.areas[3]], connections: [] }) } }] }, [], { 'Plan: Build Request': request });
+    expect(run('Plan: Respond', thin).plan.warning).toBe('The layout plan was thin; check it before generating.');
     expect(run('Plan: Parse', {}, [], { 'Plan: Build Request': request })).toMatchObject({ ok: false, error: 'PLAN_FAILED', message: 'The layout plan could not be made.', usesCharged: 0 });
     expect(workflow.connections['IF: Plan OK?'].main[1][0].node).toBe('Respond: 502 Plan Failed');
     expect(workflow.connections['IF: Plan Action?'].main[0][0].node).toBe('Plan: Build Request');

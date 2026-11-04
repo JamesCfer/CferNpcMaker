@@ -56,6 +56,8 @@ describe('shared map helpers', () => {
     expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'rubble']);
     expect(plan.connections).toEqual(['a passage through a broken portcullis']);
     expect(parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 2) })).areas).toHaveLength(2);
+    expect(parsePlan(JSON.stringify({ areas: [area('kitchen', 'north'), area('invalid', 'up')] }))).toMatchObject({ areas: [area('kitchen', 'north')], warning: 'The layout plan was thin; check it before generating.' });
+    expect(plan).not.toHaveProperty('warning');
     expect(planText(plan, 'fire in the centre')).toMatch(/^GM request: fire in the centre/);
     expect(planText(plan, 'fire in the centre')).toContain('fire in the centre, ash and rubble');
     expect(planText(plan).endsWith('Do not write any room names or labels on the map.')).toBe(true);
