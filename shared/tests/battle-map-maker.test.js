@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { costSummary, buildMapRequest, measuredLabel, sceneFileName } from '../../modules/ai-battle-map-maker/scripts/map-logic.js';
+import { costSummary, buildMapRequest, measuredLabel, sceneFileName, plural } from '../../modules/ai-battle-map-maker/scripts/map-logic.js';
 
 describe('AI Battle Map Maker logic', () => {
+  it('pluralizes counts', () => {
+    expect(plural(0, 'wall', 'walls')).toBe('walls');
+    expect(plural(1, 'wall', 'walls')).toBe('wall');
+    expect(plural(2, 'wall', 'walls')).toBe('walls');
+    expect(costSummary({ mockups: 1 }).text).toContain('Mockup 1 use');
+    expect(costSummary({ mockups: 2 }).text).toContain('Mockups 2 uses');
+  });
   it('uses the shared action costs', () => {
     expect(costSummary({ quality: 'standard' })).toMatchObject({ mockups: 3, final: 6, total: 9 });
     expect(costSummary({ quality: 'economy' })).toMatchObject({ mockups: 3, final: 4, total: 7 });
@@ -19,7 +26,7 @@ describe('AI Battle Map Maker logic', () => {
         for (const walls of [false, true]) {
           const summary = costSummary({ mockups: count, quality, walls });
           expect(summary).toMatchObject({ mockups: mockupCost, final, total: mockupCost + final + Number(walls) });
-          expect(summary.text).toContain(`Mockups ${mockupCost} uses`);
+          expect(summary.text).toContain(`${count === 1 ? 'Mockup' : 'Mockups'} ${mockupCost} ${plural(mockupCost, 'use', 'uses')}`);
         }
       }
     }

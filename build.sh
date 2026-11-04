@@ -65,7 +65,11 @@ build_module() {
   fi
 
   # Per-module scripts (entry, adapter, sanitizer)
-  cp "${overlay}/scripts/"*.js "$out/scripts/"
+  for script in "${overlay}/scripts/"*.js; do
+    [ -e "$script" ] || continue
+    case "$script" in *.test.js) continue ;; esac
+    cp "$script" "$out/scripts/"
+  done
 
   # Stylesheet: concat shared core + every *.css in the overlay's styles/ (sorted)
   cat "${SHARED}/styles/core.css" > "$out/styles/builder.css"

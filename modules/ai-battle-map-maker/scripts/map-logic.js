@@ -3,6 +3,7 @@ import { ACTION_COSTS } from './core/plans.js';
 const OUTDOOR = /\b(town|village|city|street|road|forest|alley|market|camp|wasteland|highway|courtyard|bridge|field|jungle|outpost|main deck|square)\b/i;
 
 const price = id => ACTION_COSTS.find(action => action.id === id).cost;
+export const plural = (n, one, many) => n === 1 ? one : many;
 const clamp = (value, min, max, fallback) => Number.isFinite(Number(value)) && String(value).trim() !== ''
   ? Math.max(min, Math.min(max, Math.round(Number(value)))) : fallback;
 
@@ -14,7 +15,7 @@ export function costSummary({ quality = 'standard', mockups: mockupCount = 4, in
   const wallCost = walls && perspective === 'top-down' ? price('map-walls') : 0;
   const total = mockups + final + wallCost;
   return { mockups, final, total, text: includeMockups
-    ? `Mockups ${mockups} uses + ${label} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''} = ${total} uses`
+    ? `${plural(mockupCount, 'Mockup', 'Mockups')} ${mockups} ${plural(mockups, 'use', 'uses')} + ${label} final ${final} ${plural(final, 'use', 'uses')}${wallCost ? ` + walls ${wallCost} use` : ''} = ${total} ${plural(total, 'use', 'uses')}`
     : `${label} final ${final} uses${wallCost ? ` + walls ${wallCost} use` : ''}` };
 }
 

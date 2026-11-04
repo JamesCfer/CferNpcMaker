@@ -3,15 +3,29 @@ export const PLAN_PROMPT = `Expand the GM's map description into a drawable batt
 
 export const PLAN_POSITIONS = ['north-west', 'north', 'north-east', 'west', 'centre', 'east', 'south-west', 'south', 'south-east'];
 
-/** Drop malformed areas and connections from model output. */
+/** Keep described areas while making common position wording consistent. */
 export function validatePlan(value) {
   if (!value || typeof value !== 'object' || !Array.isArray(value.areas)) throw new Error('Missing areas.');
+  const normaliseWhere = input => {
+    const original = typeof input === 'string' ? input.trim().toLowerCase().slice(0, 30) : '';
+    const words = original.replace(/\b(center|middle)\b/g, 'centre')
+      .replace(/\b(front|forward)\b/g, 'south')
+      .replace(/\b(rear|back)\b/g, 'north')
+      .replace(/\bleft\b/g, 'west').replace(/\bright\b/g, 'east');
+    if (PLAN_POSITIONS.includes(words)) return words;
+    const compass = words.match(/\b(north|south|east|west)\b/g);
+    if (compass?.length > 1) return compass[0];
+    if (compass?.length) return compass[0];
+    if (/\bcentre\b/.test(words)) return 'centre';
+    return original;
+  };
   const areas = value.areas.filter(area => area && typeof area === 'object' &&
-    ['what', 'where', 'size'].every(key => typeof area[key] === 'string' && area[key].trim()) &&
-    PLAN_POSITIONS.includes(area.where))
-    .slice(0, 8).map(area => Object.fromEntries(['what', 'where', 'size'].map(key => [key, area[key].trim()])));
+    typeof area.what === 'string' && area.what.trim())
+    .slice(0, 8).map(area => ({ what: area.what.trim(),
+      ...(normaliseWhere(area.where) ? { where: normaliseWhere(area.where) } : {}),
+      ...(typeof area.size === 'string' && area.size.trim() ? { size: area.size.trim() } : {}) }));
   if (!areas.length) throw new Error('A plan needs at least one valid area.');
-  return { areas, connections: Array.isArray(value.connections) ? value.connections.filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()).slice(0, 16) : [], notes: typeof value.notes === 'string' ? value.notes.trim() : '', ...(areas.length < 2 ? { warning: 'The layout plan was thin; check it before generating.' } : {}) };
+  return { areas, rawAreas: value.areas.length, connections: Array.isArray(value.connections) ? value.connections.filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()).slice(0, 16) : [], notes: typeof value.notes === 'string' ? value.notes.trim() : '', ...(areas.length < 2 ? { warning: 'The layout plan was thin; check it before generating.' } : {}) };
 }
 
 export function parsePlan(content) {
@@ -27,7 +41,7 @@ export function planText(plan, gmDescription = '') {
   let notes = plan.notes;
   const ending = 'Do not write any room names or labels on the map.';
   const make = () => [request && `GM request: ${request}.`,
-    `Layout: ${areas.map(a => `${a.details.join(', ')} (${a.size}) at ${a.where}`).join('; ')}.`,
+    `Layout: ${areas.map(a => `${a.details.join(', ')}${a.size ? ` (${a.size})` : ''}${a.where ? ` at ${a.where}` : ''}`).join('; ')}.`,
     connections.length && `Connections: ${connections.join('; ')}.`, notes, ending].filter(Boolean).join(' ');
   const words = () => make().split(/\s+/).length;
   while (words() > 120 && connections.length) connections.pop();

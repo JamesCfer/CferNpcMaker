@@ -1,6 +1,6 @@
 import { SystemAdapter, postToN8n, AuthError } from './core/adapter.js';
 import { N8N_ENDPOINTS, PATREON_URL } from './core/n8n.js';
-import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, sceneTraceOptions } from './map-logic.js';
+import { buildMapRequest, costSummary, measuredLabel, sceneFileName, drawingBox, sceneTraceOptions, plural } from './map-logic.js';
 import { applyLook } from './core/maps/look.js';
 import { filePicker, directoryExists, uploadMap, sceneData, wallData, lightData, createMapScene, viewMapScene, notifyMapCreated } from './compat.js';
 import { pasteRegion } from './region-paste.js';
@@ -16,6 +16,33 @@ const loadImage = image => new Promise((resolve, reject) => {
 const encodeCanvas = (canvas, type) => new Promise(resolve => canvas.toBlob(resolve, type, type === 'image/webp' ? 0.9 : undefined));
 const DIAL_LABELS = { detail: 'Detail', clutter: 'Props', wear: 'Wear', color: 'Color', tint: 'Color temperature', contrast: 'Lighting contrast', sharpness: 'Sharpness' };
 const UNIT_LABELS = { imperial: { distance: 5, units: 'ft' }, metric: { distance: 1.5, units: 'm' } };
+
+export function renderMapThumbnails(box, images, aspect, onSelect) {
+  box.replaceChildren();
+  box.style.setProperty('--cols', images.length === 1 ? '1' : '2');
+  const ratio = typeof aspect === 'string' && /^\d+:\d+$/.test(aspect) ? aspect.replace(':', ' / ') : '4 / 3';
+  box.style.setProperty('--map-aspect', ratio);
+  images.forEach((image, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'map-thumbnail';
+    button.setAttribute('aria-label', `Select mockup ${index + 1}`);
+    const img = document.createElement('img');
+    img.src = imageUrl(image);
+    img.alt = `Mockup ${index + 1}`;
+    const caption = document.createElement('span');
+    caption.className = 'map-picked';
+    button.append(img, caption);
+    button.addEventListener('click', () => {
+      box.querySelectorAll('.map-thumbnail').forEach((node, i) => {
+        node.classList.toggle('is-selected', i === index);
+        node.querySelector('.map-picked').textContent = i === index ? 'Picked' : '';
+      });
+      onSelect(index);
+    });
+    box.append(button);
+  });
+}
 
 export class BattleMapAdapter extends SystemAdapter {
   get moduleFolder() { return 'ai-battle-map-maker'; }
@@ -149,7 +176,7 @@ export class BattleMapAdapter extends SystemAdapter {
     this.status(`Generating ${count} ${count === 1 ? 'mockup' : 'mockups'}…`);
     this.mockups = []; this.selected = -1; this.final = null; this.sourceImage = null;
     this.form.querySelector('.map-result').hidden = true;
-    const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren(); box.dataset.count = String(count);
+    const box = this.form.querySelector('.map-thumbnails'); box.replaceChildren();
     const data = await this.request({ action: 'mockups', map, count, ...(!map.layout && this.form.elements.autoPlan.checked ? { autoPlan: true } : {}) });
     if (typeof data.layout === 'string' && data.layout.trim()) {
       this.form.elements.layout.value = data.layout;
@@ -157,18 +184,7 @@ export class BattleMapAdapter extends SystemAdapter {
     }
     if (!Array.isArray(data.images) || !data.images.length) throw new Error('No mockups were returned.');
     this.mockups = data.images;
-    data.images.forEach((image, index) => {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'map-thumbnail';
-      button.setAttribute('aria-label', `Select mockup ${index + 1}`);
-      const img = document.createElement('img'); img.src = imageUrl(image); img.alt = `Mockup ${index + 1}`;
-      button.append(img);
-      button.addEventListener('click', () => {
-        this.selected = index;
-        box.querySelectorAll('.map-thumbnail').forEach((node, i) => node.classList.toggle('is-selected', i === index));
-        this.update();
-      });
-      box.append(button);
-    });
+    renderMapThumbnails(box, data.images, data.aspect, index => { this.selected = index; this.update(); });
     this.status(data.failed ? `${data.images.length} mockups ready; ${data.failed} failed. Choose one.` : 'Choose a mockup to make the final map.');
   }); }
 
@@ -193,7 +209,9 @@ export class BattleMapAdapter extends SystemAdapter {
     const trace = data.trace || {};
     const walls = Array.isArray(trace.walls) ? trace.walls : [];
     const lights = Array.isArray(trace.lights) ? trace.lights : [];
-    this.form.querySelector('.map-trace-counts').textContent = `Found ${walls.filter(w => w.kind !== 'door' && w.kind !== 'window').length} walls, ${walls.filter(w => w.kind === 'door').length} doors, ${lights.length} lights`;
+    const wallCount = walls.filter(w => w.kind !== 'door' && w.kind !== 'window').length;
+    const doorCount = walls.filter(w => w.kind === 'door').length;
+    this.form.querySelector('.map-trace-counts').textContent = `Found ${wallCount} ${plural(wallCount, 'wall', 'walls')}, ${doorCount} ${plural(doorCount, 'door', 'doors')}, ${lights.length} ${plural(lights.length, 'light', 'lights')}`;
     this.form.elements.sceneWidth.value = data.scene.squares[0];
     this.form.elements.sceneHeight.value = data.scene.squares[1];
     this.updateMeasured();
@@ -204,7 +222,7 @@ export class BattleMapAdapter extends SystemAdapter {
   lookDials() { return Object.fromEntries(['color', 'tint', 'contrast', 'sharpness'].map(key => [key, Number(this.form.elements[key].value)])); }
   renderPreview() {
     if (!this.sourceImage) return;
-    const canvas = document.createElement('canvas');
+    const canvas = this.form.querySelector('.map-preview');
     const scale = Math.min(1, 900 / this.sourceImage.naturalWidth);
     canvas.width = Math.max(1, Math.round(this.sourceImage.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(this.sourceImage.naturalHeight * scale));
@@ -213,7 +231,6 @@ export class BattleMapAdapter extends SystemAdapter {
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
     applyLook(pixels.data, canvas.width, canvas.height, this.lookDials());
     ctx.putImageData(pixels, 0, 0);
-    this.form.querySelector('.map-preview').src = canvas.toDataURL('image/png');
   }
   squares() {
     return [Number(this.form.elements.sceneWidth.value), Number(this.form.elements.sceneHeight.value)].map(v =>

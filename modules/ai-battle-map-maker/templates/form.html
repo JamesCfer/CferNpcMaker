@@ -1,27 +1,31 @@
 <form class="npc-form map-form" autocomplete="off">
-  <div class="field"><label for="map-description">Description</label><textarea id="map-description" name="description" rows="4" placeholder="A ruined riverside fortress with a broken bridge…"></textarea></div>
-  <div class="field"><label><input type="checkbox" name="autoPlan" checked> Plan the layout first</label></div>
-  <details class="map-layout-plan"><summary>Layout plan</summary><div class="field"><label for="map-layout">Edit the layout before drawing</label><textarea id="map-layout" name="layout" rows="5" maxlength="1200"></textarea></div><button type="button" class="btn-secondary map-plan">Plan layout (free)</button></details>
-  <div class="map-row">
+  <section class="map-section"><div class="field"><label for="map-description">Description</label><textarea id="map-description" name="description" rows="4" placeholder="A ruined riverside fortress with a broken bridge…"></textarea></div></section>
+  <section class="map-section map-plan-section" aria-label="Layout plan">
+    <div class="field"><label><input type="checkbox" name="autoPlan" checked> Plan the layout first</label></div>
+    <details class="map-layout-plan" open><summary>Layout plan (free, editable)</summary><div class="field"><label for="map-layout">Edit the layout before drawing</label><textarea id="map-layout" name="layout" rows="5" maxlength="1200"></textarea></div></details>
+  </section>
+  <section class="map-section map-settings" aria-label="Map settings"><div class="map-settings-grid">
     <div class="field"><label>Perspective</label><select name="perspective"><option value="top-down">Top-down</option><option value="isometric">Isometric</option><option value="three-quarter">Three-quarter</option></select></div>
     <div class="field"><label>Genre</label><select name="genre"><option value="fantasy">Fantasy</option><option value="sci-fi">Sci-fi</option><option value="modern">Modern</option><option value="horror">Horror</option><option value="post-apocalyptic">Post-apocalyptic</option><option value="steampunk">Steampunk</option><option value="other">Other</option></select><input name="genreOther" type="text" placeholder="Other genre" hidden></div>
     <div class="field"><label>Style</label><select name="style"><option value="painted">Painted</option><option value="hand-drawn ink">Hand-drawn ink</option><option value="realistic">Realistic</option><option value="cartoon">Cartoon</option><option value="other">Other</option></select><input name="styleOther" type="text" placeholder="Other style" hidden></div>
     <div class="field"><label>Mood</label><select name="mood"><option value="day">Day</option><option value="dusk">Dusk</option><option value="night">Night</option></select></div>
-  </div>
-  <div class="map-row">
     <div class="field"><label>Width (squares)</label><input name="width" type="number" min="5" max="60" value="24"></div>
     <div class="field"><label>Height (squares)</label><input name="height" type="number" min="5" max="60" value="18"></div>
     <div class="field"><label>Setting</label><select name="setting"><option value="indoor">Indoor</option><option value="outdoor">Outdoor</option></select></div>
-    <div class="field"><label>Mockups</label><select name="mockups"><option value="1">1 mockup (1 use)</option><option value="2">2 mockups (2 uses)</option><option value="4" selected>4 mockups (3 uses)</option></select></div>
     <div class="field"><label>Quality</label><select name="quality"><option value="high">High detail (6 uses)</option><option value="standard" selected>Standard (6 uses)</option><option value="economy">Economy (4 uses)</option><option value="draft">Draft (2 uses)</option></select></div>
-  </div>
-  <div class="map-content-dials"></div>
-  <div class="field map-walls-option"><label><input type="checkbox" name="walls" checked> Integrated walls and lighting (+1 use)</label></div>
-  <p class="map-cost" aria-live="polite">Mockups 3 uses + Standard final 6 uses + walls 1 use = 10 uses</p>
-  <div class="form-actions"><button type="button" class="btn-primary map-mockups">Generate mockups (3 uses)</button><button type="button" class="btn-secondary map-final" disabled>Make final map (6 uses)</button></div>
-  <p class="map-status" role="status" aria-live="polite"></p><p class="map-error" role="alert" hidden></p>
-  <div class="map-thumbnails" aria-label="Choose a mockup"></div>
-  <div class="map-result" hidden><p class="map-trace-counts"></p><p class="map-warning" hidden></p><img class="map-preview" alt="Finished battle map preview"><div class="map-look-dials"></div>
-    <p class="map-measured"></p><div class="map-row"><div class="field"><label>Scene width (squares)</label><input name="sceneWidth" type="number" min="1" max="200"></div><div class="field"><label>Scene height (squares)</label><input name="sceneHeight" type="number" min="1" max="200"></div></div>
-    <button type="button" class="btn-primary map-create">Create scene</button></div>
+    <div class="field"><label>Mockups</label><select name="mockups"><option value="1">1 mockup (1 use)</option><option value="2">2 mockups (2 uses)</option><option value="4" selected>4 mockups (3 uses)</option></select></div>
+  </div></section>
+  <section class="map-section map-content-dials" aria-label="Map details"></section>
+  <section class="map-section map-walls-option"><div class="field"><label><input type="checkbox" name="walls" checked> Integrated walls and lighting (+1 use)</label></div></section>
+  <section class="map-section"><p class="map-cost" aria-live="polite">Mockups 3 uses + Standard final 6 uses + walls 1 use = 10 uses</p></section>
+  <section class="map-section map-actions-section"><div class="form-actions"><button type="button" class="btn-secondary map-plan">Plan layout (free)</button><button type="button" class="btn-primary map-mockups">Generate mockups (3 uses)</button><button type="button" class="btn-secondary map-final" disabled>Make final map (6 uses)</button></div></section>
+  <section class="map-section"><p class="map-status" role="status" aria-live="polite"></p><p class="map-error" role="alert" hidden></p></section>
+  <section class="map-section map-mockup-section" aria-label="Mockups"><div class="map-thumbnails" aria-label="Choose a mockup"></div></section>
+  <section class="map-section map-result" aria-label="Final map" hidden>
+    <p class="map-trace-counts"></p><p class="map-warning" hidden></p>
+    <canvas class="map-preview" aria-label="Finished battle map preview"></canvas>
+    <div class="map-look-dials"></div><p class="map-measured"></p>
+    <div class="map-scene-grid"><div class="field"><label>Scene width (squares)</label><input name="sceneWidth" type="number" min="1" max="200"></div><div class="field"><label>Scene height (squares)</label><input name="sceneHeight" type="number" min="1" max="200"></div></div>
+    <button type="button" class="btn-primary map-create">Create scene</button>
+  </section>
 </form>

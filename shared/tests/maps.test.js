@@ -50,13 +50,14 @@ describe('shared map helpers', () => {
     expect(base).not.toContain('Do not write any room names or labels on the map.');
   });
 
-  it('parses a fenced plan, drops bad areas, and caps layout prose', () => {
+  it('parses a fenced plan, keeps described areas, and caps layout prose', () => {
     const area = (what, where) => ({ what, where, size: 'about 4 by 3 squares' });
     const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('broken portcullis', 'south'), area('fire in the centre, ash and rubble', 'centre'), area('stone tower', 'north'), area('stable stalls', 'west'), area('invalid', 'up'), area('rubble', 'south')], connections: ['a passage through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
-    expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'rubble']);
+    expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'invalid', 'rubble']);
+    expect(plan.areas[4].where).toBe('up');
     expect(plan.connections).toEqual(['a passage through a broken portcullis']);
     expect(parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 2) })).areas).toHaveLength(2);
-    expect(parsePlan(JSON.stringify({ areas: [area('kitchen', 'north'), area('invalid', 'up')] }))).toMatchObject({ areas: [area('kitchen', 'north')], warning: 'The layout plan was thin; check it before generating.' });
+    expect(parsePlan(JSON.stringify({ areas: [area('kitchen', 'north'), area('', 'up')] }))).toMatchObject({ areas: [area('kitchen', 'north')], rawAreas: 2, warning: 'The layout plan was thin; check it before generating.' });
     expect(plan).not.toHaveProperty('warning');
     expect(planText(plan, 'fire in the centre')).toMatch(/^GM request: fire in the centre/);
     expect(planText(plan, 'fire in the centre')).toContain('fire in the centre, ash and rubble');
