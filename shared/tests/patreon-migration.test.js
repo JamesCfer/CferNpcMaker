@@ -23,6 +23,7 @@ describe('Patreon credential migration', () => {
     for (const version of [workflow, workflow.activeVersion].filter(Boolean)) {
       for (const n of patreonNodes(version)) {
         expect(n.credentials?.httpHeaderAuth).toEqual(PATREON_CREDENTIAL);
+        expect(n.parameters.options?.response?.response?.responseFormat).toBe('json');
         expect(JSON.stringify(n.parameters)).not.toContain('Bearer ');
       }
       for (const code of version.nodes.filter(n => n.name === 'Rate Limit: Prepare Check' || n.name === 'Fetch & Build Bonus List')) {
@@ -34,6 +35,17 @@ describe('Patreon credential migration', () => {
         expect(code.parameters.jsCode).toContain(`$('${prior[0]}').first().json`);
       }
     }
+  });
+
+  it('repairs an already migrated workflow without changing existing response settings', () => {
+    const input = read('n8n-map-builder-workflow.json');
+    const node = patreonNodes(input)[0];
+    delete node.parameters.options.response.response.responseFormat;
+    node.parameters.options.response.response.fullResponse = false;
+    const first = migrateWorkflow(input);
+    expect(first.changes).toHaveLength(1);
+    expect(patreonNodes(first.workflow)[0].parameters.options.response.response).toEqual({ neverError: true, fullResponse: false, responseFormat: 'json' });
+    expect(migrateWorkflow(first.workflow).changes).toHaveLength(0);
   });
 
   const session = { sessionEmail: 'patron@example.com', sessionKey: 'abc', sessionTier: 'free' };

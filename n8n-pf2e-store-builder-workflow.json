@@ -807,7 +807,8 @@
           },
           "response": {
             "response": {
-              "neverError": true
+              "neverError": true,
+              "responseFormat": "json"
             }
           }
         }

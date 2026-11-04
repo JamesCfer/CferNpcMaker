@@ -20,7 +20,7 @@ export function patreonMembersNode(name, position, url, credential) {
           paginationCompleteWhen: 'other',
           completeExpression: '={{ !($response.body.links || {}).next }}',
         } },
-        response: { response: { neverError: true } },
+        response: { response: { responseFormat: 'json', neverError: true } },
       },
     },
     credentials: { httpHeaderAuth: credential }, onError: 'continueRegularOutput', alwaysOutputData: true,
@@ -92,6 +92,17 @@ export function migrateWorkflow(input, { credential } = { credential: PATREON_CR
       changes.push(`${node.name}: replaced literal Authorization header with Header Auth credential`);
     } else if (node.type === 'n8n-nodes-base.code') migrateCode(workflow, node, credential, changes);
     else throw new Error(`${node.name}: unsupported token location`);
+  }
+  for (const node of workflow.nodes) {
+    if (node.type !== 'n8n-nodes-base.httpRequest' ||
+        !(node.name.startsWith('Patreon: Members') || node.name === 'Creator Member Lookup' || node.name === 'Get Members')) continue;
+    const options = node.parameters.options ??= {};
+    const response = options.response ??= {};
+    const settings = response.response ??= {};
+    if (settings.responseFormat !== 'json') {
+      settings.responseFormat = 'json';
+      changes.push(`${node.name}: parse Patreon response as JSON`);
+    }
   }
   if (workflow.activeVersion?.nodes) {
     const active = migrateWorkflow(workflow.activeVersion, { credential });

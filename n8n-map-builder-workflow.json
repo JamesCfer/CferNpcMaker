@@ -758,6 +758,7 @@
           },
           "response": {
             "response": {
+              "responseFormat": "json",
               "neverError": true
             }
           }
