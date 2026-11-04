@@ -11,7 +11,7 @@ const runAll = (name, json, records = [], named = {}) => runInNewContext(`(funct
   $json: json,
   $input: { all: () => records.map(json => ({ json })), first: () => ({ binary: named._binary }) },
   $: key => ({ first: () => ({ json: Array.isArray(named[key]) ? named[key][0] : named[key] }), all: () => (Array.isArray(named[key]) ? named[key] : [named[key]]).map(json => ({ json })) }),
-  Date, JSON, Number, String, Object, Array, Math, RegExp,
+  Date, JSON, Number, String, Object, Array, Math, RegExp, Buffer, DataView,
 }).map(item => item.json);
 const run = (name, json, records = [], named = {}) => runAll(name, json, records, named)[0];
 const sample = {
@@ -123,10 +123,14 @@ describe('generated map workflow', () => {
   });
 
   it('bakes the scene and Foundry documents using shared helpers', () => {
+    const png = Buffer.alloc(32); png.set([0x89, 0x50, 0x4e, 0x47]); png.writeUInt32BE(1200, 16); png.writeUInt32BE(900, 20);
+    const b64 = png.toString('base64');
     const trace = { walls: [{ kind: 'door', x1: 0, y1: 0, x2: 200, y2: 0 }, { kind: 'window', x1: 300, y1: 0, x2: 500, y2: 0 }], lights: [{ kind: 'torch', x: 500, y: 500 }] };
     for (const units of ['imperial', 'metric']) {
-      const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png', width: 1200, height: 900 }, squares: [20, 15], units, trace, mood: 'night', name: 'Camp' } });
+      const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64, mediaType: 'image/png', width: 1, height: 1 }, squares: [20, 15], units, trace, mood: 'night', name: 'Camp' } });
       expect(prepared._map.cost).toBe(0);
+      expect(prepared._map.image.width).toBe(1200);
+      expect(prepared._map.image.height).toBe(900);
       const baked = run('Bake: Prepare', prepared);
       const distance = UNIT_SYSTEMS[units].square;
       expect(baked.scene).toEqual({ name: 'Camp', width: gridFit(1, 1, [20, 15]).width, height: 1500, padding: 0, grid: { type: 1, size: 100, distance, units: UNIT_SYSTEMS[units].units }, environment: { darknessLevel: 0.7 } });
@@ -138,7 +142,7 @@ describe('generated map workflow', () => {
     const resize = node('Bake: Resize Image');
     expect(resize.type).toBe('n8n-nodes-base.editImage');
     expect(resize.parameters.operation).toBe('resize');
-    expect(resize.parameters.options.ignoreAspectRatio).toBe(true);
+    expect(resize.parameters.resizeOption).toBe('ignoreAspectRatio');
     expect(workflow.connections['Bake: Prepare'].main[0][0].node).toBe('Bake: Resize Image');
     const seen = new Set();
     const visit = at => { if (seen.has(at)) return; seen.add(at); for (const output of workflow.connections[at]?.main || []) for (const edge of output) visit(edge.node); };
@@ -151,8 +155,9 @@ describe('generated map workflow', () => {
   });
 
   it('returns the resized binary image and leaves day scenes bright', async () => {
-    expect(run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png' }, squares: [8, 6], units: 'imperial' } }).error).toBe('BAD_REQUEST');
-    const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png', width: 1200, height: 900 }, squares: [8, 6], units: 'imperial', mood: 'day' } });
+    expect(run('Map: Prepare Request', { body: { action: 'bake', image: { b64: 'YWJj', mediaType: 'image/png' }, squares: [8, 6], units: 'imperial' } }).message).toBe('Could not read the map image size.');
+    const png = Buffer.alloc(32); png.set([0x89, 0x50, 0x4e, 0x47]); png.writeUInt32BE(1200, 16); png.writeUInt32BE(900, 20);
+    const prepared = run('Map: Prepare Request', { body: { action: 'bake', image: { b64: png.toString('base64'), mediaType: 'image/png' }, squares: [8, 6], units: 'imperial', mood: 'day' } });
     const baked = run('Bake: Prepare', prepared);
     expect(baked.scene).not.toHaveProperty('environment');
     const output = await runInNewContext(`(async function(){${node('Bake: Respond').parameters.jsCode}\n}).call({helpers:{getBinaryDataBuffer:async()=>Buffer.from('resized')}})`, {

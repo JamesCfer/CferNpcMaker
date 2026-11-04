@@ -58,6 +58,7 @@ build_module() {
         scripts/core/maps) rm -rf "$out/$excluded" ;;
         scripts/core/maps/except-look)
           find "$out/scripts/core/maps" -maxdepth 1 -type f ! -name 'look.js' ! -name 'dials.js' -delete ;;
+        scripts/core/maps/image.js) rm -f "$out/$excluded" ;;
         *) echo "ERROR: unsupported build exclusion: $excluded" >&2; return 1 ;;
       esac
     done < "${overlay}/build.exclude"

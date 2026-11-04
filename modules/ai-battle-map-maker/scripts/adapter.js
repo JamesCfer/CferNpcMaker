@@ -203,15 +203,15 @@ export class BattleMapAdapter extends SystemAdapter {
     const description = this.form.elements.description.value.trim();
     const name = description.slice(0, 60) || 'Battle map';
     this.status('Fitting image and preparing the scene…');
-    const image = { ...this.final.image, width: this.sourceImage.naturalWidth, height: this.sourceImage.naturalHeight };
+    const image = this.final.image;
     const bake = await this.request({ action: 'bake', image, squares: this.squares(), units: this.finalUnits,
       trace: this.final.trace, mood: this.form.elements.mood.value, name });
     if (!bake.image?.b64 || !bake.scene || !Array.isArray(bake.walls) || !Array.isArray(bake.lights)) throw new Error('The baked map response was incomplete.');
     const resized = await loadImage(bake.image);
     const canvas = document.createElement('canvas');
-    canvas.width = resized.naturalWidth; canvas.height = resized.naturalHeight;
+    canvas.width = bake.scene.width; canvas.height = bake.scene.height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(resized, 0, 0);
+    ctx.drawImage(resized, 0, 0, canvas.width, canvas.height);
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
     applyLook(pixels.data, canvas.width, canvas.height, this.lookDials());
     if (bake.sharpen > 0) applyLook(pixels.data, canvas.width, canvas.height, { sharpness: 4 });
