@@ -50,9 +50,29 @@ build_module() {
 
   # Shared core scripts (auth, history, feedback, image, update, sidebar, utils, app, adapter)
   cp -r "${SHARED}/scripts/core/." "$out/scripts/core/"
+  # An overlay may omit server-only shared code from its public module.
+  if [ -f "${overlay}/build.exclude" ]; then
+    while IFS= read -r excluded || [ -n "$excluded" ]; do
+      case "$excluded" in
+        ''|\#*) continue ;;
+        scripts/core/maps) rm -rf "$out/$excluded" ;;
+        scripts/core/maps/except-look)
+          find "$out/scripts/core/maps" -maxdepth 1 -type f ! -name 'look.js' ! -name 'dials.js' -delete ;;
+        scripts/core/maps/image.js) rm -f "$out/$excluded" ;;
+        *) echo "ERROR: unsupported build exclusion: $excluded" >&2; return 1 ;;
+      esac
+    done < "${overlay}/build.exclude"
+  else
+    # Maps are opt-in; modules without build exclusions do not ship them.
+    rm -rf "$out/scripts/core/maps"
+  fi
 
   # Per-module scripts (entry, adapter, sanitizer)
-  cp "${overlay}/scripts/"*.js "$out/scripts/"
+  for script in "${overlay}/scripts/"*.js; do
+    [ -e "$script" ] || continue
+    case "$script" in *.test.js) continue ;; esac
+    cp "$script" "$out/scripts/"
+  done
 
   # Stylesheet: concat shared core + every *.css in the overlay's styles/ (sorted)
   cat "${SHARED}/styles/core.css" > "$out/styles/builder.css"

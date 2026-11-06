@@ -8,5 +8,9 @@
 /Pf2eCalendarTimeline/
 /Pf2eStoreGenerator/
 /Dnd5eStoreGenerator/
+/ai-battle-map-maker/
 *.zip
 node_modules/
+
+# Map bake-off output (images and results)
+/tools/map-bakeoff/out/
