@@ -1,0 +1,60 @@
+{
+  "name": "Fixture header",
+  "nodes": [
+    {
+      "name": "Inject Campaign ID",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "parameters": {
+        "url": "https://www.patreon.com/api/oauth2/v2/campaigns/9988159/members?include=user,currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[user]=email&fields[tier]=title,amount_cents&page[count]=1000",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer FIXTURE_TOKEN"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ ($response.body.links || {}).next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !($response.body.links || {}).next }}"
+            }
+          }
+        }
+      },
+      "id": "creator-member-lookup",
+      "name": "Creator Member Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1240,
+        1448
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Inject Campaign ID": {
+      "main": [
+        [
+          {
+            "node": "Creator Member Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

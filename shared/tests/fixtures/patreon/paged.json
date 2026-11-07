@@ -1,0 +1,40 @@
+{
+  "name": "Fixture paged",
+  "nodes": [
+    {
+      "name": "IF: Is Authorized?",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "const PATREON_CAMPAIGN_ID='9988159';\nconst FIXTURE_TOKEN_NAME='FIXTURE_TOKEN';\nconst email=($json.sessionEmail||'').toLowerCase().trim();\nconst sessionKey=($json.sessionKey||'').trim();\nconst sessionTier=($json.sessionTier||'').toLowerCase().trim();\nconst isSuperuser=$json.sessionIsSuperuser===true;\nconst lookupKey=email||sessionKey;\nif(!lookupKey)throw new Error('No email or session key found.');\nconst TIER_LIMITS={'free':3,'no tier':3,'none':3,'':3,'supporter':25,'professional':100,'premium':200,'superuser':999999};\nif(isSuperuser){const currentMonth=new Date().toISOString().substring(0,7);const compositeKey=lookupKey+'::'+currentMonth;return [{json:{...($json),sessionTier:'superuser',_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit:TIER_LIMITS['superuser'],tier:'superuser'}}}];}\nlet tier=sessionTier;\ntry{\n  // Follow every page of members: the campaign has more members than one page holds,\n  // so newer patrons were never found and fell back to the free tier.\n  let url='https://www.patreon.com/api/oauth2/v2/campaigns/'+PATREON_CAMPAIGN_ID+'/members?include=currently_entitled_tiers&fields[member]=patron_status,currently_entitled_amount_cents,email&fields[tier]=title,amount_cents&page[count]=1000';\n  const tierMap={};\n  let member=null;\n  for(let page=0;url&&!member&&email&&page<50;page++){\n    const resp=await $helpers.httpRequest({method:'GET',url,headers:{Authorization:'Bearer '+FIXTURE_TOKEN_NAME}});\n    for(const inc of(resp.included||[]))if(inc.type==='tier')tierMap[inc.id]=inc.attributes.title;\n    member=(resp.data||[]).find(m=>(m.attributes.email||'').toLowerCase()===email)||null;\n    url=(resp.links&&resp.links.next)||null;\n  }\n  if(member){\n    const tierIds=member.relationships?.currently_entitled_tiers?.data||[];\n    const tierNames=tierIds.map(t=>tierMap[t.id]).filter(Boolean);\n    const paidTier=tierNames.filter(t=>t.toLowerCase()!=='free').sort((a,b)=>(TIER_LIMITS[b.toLowerCase()]||0)-(TIER_LIMITS[a.toLowerCase()]||0))[0];\n    const liveTier=(paidTier||'').toLowerCase();\n    if(member.attributes.patron_status==='active_patron'&&liveTier)tier=liveTier;\n    else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:'free';}\n  }else{const sessionIsPaid=TIER_LIMITS.hasOwnProperty(sessionTier)&&TIER_LIMITS[sessionTier]>3;tier=sessionIsPaid?sessionTier:(sessionTier||'free');}\n}catch(e){tier=sessionTier||'free';}\nlet monthlyLimit=TIER_LIMITS.hasOwnProperty(tier)?TIER_LIMITS[tier]:25;\nif(!tier||tier==='free'||tier==='')monthlyLimit=3;\nconst currentMonth=new Date().toISOString().substring(0,7);\nconst compositeKey=lookupKey+'::'+currentMonth;\nreturn [{json:{...($json),sessionTier:tier,_rateLimitCheck:{sessionKey:compositeKey,email:lookupKey,currentMonth,monthlyLimit,tier}}}];"
+      },
+      "id": "a852da73-d92a-4978-95a9-1659aa03175e",
+      "name": "Rate Limit: Prepare Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        512
+      ]
+    }
+  ],
+  "connections": {
+    "IF: Is Authorized?": {
+      "main": [
+        [
+          {
+            "node": "Rate Limit: Prepare Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
