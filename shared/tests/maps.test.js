@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sceneScale, gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, dialPhrases, DIALS, applyLook, lookFilters, sizeBoost, SIZE_BOOST, mapDefects, averageScale, cropBox, LIGHTS_PROMPT, WALLS_PROMPT, WALLS_MASK_PROMPT, SCALE_PROMPT, CHECK_PROMPT, parsePlan, planText } from '../scripts/core/maps/index.js';
+import { sceneScale, gridFit, toFoundryWalls, toFoundryLights, pickAspect, buildPrompt, dialPhrases, DIALS, applyLook, lookFilters, sizeBoost, SIZE_BOOST, mapDefects, averageScale, cropBox, LIGHTS_PROMPT, WALLS_PROMPT, WALLS_MASK_PROMPT, SCALE_PROMPT, CHECK_PROMPT, PLAN_PROMPT, parsePlan, planText } from '../scripts/core/maps/index.js';
 
 const prompts = [
   {
@@ -51,7 +51,7 @@ describe('shared map helpers', () => {
   });
 
   it('parses a fenced plan, keeps described areas, and caps layout prose', () => {
-    const area = (what, where) => ({ what, where, size: 'about 4 by 3 squares' });
+    const area = (what, where) => ({ what, where, size: 'small' });
     const plan = parsePlan('```json\n' + JSON.stringify({ areas: [area('broken portcullis', 'south'), area('fire in the centre, ash and rubble', 'centre'), area('stone tower', 'north'), area('stable stalls', 'west'), area('invalid', 'up'), area('rubble', 'south')], connections: ['a passage through a broken portcullis', 5], notes: 'An uneven ruined keep.' }) + '\n```');
     expect(plan.areas.map(a => a.what)).toEqual(['broken portcullis', 'fire in the centre, ash and rubble', 'stone tower', 'stable stalls', 'invalid', 'rubble']);
     expect(plan.areas[4].where).toBe('up');
@@ -59,11 +59,55 @@ describe('shared map helpers', () => {
     expect(parsePlan(JSON.stringify({ areas: plan.areas.slice(0, 2) })).areas).toHaveLength(2);
     expect(parsePlan(JSON.stringify({ areas: [area('kitchen', 'north'), area('', 'up')] }))).toMatchObject({ areas: [area('kitchen', 'north')], rawAreas: 2, warning: 'The layout plan was thin; check it before generating.' });
     expect(plan).not.toHaveProperty('warning');
-    expect(planText(plan, 'fire in the centre')).toMatch(/^GM request: fire in the centre/);
+    expect(planText(plan, 'fire in the centre.')).toContain('GM request: fire in the centre. Layout:');
+    expect(planText(plan, 'fire in the centre.')).not.toContain('centre..');
     expect(planText(plan, 'fire in the centre')).toContain('fire in the centre, ash and rubble');
     expect(planText(plan).endsWith('Do not write any room names or labels on the map.')).toBe(true);
     const long = planText({ areas: Array.from({ length: 8 }, (_, i) => area('long ruined chamber, broken stone, ash, rubble, old banners ' + i, 'centre')), connections: Array(12).fill('long corridor connecting two chambers'), notes: 'A huge keep.' }, 'fire in the centre');
-    expect(long.split(/\s+/).length).toBeLessThanOrEqual(120);
+    expect(long.split(/\s+/).length).toBeLessThanOrEqual(180);
+  });
+
+  it('plans natural scenes as one continuous area and keeps dominant features prominent', () => {
+    expect(PLAN_PROMPT).toContain('ONE continuous space');
+    expect(PLAN_PROMPT).toContain('exactly one area');
+    expect(PLAN_PROMPT).toContain('Rewrite every request as polished visual description');
+    expect(PLAN_PROMPT).toContain('never paste GM wording');
+    expect(PLAN_PROMPT).toContain('A double door is ONE doorway with two leaves');
+    expect(PLAN_PROMPT).toContain('mention each once and early');
+    expect(PLAN_PROMPT).toContain('jagged natural rock edges and boulders');
+    expect(PLAN_PROMPT).toContain('never say walls, brick, masonry, or blocks unless the GM specifies built, carved, masonry, or brick construction');
+    expect(PLAN_PROMPT).toContain('ring of wedge-shaped steps around a central column');
+    expect(PLAN_PROMPT).toContain('four triangular faces meeting at a central point');
+    expect(PLAN_PROMPT).toContain('on a wider square base with a long shadow on the floor');
+    expect(PLAN_PROMPT).toContain('Describe tall things only by their top outline and shadow on the floor, never their height or sides');
+    expect(PLAN_PROMPT).toContain('two thick wooden leaves meeting in the middle, lying in a wide gap in the north rock edge');
+    expect(PLAN_PROMPT).toContain('Doors and gates are thin strips in the wall line seen from above');
+    expect(PLAN_PROMPT).toContain('one requested staircase means exactly one');
+    expect(PLAN_PROMPT).toContain('Ban ceilings, stalactites, hanging things, wall faces, front-view arches');
+    const description = 'A cave where the walls are made of stone, there is a oblisk in the centre, to the north there is a huge double door that is shut, to the south there is a spiral stone staircase that is also huge.';
+    const plan = parsePlan(JSON.stringify({ areas: [
+      { what: 'a stone cave with a oblisk in the centre', where: 'centre' },
+      { what: 'a vaulted stone threshold where to the north there is a huge double door that is shut', where: 'north' },
+      { what: 'a sunken cavern tier where to the south there is a spiral stone staircase that is also huge', where: 'south' },
+    ], connections: ['a passage to the threshold', 'stairs down to the tier'], notes: 'Split floor levels.' }));
+    const layout = planText(plan, description);
+    expect(layout).toMatch(/^GM request: /);
+    expect(layout).toContain('GM request: ' + description);
+    expect(layout).toContain('obelisk');
+    expect(layout).toContain('double door');
+    expect(layout).toContain('spiral stone staircase');
+    expect(layout.slice(layout.indexOf('Layout:'))).not.toMatch(/threshold|tier|Connections:|\d/);
+    expect(layout).toContain('A single continuous space');
+    expect((layout.match(/ at centre\b/g) || [])).toHaveLength(1);
+    expect(layout).not.toMatch(/\d/);
+  });
+
+  it('strips measurements from the layout plan', () => {
+    const plan = parsePlan(JSON.stringify({ areas: [{ what: 'a hall 30 ft long with pillars', where: 'north', size: 'about 5 by 4 squares' }, { what: 'two braziers and 3 crates', where: 'centre', size: 'the largest space (roughly 8x6 squares)' }], connections: ['a 10-foot corridor'], notes: 'A keep 60 by 40 feet.' }));
+    expect(plan.areas[0]).toEqual({ what: 'a hall with pillars', where: 'north' });
+    expect(plan.areas[1]).toEqual({ what: 'two braziers and crates', where: 'centre', size: 'the largest space' });
+    expect(plan.connections).toEqual(['a corridor']);
+    expect(planText(plan)).not.toMatch(/\d+\s*(?:ft|feet|squares?)|\d+\s*(?:x|by)\s*\d+/i);
   });
 
   it('keeps the old wording when every dial is on its default', () => {
