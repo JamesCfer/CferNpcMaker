@@ -58,7 +58,9 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T39. **PF2e Settlement — "Cliffside monastery town"** — a switchback town clinging to a sea-cliff, built around a contemplative order that feeds, shelters, and quietly governs the villagers below.
 - [x] T40. **D&D 5e Creature — "Lantern-eyed marsh stalker"** — a gaunt fen predator whose glowing eyes mimic distant lantern-light to lure travellers off the safe path and into the mire.
 - [x] T41. **PF2e Item — "Lamplighter's taper"** — a slim ritual candle that, once lit, reveals the faint trail of the last creature to pass through the room.
-- [ ] T42. **D&D 5e Creature — "Reedbed drowner"** — a pale, waterlogged revenant that haunts shallow reedbeds, dragging wading travellers under with cold, grasping hands.
+- [x] T42. **D&D 5e Creature — "Reedbed drowner"** — a pale, waterlogged revenant that haunts shallow reedbeds, dragging wading travellers under with cold, grasping hands.
+- [x] T43. **PF2e NPC — "Ferry-pole boatman"** — a taciturn river ferryman who poles travellers across a treacherous crossing, trades in current-lore and local rumour, and never answers questions about what he has fished out of the water.
+- [ ] T44. **D&D 5e Item — "Reedcutter's sickle"** — a curved sickle that clears tangled vegetation in a single stroke and lets the wielder move through marsh and reeds without slowing.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
