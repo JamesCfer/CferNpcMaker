@@ -16,7 +16,7 @@ const open = () => {
 
 registerSidebar(ID, open, { buttonLabel: 'AI Battle Map Maker', buttonIcon: adapter.module.icon,
   directories: ['scenes'] });
-Hooks.on('getSceneControlButtons', controls => registerMapSceneControls(controls, () => adapter.editRegion(), () => adapter.retraceWalls(), open));
+Hooks.on('getSceneControlButtons', controls => registerMapSceneControls(controls, () => adapter.editRegion(), () => adapter.retraceWalls(), open, game.user?.isGM, () => adapter.undoEdit()));
 Hooks.on('createDrawing', (drawing, _options, userId) => rememberCreatedDrawing(drawing, userId, game.user?.id));
 
 Hooks.once('init', () => {
