@@ -125,7 +125,8 @@ describe('generated map workflow', () => {
     expect(parsed.plan.areas[3].where).toBe('above');
     expect(parsed.plan).not.toHaveProperty('warning');
     expect(parsed.layout).toContain('broken portcullis');
-    expect(parsed.layout).toContain(sample.description);
+    expect(parsed.layout).toContain('GM request: ' + sample.description + '.');
+    expect(parsed.layout.slice(parsed.layout.indexOf('Layout:'))).not.toContain(sample.description);
     expect(run('Plan: Respond', parsed)).toMatchObject({ ok: true, usesCharged: 0, costUsd: 0.001 });
     const thin = run('Plan: Parse', { choices: [{ message: { content: JSON.stringify({ areas: [plan.areas[0]], connections: [] }) } }] }, [], { 'Plan: Build Request': request });
     expect(run('Plan: Respond', thin)).toMatchObject({ rawAreas: 1, warning: 'The layout plan was thin; check it before generating.' });
