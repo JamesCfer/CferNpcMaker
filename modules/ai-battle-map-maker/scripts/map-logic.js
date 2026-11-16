@@ -89,3 +89,117 @@ export function sceneTraceOptions(scene) {
   if (!(size > 0) || !(scene.width > 0) || !(scene.height > 0)) throw new Error('Scene grid is unavailable.');
   return { squares: [Math.round(scene.width / size), Math.round(scene.height / size)], units: scene.grid.units === 'm' ? 'metric' : 'imperial' };
 }
+
+/* ── Scene lighting and weather ─────────────────────────────── */
+
+/**
+ * Foundry scene environment for a map mood. Global light is on for day and
+ * dusk so tokens can see the whole map; without it a walled day map is black
+ * away from placed lights. Night relies on the placed lights, and keeps
+ * global light only when there are none, so the map is never fully black.
+ */
+export function sceneEnvironment(mood, lightCount = 0) {
+  const lit = { enabled: true, darkness: { min: 0, max: 1 } };
+  if (mood === 'night') return { darknessLevel: 0.75, globalLight: lightCount > 0 ? { enabled: false } : lit };
+  if (mood === 'dusk') return { darknessLevel: 0.35, globalLight: lit };
+  return { darknessLevel: 0, globalLight: lit };
+}
+
+/** Foundry's built-in weather effect ids (CONFIG.weatherEffects). */
+export const WEATHER = { rain: 'Rain', rainStorm: 'Rain storm', snow: 'Snow', blizzard: 'Blizzard', fog: 'Fog', leaves: 'Autumn leaves' };
+const WEATHER_WORDS = [
+  ['blizzard', /\b(blizzard|snowstorm|whiteout)\b/i],
+  ['rainStorm', /\b(storm|thunder|lightning|downpour|tempest|hurricane|monsoon)\w*\b/i],
+  ['snow', /\b(snow|snowy|snowing|snowfall)\b/i],
+  ['rain', /\b(rain|rainy|raining|drizzle|drizzling)\b/i],
+  ['fog', /\b(fog|foggy|mist|misty|haze|smog)\b/i],
+  ['leaves', /\b(autumn|falling leaves)\b/i],
+];
+
+/**
+ * Weather effect for a scene: an explicit choice, or for "auto" a guess from
+ * weather words in the description. Indoor maps never get auto weather.
+ * @returns {string} a WEATHER id, or '' for none
+ */
+export function pickWeather(choice, description = '', setting = 'outdoor') {
+  if (choice && choice !== 'auto') return Object.prototype.hasOwnProperty.call(WEATHER, choice) ? choice : '';
+  if (setting !== 'outdoor') return '';
+  return WEATHER_WORDS.find(([, words]) => words.test(description))?.[0] || '';
+}
+
+/* ── Wall and light preview ─────────────────────────────────── */
+
+/**
+ * The server's raw trace (0 to 1000 on each axis) as shapes in canvas pixels
+ * for the preview overlay.
+ */
+export function overlayShapes(trace, width, height) {
+  const ok = (...values) => values.every(Number.isFinite);
+  const sx = v => Math.max(0, Math.min(1000, v)) / 1000 * width;
+  const sy = v => Math.max(0, Math.min(1000, v)) / 1000 * height;
+  const walls = (Array.isArray(trace?.walls) ? trace.walls : []).filter(w => w && ok(w.x1, w.y1, w.x2, w.y2))
+    .map(w => ({ kind: ['door', 'window'].includes(w.kind) ? w.kind : 'wall', x1: sx(w.x1), y1: sy(w.y1), x2: sx(w.x2), y2: sy(w.y2) }));
+  const lights = (Array.isArray(trace?.lights) ? trace.lights : []).filter(l => l && ok(l.x, l.y) && l.x >= 0 && l.x <= 1000 && l.y >= 0 && l.y <= 1000)
+    .map(l => ({ x: sx(l.x), y: sy(l.y), color: /^#[0-9a-f]{6}$/i.test(l.color || '') ? l.color : '#ffb35c' }));
+  return { walls, lights };
+}
+
+/* ── Saved maps (Created Maps) ──────────────────────────────── */
+
+const WALL_KINDS = ['wall', 'door', 'window'];
+
+/** Shrink a trace for localStorage: walls as [kind, x1, y1, x2, y2], lights as [kind, x, y, color]. */
+export function packTrace(trace) {
+  const n = v => Math.round(Number(v));
+  return {
+    w: (Array.isArray(trace?.walls) ? trace.walls : []).filter(w => w && [w.x1, w.y1, w.x2, w.y2].every(Number.isFinite))
+      .map(w => [Math.max(0, WALL_KINDS.indexOf(w.kind)), n(w.x1), n(w.y1), n(w.x2), n(w.y2)]),
+    l: (Array.isArray(trace?.lights) ? trace.lights : []).filter(l => l && [l.x, l.y].every(Number.isFinite))
+      .map(l => [String(l.kind || 'lamp'), n(l.x), n(l.y), ...(typeof l.color === 'string' ? [l.color] : [])]),
+  };
+}
+
+export function unpackTrace(packed) {
+  return {
+    walls: (Array.isArray(packed?.w) ? packed.w : []).map(([kind, x1, y1, x2, y2]) => ({ kind: WALL_KINDS[kind] || 'wall', x1, y1, x2, y2 })),
+    lights: (Array.isArray(packed?.l) ? packed.l : []).map(([kind, x, y, color]) => ({ kind, x, y, ...(color ? { color } : {}) })),
+  };
+}
+
+/** Form fields a saved map or a style preset remembers. */
+export const STYLE_FIELDS = ['perspective', 'genre', 'genreOther', 'style', 'styleOther', 'mood', 'quality', 'mockups', 'detail', 'clutter', 'wear', 'color', 'tint', 'contrast', 'sharpness'];
+export const MAP_FIELDS = ['description', 'layout', 'width', 'height', 'setting', 'weather', ...STYLE_FIELDS];
+const pick = (values, fields) => Object.fromEntries(fields.filter(key => values?.[key] != null && values[key] !== '').map(key => [key, String(values[key])]));
+
+/** The Created Maps entry for a final map saved in the world. */
+export function mapRecord({ values, path, final, units, now = Date.now(), id }) {
+  const description = String(values?.description ?? '').trim();
+  return {
+    id, name: description.slice(0, 60) || 'Battle map', description, status: 'success', createdAt: now, error: null,
+    map: { path, units, squares: final.scene.squares, trace: packTrace(final.trace), ...(final.warning ? { warning: String(final.warning).slice(0, 300) } : {}),
+      values: { ...pick(values, MAP_FIELDS), walls: !!values?.walls } },
+  };
+}
+
+/** True when a Created Maps entry can be reopened. */
+export const isSavedMap = entry => typeof entry?.map?.path === 'string' && Array.isArray(entry.map.squares) && entry.map.squares.length === 2;
+
+/* ── Style presets ──────────────────────────────────────────── */
+
+export const BUILT_IN_PRESETS = [
+  { name: 'Classic painted fantasy', values: { perspective: 'top-down', genre: 'fantasy', style: 'painted', mood: 'day', detail: '3', clutter: '3', wear: '3' } },
+  { name: 'Inked old-school dungeon', values: { perspective: 'top-down', genre: 'fantasy', style: 'hand-drawn ink', mood: 'day', detail: '2', clutter: '2', wear: '4', color: '2' } },
+  { name: 'Grim horror night', values: { perspective: 'top-down', genre: 'horror', style: 'realistic', mood: 'night', detail: '4', clutter: '4', wear: '5', color: '2', contrast: '4' } },
+  { name: 'Clean sci-fi deck plan', values: { perspective: 'top-down', genre: 'sci-fi', style: 'realistic', mood: 'day', detail: '4', clutter: '2', wear: '2', tint: '2' } },
+  { name: 'Isometric showpiece', values: { perspective: 'isometric', genre: 'fantasy', style: 'painted', mood: 'dusk', detail: '5', clutter: '4', wear: '3', quality: 'high' } },
+];
+
+export const presetFromValues = (name, values) => ({ name: String(name).trim().slice(0, 40), values: pick(values, STYLE_FIELDS) });
+
+/** Add or replace a preset by name (case-insensitive), newest last, at most 20. */
+export function upsertPreset(presets, preset) {
+  if (!preset.name) throw new Error('Give the preset a name.');
+  const same = p => p.name.toLowerCase() === preset.name.toLowerCase();
+  if (BUILT_IN_PRESETS.some(same)) throw new Error('That name is used by a built-in preset.');
+  return [...(Array.isArray(presets) ? presets : []).filter(p => p && typeof p.name === 'string' && !same(p)), preset].slice(-20);
+}

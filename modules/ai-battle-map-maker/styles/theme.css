@@ -72,3 +72,34 @@
 .application.npc-builder.module-ai-battle-map-maker .window-header { background: linear-gradient(180deg, #6d4a1f, #4a2f10); border-bottom: 2px solid #9b6923; }
 .application.npc-builder.module-ai-battle-map-maker .window-header .window-title { color: #f4e6c8; }
 .application.npc-builder.module-ai-battle-map-maker button.map-final:disabled { opacity: 1; color: #444; background: #e5e5e5; border-color: #aaa; }
+/* Templates, presets, zoom and saved-map notes (3.7.0). */
+.application.npc-builder.module-ai-battle-map-maker .map-template-select { display: block; width: 100%; margin: 0 0 .35rem; }
+.application.npc-builder.module-ai-battle-map-maker .map-preset-field { margin-bottom: .6rem; }
+.application.npc-builder.module-ai-battle-map-maker .map-preset-row { display: flex; gap: .4rem; align-items: stretch; min-width: 0; }
+.application.npc-builder.module-ai-battle-map-maker .map-preset-row select { flex: 1 1 auto; min-width: 0; }
+#ai-battle-map-maker-app .map-preset-row button { flex: none; width: auto; height: auto; min-height: 0; line-height: normal; padding: 4px 10px; }
+.application.npc-builder.module-ai-battle-map-maker .map-thumb-wrap,
+.application.npc-builder.module-ai-battle-map-maker .map-preview-wrap { position: relative; min-width: 0; }
+#ai-battle-map-maker-app .map-zoom-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px; min-height: 0; padding: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, .5); border-radius: 4px;
+  background: rgba(0, 0, 0, .6); color: #fff; cursor: zoom-in;
+}
+#ai-battle-map-maker-app .map-zoom-btn:hover,
+#ai-battle-map-maker-app .map-zoom-btn:focus-visible { background: rgba(0, 0, 0, .85); }
+.application.npc-builder.module-ai-battle-map-maker .map-thumbnail.is-earlier img { opacity: .8; }
+.application.npc-builder.module-ai-battle-map-maker .map-thumbnail.is-earlier:not(.is-selected) .map-picked { color: #666; font-weight: 400; }
+.application.npc-builder.module-ai-battle-map-maker .map-mockup-note,
+.application.npc-builder.module-ai-battle-map-maker .map-saved { margin: .4rem 0; font-size: .85em; color: #555; }
+.application.npc-builder.module-ai-battle-map-maker .map-saved { color: #2d6a2d; }
+.application.npc-builder.module-ai-battle-map-maker .map-trace-toggle[hidden] { display: none; }
+.abmm-zoom {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2vmin; box-sizing: border-box;
+  background: rgba(0, 0, 0, .85); cursor: zoom-out;
+}
+.abmm-zoom img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 0 24px rgba(0, 0, 0, .8); }
+#ai-battle-map-maker-app .map-actions-section button { white-space: normal; }

@@ -10,7 +10,7 @@ describe('map Foundry compatibility', () => {
     expect(filePicker({}, legacy)).toBe(legacy);
     expect(filePicker({ applications: { apps: { FilePicker: { implementation: modern } } } }, legacy)).toBe(modern);
     expect(await uploadMap(modern, 'worlds/x/battle-maps', 'file')).toBe('modern/map.png');
-    expect(modern.upload).toHaveBeenCalledWith('data', 'worlds/x/battle-maps', 'file', {});
+    expect(modern.upload).toHaveBeenCalledWith('data', 'worlds/x/battle-maps', 'file', {}, { notify: false });
     expect(directoryExists(new Error('Directory already exists'))).toBe(true);
     expect(directoryExists(new Error('EEXIST'))).toBe(true);
     await expect(uploadMap({ upload: async () => ({}) }, 'x', 'file')).rejects.toThrow('path');
