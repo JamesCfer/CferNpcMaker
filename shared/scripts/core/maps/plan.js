@@ -1,7 +1,16 @@
 /** Text-only layout planning. This prompt is inlined into the workflow, never the module. */
-export const PLAN_PROMPT = `Expand the GM's map description into a drawable battle map layout. Return JSON only, with exactly this shape: {"areas":[{"what":"a kitchen with a hearth, barrels and a work table","where":"north-west","size":"about 5 by 4 squares"},{"what":"a common room with tables and a bar","where":"centre","size":"about 8 by 6 squares"}],"connections":["a doorway between the kitchen and common room"],"notes":"one sentence on overall shape"}. Areas have NO names. Describe each area only by what is physically in it. Respect any number of rooms or areas the GM states exactly: a two-room tavern has exactly two rooms. List every room or area as its own entry, including the main or largest space (for example, the common room of a tavern); never return fewer than 2 areas. For small or simple places use 2 to 4 areas; larger places have at most 8. Areas may be irregular or natural (caves, shorelines, forests, rubble) and do not have to be rectangles or fill a 3x3 grid. Use approximate positions such as north-west, centre, or south; positions may repeat when areas share a region. Keep the requested square dimensions, perspective, genre, and setting. Always include every explicit GM request verbatim in the relevant area's what description, including location requests such as fire in the centre. Describe practical connections between areas. Include nothing that needs text or labels. Do not include commentary or markdown.`;
+export const PLAN_PROMPT = `Expand the GM's map request into a drawable top-down battle map plan. Rewrite every request as polished visual description with spelling corrected, meaning and placement preserved; never paste GM wording into an area's what. Return JSON only with this shape: {"areas":[{"what":"a cramped kitchen with a soot-blackened hearth and stacked barrels","where":"north-west","size":"small beside the main room"}],"connections":[],"notes":"overall visible shape"}. Use no numbers, digits, measurements, dimensions, text, or labels. Give relative sizes in words. Areas have no names; describe visible floor, objects, clutter, light, and damage with concrete detail. Open natural places (cave, cavern, grotto, forest, clearing, beach, shore, swamp, field, desert, open ruins) are ONE continuous space with exactly one area unless the GM asks for rooms. Do not split a space for a door or staircase. Built interiors include every requested room, including the main or largest space; respect the requested room count. Use approximate positions, repeating them when needed, and describe connections only between separate areas. Preserve genre, setting, and perspective. In caves describe the perimeter as jagged natural rock edges and boulders around an uneven continuous floor; never say walls, brick, masonry, or blocks unless the GM specifies built, carved, masonry, or brick construction. Describe every feature as seen from straight above: a spiral stair is a ring of wedge-shaped steps around a central column; an obelisk is a small square top with four triangular faces meeting at a central point, like a pyramid seen from above, on a wider square base with a long shadow on the floor. Describe tall things only by their top outline and shadow on the floor, never their height or sides. Ban ceilings, stalactites, hanging things, wall faces, front-view arches, "descending into shadow", and anything visible only from the side or below. Invent no pits, chasms, tiers, levels, split floors, or extra stairs; one requested staircase means exactly one. Treat huge, giant, massive, grand, centrepiece, or "in the centre" features as dominant: mention each once and early, with relative size words. A double door is ONE doorway with two leaves: a huge closed double door shown from above as two thick wooden leaves meeting in the middle, lying in a wide gap in the north rock edge. Doors and gates are thin strips in the wall line seen from above; never describe a doorway's arch, frame front, or wall around it. Include every GM feature once at its requested place. No commentary or markdown.`;
 
 export const PLAN_POSITIONS = ['north-west', 'north', 'north-east', 'west', 'centre', 'east', 'south-west', 'south', 'south-east'];
+
+/** Remove measurements: image models ignore them, and they can turn into drawn labels. */
+export function stripMeasurements(text) {
+  return String(text ?? '')
+    .replace(/\(?\s*(?:about|roughly|approximately|around|~)?\s*\d+(?:\.\d+)?\s*(?:x|by|×)\s*\d+(?:\.\d+)?\s*(?:squares?|ft|feet|foot|m|metres?|meters?|tiles?|cells?)?\s*\)?/gi, ' ')
+    .replace(/\(?\s*(?:about|roughly|approximately|around|~)?\s*\d+(?:\.\d+)?\s*-?\s*(?:squares?|ft|feet|foot|m|metres?|meters?|tiles?|cells?)\b(?:\s*(?:wide|long|across|deep|tall|high))?\s*\)?/gi, ' ')
+    .replace(/\b\d+(?:\.\d+)?\b/g, ' ')
+    .replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').replace(/^[,;\s]+|[,;\s]+$/g, '').trim();
+}
 
 /** Keep described areas while making common position wording consistent. */
 export function validatePlan(value) {
@@ -20,12 +29,12 @@ export function validatePlan(value) {
     return original;
   };
   const areas = value.areas.filter(area => area && typeof area === 'object' &&
-    typeof area.what === 'string' && area.what.trim())
-    .slice(0, 8).map(area => ({ what: area.what.trim(),
+    typeof area.what === 'string' && stripMeasurements(area.what))
+    .slice(0, 8).map(area => ({ what: stripMeasurements(area.what),
       ...(normaliseWhere(area.where) ? { where: normaliseWhere(area.where) } : {}),
-      ...(typeof area.size === 'string' && area.size.trim() ? { size: area.size.trim() } : {}) }));
+      ...(typeof area.size === 'string' && stripMeasurements(area.size) ? { size: stripMeasurements(area.size) } : {}) }));
   if (!areas.length) throw new Error('A plan needs at least one valid area.');
-  return { areas, rawAreas: value.areas.length, connections: Array.isArray(value.connections) ? value.connections.filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()).slice(0, 16) : [], notes: typeof value.notes === 'string' ? value.notes.trim() : '', ...(areas.length < 2 ? { warning: 'The layout plan was thin; check it before generating.' } : {}) };
+  return { areas, rawAreas: value.areas.length, connections: Array.isArray(value.connections) ? value.connections.filter(v => typeof v === 'string').map(stripMeasurements).filter(Boolean).slice(0, 16) : [], notes: typeof value.notes === 'string' ? stripMeasurements(value.notes) : '', ...(areas.length < 2 ? { warning: 'The layout plan was thin; check it before generating.' } : {}) };
 }
 
 export function parsePlan(content) {
@@ -33,23 +42,33 @@ export function parsePlan(content) {
   return validatePlan(JSON.parse(raw));
 }
 
-/** Keep the GM's words and requested areas while compacting optional detail. */
+/** Turn a planned layout into compact visual prose without repeating the raw GM request. */
 export function planText(plan, gmDescription = '') {
-  const request = String(gmDescription).trim();
-  const areas = plan.areas.map(a => ({ ...a, details: a.what.split(',').map(x => x.trim()).filter(Boolean) }));
-  const connections = [...plan.connections];
-  let notes = plan.notes;
+  const request = stripMeasurements(gmDescription).replace(/[.\s]+$/, '');
+  const openPlace = /\b(cave|cavern|grotto|forest|clearing|beach|shore|swamp|field|desert|open ruins|ruins in the open)s?\b/i.test(request);
+  const roomsRequested = /\b(?:rooms?|chambers?)\b/i.test(request) && !/\bno (?:rooms?|chambers?)\b/i.test(request);
+  const continuous = openPlace && !roomsRequested;
+  const clean = value => stripMeasurements(value).replace(/\boblisk\b/gi, 'obelisk')
+    .replace(/\b(?:a |the )?(?:sunken cavern tier|vaulted stone threshold)\s*(?:where\s*)?/gi, '')
+    .replace(/\bto the (north|south|east|west) there is a huge double door that is shut\b/gi, 'a single huge closed double door, far wider than a normal door, against the $1 wall')
+    .replace(/\bto the (north|south|east|west) there is a spiral stone staircase that is also huge\b/gi, 'a huge spiral stone staircase, a ring of wedge-shaped stone steps around a central column at the $1 edge')
+    .replace(/\bwhere to the (north|south|east|west) there is\b/gi, 'at the $1 edge,')
+    .replace(/\ba obelisk\b/gi, 'an obelisk')
+    .replace(/\s{2,}/g, ' ').replace(/^[,;\s]+|[,;\s]+$/g, '').trim();
+  const sourceAreas = continuous ? [{ what: plan.areas.map(a => a.what).join(', '), where: 'centre', size: 'one continuous space with irregular natural edges' }] : plan.areas;
+  const areas = sourceAreas.map(a => ({ ...a, details: clean(a.what).split(',').map(x => x.trim()).filter(Boolean) }));
+  const connections = continuous ? [] : [...plan.connections].map(clean).filter(Boolean);
+  let notes = continuous ? 'A single continuous space with natural irregular edges and an unbroken floor.' : clean(plan.notes);
   const ending = 'Do not write any room names or labels on the map.';
-  const make = () => [request && `GM request: ${request}.`,
-    `Layout: ${areas.map(a => `${a.details.join(', ')}${a.size ? ` (${a.size})` : ''}${a.where ? ` at ${a.where}` : ''}`).join('; ')}.`,
+  const lead = request ? `GM request: ${request}. ` : '';
+  const make = () => lead + [
+    `Layout: ${areas.map(a => `${a.details.join(', ')}${a.size ? ` (${clean(a.size)})` : ''}${a.where ? ` at ${a.where}` : ''}`).join('; ')}.`,
     connections.length && `Connections: ${connections.join('; ')}.`, notes, ending].filter(Boolean).join(' ');
   const words = () => make().split(/\s+/).length;
-  while (words() > 120 && connections.length) connections.pop();
-  if (words() > 120) notes = '';
-  const requestWords = new Set(request.toLowerCase().match(/[a-z]{4,}/g) || []);
-  const protectedArea = a => a.details.some(d => (d.toLowerCase().match(/[a-z]{4,}/g) || []).some(w => requestWords.has(w)));
+  while (words() > 180 && connections.length) connections.pop();
+  if (words() > 180) notes = '';
   for (const area of [...areas].reverse()) {
-    while (words() > 120 && area.details.length > 1 && !protectedArea(area)) area.details.pop();
+    while (words() > 180 && area.details.length > 1) area.details.pop();
   }
   return make();
 }
