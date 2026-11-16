@@ -1,4 +1,5 @@
 import { openBuilder } from './core/app.js';
+import { registerPromoMenu } from './core/promo.js';
 import { checkForModuleUpdate } from './core/update-check.js';
 import { registerSidebar } from './core/sidebar.js';
 import { startHeartbeat } from './core/heartbeat.js';
@@ -20,6 +21,7 @@ Hooks.on('getSceneControlButtons', controls => registerMapSceneControls(controls
 Hooks.on('createDrawing', (drawing, _options, userId) => rememberCreatedDrawing(drawing, userId, game.user?.id));
 
 Hooks.once('init', () => {
+  registerPromoMenu(ID);
   game.settings.register(ID, 'devMode', { name: 'Developer Mode', hint: 'Other shared service calls use development endpoints. Map generation always uses the production webhook.', scope: 'world', config: true, type: Boolean, default: false });
   game.settings.register(ID, 'units', { name: 'Battle map units', hint: 'Imperial uses 5 ft squares; metric uses 1.5 m squares.', scope: 'world', config: true,
     type: String, choices: { imperial: 'Imperial (feet)', metric: 'Metric (metres)' }, default: 'imperial' });

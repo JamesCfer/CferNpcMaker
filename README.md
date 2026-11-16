@@ -16,8 +16,12 @@ Sibling Foundry VTT modules for AI-assisted NPC, item, and settlement generation
 
 ## Repository layout
 
-Each release ships only the code it needs. The home tab inside the builder
-links to the other three modules so users can install them too.
+Each release ships only the code it needs. The modules cross-promote each
+other (`shared/scripts/core/promo.js`): a "More modules by Cfer" section on
+the builder's Home tab, a dismissible one-line strip under the builder form,
+and a "More modules by Cfer" button in every module's settings. Only siblings
+for the current game system (plus the system-agnostic map maker) that are not
+already enabled are shown. Add new modules to `home-data.js`.
 
 ```
 /shared/                          source of truth (not shipped directly)

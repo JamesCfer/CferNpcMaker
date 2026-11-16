@@ -4,6 +4,7 @@
  */
 
 import { registerSidebar }      from './core/sidebar.js';
+import { registerPromoMenu } from './core/promo.js';
 import { startHeartbeat }       from './core/heartbeat.js';
 import { MODULE_ID, STATE_KEY, defaultState } from './state.js';
 import { openCalendar }         from './calendar-app.js';
@@ -19,6 +20,7 @@ registerSidebar(MODULE_ID, () => openCalendar(), {
 });
 
 Hooks.once('init', () => {
+  registerPromoMenu(MODULE_ID);
   game.settings.register(MODULE_ID, STATE_KEY, {
     scope: 'world', config: false, type: Object, default: defaultState(),
   });

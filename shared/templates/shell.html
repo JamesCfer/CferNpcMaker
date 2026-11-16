@@ -104,6 +104,21 @@
           <span>Undo Last Generation</span>
         </button>
       </div>
+
+      {{#if promoStrip}}
+      <div class="promo-strip">
+        <i class="{{promoStrip.icon}}" aria-hidden="true"></i>
+        <span class="promo-strip-text">
+          <span class="promo-strip-label">Also by Cfer:</span>
+          <strong>{{promoStrip.label}}</strong>. {{promoStrip.pitch}}
+          Uses the same sign-in and allowance.
+        </span>
+        <button type="button" class="link-to-home" data-home-target="home-more">Take a look</button>
+        <button type="button" class="promo-strip-dismiss" title="Hide for 30 days" aria-label="Hide this suggestion for 30 days">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      {{/if}}
     </div>
 
     <!-- Right: history panel -->
