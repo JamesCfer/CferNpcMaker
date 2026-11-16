@@ -4,6 +4,7 @@
  */
 
 import { openBuilder, ensureBuilder } from './core/app.js';
+import { registerPromoMenu } from './core/promo.js';
 import { checkForModuleUpdate }       from './core/update-check.js';
 import { registerSidebar }            from './core/sidebar.js';
 import { startHeartbeat }             from './core/heartbeat.js';
@@ -265,6 +266,7 @@ class ResetCalendarMenu extends foundry.applications.api.ApplicationV2 {
 }
 
 Hooks.once('init', () => {
+  registerPromoMenu(MODULE_ID);
   // Re-register helpers at init in case Handlebars wasn't ready at module-load.
   try {
     const Hb = (globalThis.Handlebars || foundry?.applications?.handlebars?.Handlebars);
