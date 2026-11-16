@@ -331,7 +331,9 @@ describe('generated map workflow', () => {
       expect(n.parameters).not.toHaveProperty('genericAuthType');
       expect(n.parameters.url).toMatch(/^https:\/\/openrouter\.ai\/api\/v1\//);
     }
-    for (const n of workflow.nodes.filter(n => !openRouterNodes.includes(n) && n.name !== 'Patreon: Members')) {
+    const discordPost = workflow.nodes.find(n => n.name === 'Discord: Send Map Post');
+    expect(discordPost.credentials).toEqual({ discordBotApi: { id: 'v845fBzdtlCbenJa', name: 'Discord Bot account' } });
+    for (const n of workflow.nodes.filter(n => !openRouterNodes.includes(n) && n.name !== 'Patreon: Members' && n !== discordPost)) {
       expect(n).not.toHaveProperty('credentials');
     }
   });

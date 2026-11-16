@@ -709,6 +709,61 @@
       },
       "onError": "continueRegularOutput",
       "alwaysOutputData": true
+    },
+    {
+      "id": "discord-prep-for-discord",
+      "name": "Prep for Discord",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        240
+      ],
+      "parameters": {
+        "jsCode": "function slugify(s){return String(s||'result').toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'result';}\nconst d=$json||{};\nconst item=d.foundryItem||d.item;\nif(!d.ok||!item)return [];\nconst type=item.type?' ('+item.type+')':'';\nconst title='PF2e Wiki Item — '+(item.name||'Unnamed item')+type;\nreturn [{json:{content:'**'+title+'** (JSON attached)'},binary:{file:{data:Buffer.from(JSON.stringify(item,null,2),'utf8').toString('base64'),fileName:slugify(item.name)+'.json',mimeType:'application/json'}}}];"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "discord-send-to-discord",
+      "name": "Send to Discord",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        240
+      ],
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "853532551784431616",
+          "mode": "list",
+          "cachedResultName": "Celestia"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "982754114901512212",
+          "mode": "list",
+          "cachedResultName": "jane"
+        },
+        "content": "={{ $json.content }}",
+        "options": {},
+        "files": {
+          "values": [
+            {
+              "inputFieldName": "file"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "discordBotApi": {
+          "id": "v845fBzdtlCbenJa",
+          "name": "Discord Bot account"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -978,6 +1033,11 @@
             "node": "Respond to Webhook",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Prep for Discord",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -998,6 +1058,17 @@
         [
           {
             "node": "Rate Limit: Prepare Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep for Discord": {
+      "main": [
+        [
+          {
+            "node": "Send to Discord",
             "type": "main",
             "index": 0
           }

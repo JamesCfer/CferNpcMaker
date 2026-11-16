@@ -713,7 +713,8 @@
       ],
       "parameters": {
         "jsCode": "const MAX = 1900;\nfunction slugify(s) { return String(s || 'store').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); }\nfunction redact(obj) {\n  const SENSITIVE = new Set(['access_token','refresh_token','id_token','client_secret','authorization','cookie','cookies','set-cookie','password','token','secret']);\n  const seen = new WeakSet();\n  const walk = (v) => { if (v === null || typeof v !== 'object') return v; if (seen.has(v)) return '[CIRCULAR]'; seen.add(v); if (Array.isArray(v)) return v.map(walk); const o = {}; for (const [k, val] of Object.entries(v)) { const key = String(k).toLowerCase(); o[k] = SENSITIVE.has(key) ? '[REDACTED]' : walk(val); } return o; };\n  return walk(obj);\n}\nconst data = $json || {};\nconst store = data.store ?? data;\nconst storeName = store?.name || 'Unnamed Store';\nconst itemCount = (store?.inventory || []).length;\nconst title = `D&D 5e Store — ${storeName} (${store?.storeType || 'store'}, ${itemCount} items)`;\nlet body;\ntry { body = JSON.stringify(redact(store), null, 2); }\ncatch (e) { body = JSON.stringify({ error: 'Serialization failed', message: String(e) }); }\nconst fileName = `${slugify(storeName)}.json`;\nconst b64 = Buffer.from(String(body), 'utf8').toString('base64');\nreturn [{ json: { ...data, content: `**${title}** (JSON attached)`, _hasFile: true }, binary: { file: { data: b64, fileName, mimeType: 'application/json' } } }];"
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "id": "if-file",
@@ -773,14 +774,22 @@
           "cachedResultName": "jane"
         },
         "content": "={{ $json.content }}",
-        "options": {}
+        "options": {},
+        "files": {
+          "values": [
+            {
+              "inputFieldName": "file"
+            }
+          ]
+        }
       },
       "credentials": {
         "discordBotApi": {
           "id": "v845fBzdtlCbenJa",
           "name": "Discord Bot account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "id": "patreon-members-patreon-members",
