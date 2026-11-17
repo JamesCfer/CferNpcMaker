@@ -4,9 +4,11 @@
 
 .cfer-launcher {
   position: fixed; right: 16px; bottom: 132px; z-index: 2147483000;
-  padding: 8px 14px; border: 0; border-radius: 20px; cursor: pointer;
-  background: #6b3fa0; color: #fff; font-weight: 600; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: transparent; box-shadow: 0 2px 8px rgba(0,0,0,.35); display: grid; place-items: center;
 }
+.cfer-launcher img { width: 44px; height: 44px; border-radius: 50%; display: block; pointer-events: none; }
+.cfer-launcher:hover { transform: scale(1.06); }
 .cfer-panel {
   position: fixed; right: 16px; bottom: 176px; z-index: 2147483001; width: 380px; max-width: calc(100vw - 32px);
   max-height: calc(100vh - 196px); display: flex; flex-direction: column;

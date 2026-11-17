@@ -455,7 +455,8 @@ function build() {
   root = host.attachShadow({ mode: 'open' });
   root.append(h('link', { rel: 'stylesheet', href: api.runtime.getURL('panel.css') }));
 
-  const launcher = h('button', { class: 'cfer-launcher', title: 'Cfer NPC Maker', onclick: () => { panel.hidden = !panel.hidden; if (!panel.hidden) refreshStatus(); } }, 'Cfer');
+  const launcher = h('button', { class: 'cfer-launcher', title: 'Cfer NPC Maker', 'aria-label': 'Cfer NPC Maker', onclick: () => { panel.hidden = !panel.hidden; if (!panel.hidden) refreshStatus(); } },
+    h('img', { src: api.runtime.getURL('icons/icon128.png'), alt: '' }));
   els.pill = h('span', { class: 'cfer-pill' });
   els.status = h('div', { class: 'cfer-status', role: 'status' });
   els.account = h('div', { class: 'cfer-account' });
