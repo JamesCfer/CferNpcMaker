@@ -3,13 +3,13 @@
 [hidden] { display: none !important; }
 
 .cfer-launcher {
-  position: fixed; right: 16px; bottom: 76px; z-index: 2147483000;
+  position: fixed; right: 16px; bottom: 132px; z-index: 2147483000;
   padding: 8px 14px; border: 0; border-radius: 20px; cursor: pointer;
   background: #6b3fa0; color: #fff; font-weight: 600; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.35);
 }
 .cfer-panel {
-  position: fixed; right: 16px; bottom: 120px; z-index: 2147483001; width: 380px; max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 140px); display: flex; flex-direction: column;
+  position: fixed; right: 16px; bottom: 176px; z-index: 2147483001; width: 380px; max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 196px); display: flex; flex-direction: column;
   background: #1f1d24; color: #ece9f1; border: 1px solid #3b3645; border-radius: 10px;
   box-shadow: 0 8px 28px rgba(0,0,0,.5); font-size: 13px;
 }

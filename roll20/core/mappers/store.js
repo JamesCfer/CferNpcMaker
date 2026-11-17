@@ -21,6 +21,7 @@ export function mapStore(system) {
     const owner = store.owner || store.shopkeeper || null;
     const staff = Array.isArray(store.staff) ? store.staff : [];
     const items = inventory.filter(i => i && typeof i === 'object' && i.name);
+    if (!items.length) throw new Error('The server sent back a store with no stock. Your use may have been counted; try again with a fuller description.');
 
     const meta = [LABELS[store.storeType || form.storeType] || 'Store', titleCase(store.wealth || form.wealth || ''), titleCase(store.settlementSize || form.settlementSize || '')]
       .filter(Boolean).map(escapeHtml).join(' · ');

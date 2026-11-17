@@ -41,6 +41,20 @@ describe('D&D 5e NPC', () => {
   it('never leaks the builder key', () => {
     expect(JSON.stringify(plan).toLowerCase()).not.toContain('x-builder-key');
   });
+
+  it('builds a D&D 2024 sheet block', () => {
+    const b = plan.beacon;
+    expect(b).toBeTruthy();
+    const abilities = b.integrants.filter(i => i.type === 'Ability Score');
+    expect(abilities.map(a => a.ability).sort()).toEqual(['Charisma', 'Constitution', 'Dexterity', 'Intelligence', 'Strength', 'Wisdom']);
+    for (const a of abilities) expect(a.valueFormula.flatValue).toEqual(expect.any(Number));
+    expect(b.integrants.find(i => i.type === 'Armor Class')._id).toBe('armor-class-override-total');
+    expect(b.integrants.find(i => i.type === 'Hit Points').valueFormula.flatValue).toBeGreaterThan(0);
+    const refs = new Set(b.integrants.map(i => i._ref).filter(Boolean));
+    for (const i of b.integrants) if (i._parentRef) expect(refs.has(i._parentRef)).toBe(true);
+    for (const r of b.traitRefs) expect(refs.has(r)).toBe(true);
+    expect(b.store.npc.challengeRating).toBeTruthy();
+  });
 });
 
 describe('PF2e NPC', () => {
@@ -156,6 +170,19 @@ describe('catalog', () => {
     const g = getGenerator('pf2e-settlement');
     expect(endpointFor(g, { kind: 'nation', includeChildCities: true })).toContain('/nation-builder');
     expect(endpointFor(g, { kind: 'town' })).toContain('/city-builder');
+  });
+
+  it('hides the settlement maker until its server workflow exists', () => {
+    expect(getGenerator('pf2e-settlement').available).toBe(false);
+  });
+
+  it('needs a description for stores, which the server requires', () => {
+    expect(() => readForm(getGenerator('dnd5e-store'), { name: 'X' })).toThrow(/description/);
+    expect(() => readForm(getGenerator('pf2e-store'), { name: 'X' })).toThrow(/description/);
+  });
+
+  it('rejects a store with no stock', () => {
+    expect(() => mapStore('dnd5e')({ store: { name: 'Empty', inventory: [] } })).toThrow(/no stock/);
   });
 
   it('enforces required fields', () => {

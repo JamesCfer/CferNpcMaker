@@ -11,13 +11,13 @@ Uses come out of the same Patreon allowance as the Foundry modules. Requests are
 
 | Generator | Roll20 result |
 | --- | --- |
-| D&D 5e NPC | A character on the **D&D 5E by Roll20** (2014) sheet, built by the sheet's own compendium drop, with spells as spell rows. |
+| D&D 5e NPC | A character on the **D&D 5E by Roll20** (2014) sheet, built by the sheet's own compendium drop, with spells as spell rows. On the **D&D 2024** sheet it fills the NPC stat block (abilities, AC, HP, saves, skills, defenses, senses, languages, traits, actions and attacks). |
 | PF2e NPC | A character on the **Pathfinder Second Edition by Roll20** sheet, built by the sheet's own NPC drop. |
 | D&D 5e / PF2e item | A handout with the item card, plus a "give" button that adds it to a character's inventory. |
 | D&D 5e / PF2e store | A store handout (shopkeeper, staff, stock table) and one handout per item, each with a give button. |
-| Nation, city or town | Handouts for the settlement, and for each city when a nation includes them. Works with any sheet. |
+| Nation, city or town | Hidden for now: n8n has no `city-builder` or `nation-builder` workflow yet (the Foundry module quietly falls back to its offline stub). The mapper is ready for when one exists. |
 | Hero 6e NPC | A HeroSystem6eHeroic character with its characteristics, a button that sends the full build to the existing **HDImporter** Mod script, and the `.hdc` file. |
-| AI Battle Map Maker | Mockups and final map as in Foundry. The image is placed on the page, and the Mod script sizes the page and adds walls, doors, windows and lights. |
+| AI Battle Map Maker | Mockups and final map as in Foundry. Place image uploads it to Roll20 and puts it on the map layer at 70px a square, growing the page to fit. The Mod script adds walls, doors, windows and lights. |
 
 The PF2e calendar module is not ported: Roll20 has no calendar to plug into.
 
@@ -61,12 +61,16 @@ For the Mod script in a Pro game: Game Settings, Mod (API) Scripts, New Script, 
 ## Tested so far
 
 * Unit tests for every mapper, the chat transport, and the Mod script against a fake Roll20 API.
-* The built extension in Chromium against a mock Roll20 page with mocked n8n responses: sign-in state, uses pill, NPC generate and import (in-page and Mod paths), battle map mockups, final, and walls and lights.
+* Live in a Roll20 game (D&D 2024 sheet, no Pro) on 2026-11-17: Patreon sign-in, uses pill, D&D 5e NPC onto the 2024 stat block, 5e item handout and give list, 5e store (14 items, 15 handouts), PF2e NPC and Hero 6e NPC imports, battle map mockup, final and image placement.
 
-**Not yet tested in a live Roll20 game.** The places most likely to need a fix are the in-page writer (Roll20 does not document `window.Campaign`), dropping the map image on the canvas, and door and window objects in the Mod script. Each has a fallback: the Mod script, a file download, and plain walls.
+Known limits:
+
+* D&D 2024 sheet: current HP stays at 0 until the GM sets it; giving an item to a PC on the 2024 sheet is not supported yet (NPCs get it added to Gear).
+* The Mod script path and the 2014 sheet path have not been tried live yet (that needs a Pro game).
+* Stores need a description: the store workflows reject an empty one, after the use has been counted.
 
 ## What James needs to do
 
-1. Try it once in a real Roll20 game (load unpacked as above), ideally a Pro game with the Mod script, and tell Claude what broke.
+1. Optional: try the Mod script once in a Pro game.
 2. Publish the extension: Chrome Web Store developer account (one-time $5) and Firefox Add-ons (free). Upload `roll20/dist/cfer-roll20-extension.zip` to both.
 3. Optional: submit the Mod script to the Roll20 one-click library with a pull request to `Roll20/roll20-api-scripts` (folder `CferImporter/1.0.0/` plus `script.json`; fill in `roll20userid`).

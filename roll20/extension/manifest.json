@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cfer NPC Maker for Roll20",
   "short_name": "Cfer for Roll20",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI NPCs, items, stores, settlements, Hero 6e characters and battle maps, imported straight into your Roll20 game.",
   "homepage_url": "https://www.patreon.com/cw/CelestiaTools",
   "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },

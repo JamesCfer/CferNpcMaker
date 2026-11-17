@@ -248,8 +248,12 @@ export function mapDnd5eNpc(response) {
     Object.assign(fallback, { [`${row}name`]: r.name, [`${row}description`]: r.desc, [`${row}npc_options-flag`]: '0' });
   }
 
+  const beacon = beaconNpc({ npc, abilities, cr: crString, prof, acValue, acType, hp, hpFormula, mv, attrs, traits, typeLine, alignment,
+    languages, saves, skills, sections, legendaryCount });
+
   const bio = plainText(sys.details?.biography?.value);
   return makePlan('character', 'dnd5e-npc', {
+    beacon,
     summary: `${npc.name} (CR ${crString} ${typeLine.toLowerCase()})`,
     sheet: 'dnd5e-2014',
     character: { name: npc.name, bio: bio ? `<p>${escapeHtml(bio).replace(/\n+/g, '</p><p>')}</p>` : '' },
@@ -263,4 +267,76 @@ export function mapDnd5eNpc(response) {
     fallback: { attributes: fallback },
     token: { bar1: 'hp', size: { tiny: 0.5, sm: 1, med: 1, lg: 2, huge: 3, grg: 4 }[traits.size] || 1 },
   });
+}
+
+/* ── D&D 2024 sheet ("Beacon" sheet, data in the `store` attribute) ──
+ * Shapes copied from what the 2024 sheet's own NPC editor writes. The page
+ * bridge gives each integrant its id and links Damage rows to their Attack. */
+
+const DAMAGE_TYPES = ['Acid', 'Bludgeoning', 'Cold', 'Fire', 'Force', 'Lightning', 'Necrotic', 'Piercing', 'Poison', 'Psychic', 'Radiant', 'Slashing', 'Thunder'];
+const CONDITIONS = ['Blinded', 'Charmed', 'Deafened', 'Exhaustion', 'Frightened', 'Grappled', 'Incapacitated', 'Invisible', 'Paralyzed', 'Petrified', 'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious'];
+
+function parseDice(text) {
+  const m = String(text || '').replace(/\s+/g, '').match(/^(\d*)d(\d+)([+-]\d+)?$/i);
+  if (!m) return null;
+  return { _diceCount: Number(m[1] || 1), diceSize: `d${m[2]}`, _bonus: Number(m[3] || 0) };
+}
+
+export function beaconNpc({ npc, abilities, cr, prof, acValue, acType, hp, hpFormula, mv, attrs, traits, typeLine, alignment, languages, saves, skills, sections, legendaryCount }) {
+  const ints = [];
+  const add = (fields, ref) => { ints.push({ ...(ref ? { _ref: ref } : {}), ...fields }); };
+  ABILITIES.forEach(k => add({ type: 'Ability Score', ability: titleCase(ABILITY_NAMES[k]), calculation: 'Set Value', label: 'Override (Custom)', name: '', source: 'Custom', valueFormula: { flatValue: abilities[k] } }));
+  add({ _id: 'armor-class-override-total', type: 'Armor Class', calculation: 'Set Value', defaultAbility: false, label: 'Unknown', name: '', source: 'Custom', valueFormula: { flatValue: acValue } });
+  add({ type: 'Hit Points', calculation: 'Set Value', hitpointType: 'Maximum', isFixed: false, isTemp: false, label: 'Override Max HP', name: '', source: 'Custom', valueFormula: { flatValue: hp } });
+  for (const [k, label] of [['walk', 'Walk'], ['burrow', 'Burrow'], ['climb', 'Climb'], ['fly', 'Fly'], ['swim', 'Swim']]) {
+    const v = num(mv[k], k === 'walk' ? 30 : 0);
+    if (v > 0) add({ type: 'Speed', calculation: 'Set Value', name: '', source: 'Custom', speed: label, valueFormula: { flatValue: v } });
+  }
+  for (const k of ['blindsight', 'darkvision', 'tremorsense', 'truesight']) {
+    const v = num(attrs.senses?.[k], 0);
+    if (v > 0) add({ type: 'Sense', name: titleCase(k), calculation: 'Set Base', ignoreValue: false, source: '', valueFormula: { flatValue: v } });
+  }
+  for (const lang of String(languages || '').split(/,\s*/).filter(Boolean)) add({ type: 'Language', name: lang, source: '' });
+  const defenses = (t, defense) => [...list(t?.value), ...(t?.custom ? String(t.custom).split(/;\s*/) : [])].map(titleCase).filter(Boolean)
+    .forEach(name => {
+      if (DAMAGE_TYPES.includes(name)) add({ type: 'Defense', damage: name, defense, name: `${defense} to ${name}`, source: '' });
+      else if (CONDITIONS.includes(name)) add({ type: 'Defense', condition: name, defense, name: `${defense} to ${name}`, source: '' });
+    });
+  defenses(traits.dr, 'Resistance');
+  defenses(traits.di, 'Immunity');
+  defenses(traits.dv, 'Vulnerability');
+  defenses(traits.ci, 'Immunity');
+  for (const [k] of saves) add({ type: 'Proficiency', category: 'Saving Throw', proficiency: titleCase(ABILITY_NAMES[k]), proficiencyLevel: 'Proficient', rollAbility: 'Query Attribute', increaseIfAlreadyAt: false, notes: '', name: '', source: 'Custom' });
+  for (const [name, total] of skills) {
+    const key = Object.keys(SKILLS).find(k => SKILLS[k] === name);
+    const ability = { acr: 'dex', ani: 'wis', arc: 'int', ath: 'str', dec: 'cha', his: 'int', ins: 'wis', itm: 'cha', inv: 'int', med: 'wis', nat: 'int', prc: 'wis', prf: 'cha', per: 'cha', rel: 'int', slt: 'dex', ste: 'dex', sur: 'wis' }[key] || 'dex';
+    const level = total - mod(abilities[ability]) >= prof * 2 ? 'Expertise' : 'Proficient';
+    add({ type: 'Proficiency', category: 'Skill', proficiency: titleCase(name.replace(/_/g, ' ')), proficiencyLevel: level, rollAbility: 'Query Attribute', increaseIfAlreadyAt: false, notes: '', name: '', source: 'Custom' });
+  }
+  const traitRefs = [];
+  sections.trait.forEach((t, i) => { traitRefs.push(`trait${i}`); add({ type: 'Features', name: t.name, description: t.desc, source: 'Species' }, `trait${i}`); });
+  const actionOf = (a, actionType, i) => {
+    if (!a.atk) return add({ type: 'Action', actionType, name: a.name.replace(/ \(Bonus Action\)$/, ''), description: a.desc, excludeFamilialResources: false, source: '' });
+    const ref = `atk${i}`;
+    add({ type: 'Attack', actionType, attack: { bonusFlat: Number(a.atk.toHit) || 0, type: a.atk.kind }, name: a.name, description: a.desc,
+      range: String(a.atk.range || '').replace(/[^\d/]/g, '') || '5', source: '' }, ref);
+    [[a.atk.damage, a.atk.damageType], [a.atk.damage2, a.atk.damage2Type]].forEach(([d, type], j) => {
+      const dice = parseDice(d);
+      if (dice) add({ type: 'Damage', _parentRef: ref, ability: 'none', critDiceSize: '', overrideCrit: false, damageType: titleCase(type || ''), name: `${a.name} Damage${j ? ' 2' : ''}`, source: '', ...dice });
+    });
+  };
+  const ordered = [...sections.action].sort((a, b) => /multiattack/i.test(b.name) - /multiattack/i.test(a.name));
+  ordered.forEach((a, i) => actionOf(a, 'Action', i));
+  sections.bonus.forEach((a, i) => actionOf(a, 'Bonus Action', 100 + i));
+  sections.reaction.forEach((a, i) => actionOf(a, 'Reaction', 200 + i));
+  sections.legendary.forEach((a, i) => actionOf(a, 'Legendary', 300 + i));
+  return {
+    integrants: ints,
+    traitRefs,
+    store: {
+      npc: { challengeRating: String(cr), acNotes: acType || '', rollHP: hpFormula || '', ...(sections.legendary.length ? { legendaryActionNum: legendaryCount || 3 } : {}) },
+      character: { creatureType: titleCase(typeLine.split(' ').slice(1).join(' ')) },
+      about: { characteristics: { size: typeLine.split(' ')[0], alignment: titleCase(alignment) } },
+    },
+  };
 }

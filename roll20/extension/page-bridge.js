@@ -92,6 +92,63 @@
     return n;
   }
 
+  /* ── D&D 2024 ("Beacon") sheet: everything lives in the `store` attribute ── */
+
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16)));
+  const shortId = () => Array.from({ length: 9 }, () => ROW.charAt(1 + Math.floor(Math.random() * 62))).join('').replace(/[-_]/g, 'x');
+
+  async function waitForStore(char, ms = 8000) {
+    for (let t = 0; t < ms; t += 200) {
+      const store = findAttr(char, 'store')?.get('current');
+      if (store && typeof store === 'object' && store.integrants) {
+        await sleep(1500); // let the sheet finish its own first save
+        return findAttr(char, 'store').get('current');
+      }
+      if (findAttr(char, 'sheet_type') || findAttr(char, 'npc_name') && !findAttr(char, 'appState')) return null; // a classic sheet
+      await sleep(200);
+    }
+    return null;
+  }
+
+  /** Merge a mapper's beacon block into the sheet's store and save it. */
+  function applyBeacon(char, store, beacon) {
+    const next = JSON.parse(JSON.stringify(store));
+    const ints = next.integrants.integrants;
+    const refs = {};
+    const now = Date.now();
+    const existing = type => Object.values(ints).filter(i => i.type === type);
+    for (const raw of beacon.integrants) if (raw._ref) refs[raw._ref] = raw._id || uuid();
+    const children = {};
+    for (const raw of beacon.integrants) {
+      const { _ref, _parentRef, ...fields } = raw;
+      // The sheet starts with a "Darkvision 0" sense and a "None" language: reuse or drop them.
+      if (fields.type === 'Sense') { const old = existing('Sense').find(i => i.name === fields.name); if (old) { old.valueFormula = fields.valueFormula; continue; } }
+      if (fields.type === 'Language') for (const old of existing('Language').filter(i => i.name === 'None')) delete ints[old._id];
+      const id = fields._id || (_ref && refs[_ref]) || uuid();
+      ints[id] = { _enabled: true, builderDisplayName: '', childIDs: '[]', label: '', parentID: _parentRef ? refs[_parentRef] : '', source: '',
+        ...fields, _id: id, createdTime: now, shortID: shortId() };
+      if (_parentRef) (children[refs[_parentRef]] ||= []).push(id);
+    }
+    for (const [parent, kids] of Object.entries(children)) if (ints[parent]) ints[parent].childIDs = JSON.stringify(kids);
+    const order = JSON.parse(next.features?.speciesTraitsDisplayOrder || '[]');
+    next.features = { ...next.features, speciesTraitsDisplayOrder: JSON.stringify([...order, ...(beacon.traitRefs || []).map(r => refs[r])]) };
+    next.npc = { ...next.npc, ...beacon.store.npc };
+    next.character = { ...next.character, ...beacon.store.character, createdWithBuilder: false };
+    next.about = { ...next.about, characteristics: { ...(next.about?.characteristics || {}), ...beacon.store.about.characteristics } };
+    // Show it as an NPC stat block with rolls whispered to the GM, as the sheet's own NPC button does.
+    next.settings = { ...next.settings, layoutState: 'Stat Block', rolls: { ...(next.settings?.rolls || {}), privacy: 'gm' } };
+    next.npcEdit = { ...(next.npcEdit || {}), cameFromView: 'Stat Block' };
+    findAttr(char, 'store').save({ current: next });
+    const app = findAttr(char, 'appState');
+    if (app) app.save({ current: 'npc' }); else char.attribs.create({ name: 'appState', current: 'npc' });
+    char.save({ character_type: 'npc' });
+  }
+
+  function reopenSheet(char) {
+    try { char.view?.$el?.dialog?.('close'); } catch (_) { /* optional */ }
+    setTimeout(() => { try { char.view?.showDialog?.(); } catch (_) { /* optional */ } }, 300);
+  }
+
   async function createCharacter(plan) {
     const c = campaign();
     if (!c?.characters?.create) throw new Error('This Roll20 page does not allow in-page imports.');
@@ -99,6 +156,16 @@
     for (let i = 0; i < 40 && !char.attribs; i++) await sleep(50);
     if (!char.attribs) throw new Error('Roll20 did not finish creating the character.');
     if (typeof char.updateBlobs === 'function') char.updateBlobs({ bio: plan.character.bio || '', gmnotes: plan.character.gmnotes || '' });
+    if (plan.beacon) {
+      // Opening the sheet makes it set itself up; a 2024 sheet then has a `store`.
+      try { char.view?.showDialog?.(); } catch (_) { /* sheet UI is optional */ }
+      const store = await waitForStore(char);
+      if (store) {
+        applyBeacon(char, store, plan.beacon);
+        reopenSheet(char);
+        return { id: char.id, name: plan.character.name, mode: 'sheet2024' };
+      }
+    }
     await writeAll(char, plan.attributes);
     let mode = 'direct';
     if (plan.drop) {
@@ -117,6 +184,15 @@
   async function give({ recipe, characterId }) {
     const char = campaign()?.characters?.get(characterId);
     if (!char) throw new Error('That character is no longer in this game.');
+    const store = findAttr(char, 'store')?.get('current');
+    if (store && typeof store === 'object' && store.integrants) {
+      // D&D 2024 sheet: NPCs list gear as text; PCs need the item added from the handout by hand.
+      if (char.get('character_type') !== 'npc') throw new Error(`${char.get('name')} uses the D&D 2024 sheet. Add ${recipe.name} from its handout by hand for now.`);
+      const next = JSON.parse(JSON.stringify(store));
+      next.npc = { ...next.npc, gear: [next.npc?.gear, recipe.name].filter(Boolean).join(', ') };
+      findAttr(char, 'store').save({ current: next });
+      return { name: char.get('name') };
+    }
     if (recipe.drop) {
       await writeAll(char, recipe.drop.attributes);
       const before = char.attribs.length;
@@ -160,7 +236,14 @@
   /* ── battle map image ─────────────────────────────── */
 
   /** Drop the image file on the tabletop as if the GM dragged it there. */
-  async function dropImage({ dataUrl, filename }) {
+  /**
+   * Drop the map image onto the tabletop the way a user drag would, then wait
+   * for Roll20 to upload it and move the new graphic to the map layer at
+   * 70px per square, top-left at the page origin. The page grows to fit.
+   */
+  async function dropImage({ dataUrl, filename, squares }) {
+    const page = window.Campaign?.activePage?.();
+    const known = new Set(page?.thegraphics?.models?.map(g => g.id) || []);
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], filename, { type: blob.type });
     const target = document.querySelector('#editor-wrapper, #finalcanvas, #babylonCanvas, canvas');
@@ -170,7 +253,19 @@
     dt.items.add(file);
     const at = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2, bubbles: true, cancelable: true, dataTransfer: dt };
     for (const type of ['dragenter', 'dragover', 'drop']) target.dispatchEvent(new DragEvent(type, at));
-    return { dropped: true };
+    if (!page?.thegraphics || !Array.isArray(squares)) return { dropped: true, placed: false };
+    let graphic = null;
+    for (let t = 0; t < 45000 && !graphic; t += 500) {
+      await sleep(500);
+      graphic = page.thegraphics.models.find(g => !known.has(g.id) && g.get('imgsrc'));
+    }
+    if (!graphic) return { dropped: true, placed: false };
+    const [w, h] = squares.map(n => Math.max(1, Math.round(Number(n) || 1)));
+    const width = w * 70, height = h * 70;
+    graphic.save({ layer: 'map', width, height, left: width / 2, top: height / 2 });
+    const pageSize = { width: Math.max(Number(page.get('width')) || 0, w), height: Math.max(Number(page.get('height')) || 0, h) };
+    if (pageSize.width !== Number(page.get('width')) || pageSize.height !== Number(page.get('height'))) page.save(pageSize);
+    return { dropped: true, placed: true, graphicId: graphic.id };
   }
 
   const ops = {

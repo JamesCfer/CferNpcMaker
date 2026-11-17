@@ -94,8 +94,9 @@ async function chooseMethod(kind) {
   if (state.method === 'mod') { if (!w.chat) throw new Error('Could not find the Roll20 chat box.'); return 'mod'; }
   if (state.method === 'page') { if (!w.page) throw new Error('This Roll20 page does not allow in-page imports. Try the Mod script or a download.'); return 'page'; }
   if (kind === 'map') return w.mod ? 'mod' : 'file';
-  if (w.mod) return 'mod';
+  // In-page writes handle both the 2014 and the 2024 D&D sheets; the Mod script only the 2014 one.
   if (w.page) return 'page';
+  if (w.mod) return 'mod';
   return 'file';
 }
 
@@ -135,7 +136,7 @@ async function importPlan(plan, card) {
   note.textContent = 'Importing…';
   if (plan.kind === 'character') {
     const res = await bridge('createCharacter', { plan: forMod(plan) }, 60000);
-    note.textContent = `Created ${res.name}${res.mode === 'direct' && plan.drop ? ' (written directly; the sheet\'s own import did not run).' : '.'} Find it in the Journal.`;
+    note.textContent = `Created ${res.name}${res.mode === 'sheet2024' ? ' on the D&D 2024 sheet' : res.mode === 'direct' && plan.drop ? ' (written directly; the sheet\'s own import did not run)' : ''}. Find it in the Journal.`;
   } else if (plan.kind === 'handouts') {
     const res = await bridge('createHandouts', { plan }, 60000);
     note.textContent = `Created ${plural(res.handouts.length, 'handout', 'handouts')} in the Journal.`;
@@ -212,6 +213,7 @@ async function generate() {
   const form = readForm(gen, values);
   await busy(`Generating ${gen.label}… this can take a minute or two.`, async () => {
     const data = await call(endpointFor(gen, form), gen.payload(form), 300000);
+    if (!data || typeof data !== 'object' || !Object.keys(data).length) throw new Error('The server sent back an empty answer. Please try again.');
     const plan = gen.map(data, form);
     await saveResult(plan);
     els.genOut.replaceChildren(resultCard(plan));
@@ -313,7 +315,11 @@ function renderFinal() {
       h('li', {}, 'Select the image, then press Add walls and lights. This needs the Cfer Importer Mod script.')),
     h('div', { class: 'cfer-row' },
       h('button', { class: 'cfer-btn primary', onclick: run(async () => {
-        try { await bridge('dropImage', { dataUrl: dataUrl(final.image), filename: m.image.filename }, 30000); note.textContent = 'Dropped on the page. If nothing appeared, use Download image and drag it in.'; }
+        try {
+          note.textContent = 'Uploading the image to Roll20…';
+          const res = await bridge('dropImage', { dataUrl: dataUrl(final.image), filename: m.image.filename, squares: m.squares }, 60000);
+          note.textContent = res.placed ? `Placed on the map layer at ${m.squares[0]} x ${m.squares[1]} squares.` : 'Dropped on the page. If nothing appeared, use Download image and drag it in.';
+        }
         catch (err) { download64(final.image, m.image.filename); note.textContent = `${err.message} Downloaded the image instead; drag it onto the page.`; }
       }) }, 'Place image'),
       h('button', { class: 'cfer-btn', onclick: () => download64(final.image, m.image.filename) }, 'Download image'),
@@ -444,6 +450,8 @@ function tab(name) {
 
 function build() {
   const host = h('div', { id: 'cfer-roll20-host' });
+  // Roll20's keyboard shortcuts listen on the document; keep typing in the panel to the panel.
+  for (const type of ['keydown', 'keyup', 'keypress']) host.addEventListener(type, ev => ev.stopPropagation());
   root = host.attachShadow({ mode: 'open' });
   root.append(h('link', { rel: 'stylesheet', href: api.runtime.getURL('panel.css') }));
 
@@ -452,7 +460,7 @@ function build() {
   els.status = h('div', { class: 'cfer-status', role: 'status' });
   els.account = h('div', { class: 'cfer-account' });
 
-  els.genPick = h('select', { class: 'cfer-input', onchange: renderGenForm }, GENERATORS.map(g => h('option', { value: g.id }, g.label)));
+  els.genPick = h('select', { class: 'cfer-input', onchange: renderGenForm }, GENERATORS.filter(g => g.available !== false).map(g => h('option', { value: g.id }, g.label)));
   els.genForm = h('form', { class: 'cfer-form', onsubmit: ev => { ev.preventDefault(); generate().catch(err => say(err.message, true)); } });
   els.genOut = h('div');
 

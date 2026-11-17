@@ -149,6 +149,7 @@ export function mapPf2eNpc(response) {
     saving_throws_reflex: signed(num(sys.saves?.reflex?.value, 0)),
     saving_throws_will: signed(num(sys.saves?.will?.value, 0)),
     saving_throws_notes: sys.attributes?.allSaves?.value || '',
+    hit_points: String(num(attrs.hp?.max, num(attrs.hp?.value, 10))),
     hit_points_max: String(num(attrs.hp?.max, num(attrs.hp?.value, 10))), hit_points_notes: attrs.hp?.details || '',
     immunities: iwr(attrs.immunities, false), weaknesses: iwr(attrs.weaknesses, true), resistances: iwr(attrs.resistances, true),
     speed: String(land), speed_notes: other.join(', '),

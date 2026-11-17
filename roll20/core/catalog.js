@@ -80,7 +80,7 @@ export const GENERATORS = [
       { name: 'storeType', label: 'Store type', type: 'select', options: STORE_TYPES, value: 'general' },
       { name: 'wealth', label: 'Wealth', type: 'select', options: ['poor', 'modest', 'wealthy', 'aristocratic'], value: 'modest' },
       { name: 'settlementSize', label: 'Settlement', type: 'select', options: SIZES, value: 'town' },
-      { name: 'description', label: 'Description', type: 'textarea' },
+      { name: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'A cramped shop run by a retired adventurer…' },
     ],
     payload: f => ({ name: f.name, storeType: f.storeType, wealth: f.wealth, settlementSize: f.settlementSize, description: f.description }),
     map: mapStore('dnd5e'),
@@ -92,13 +92,15 @@ export const GENERATORS = [
       { name: 'level', label: 'Settlement level', type: 'number', min: 0, max: 20, value: 3 },
       { name: 'storeType', label: 'Store type', type: 'select', options: STORE_TYPES, value: 'general' },
       { name: 'settlementSize', label: 'Settlement', type: 'select', options: SIZES, value: 'town' },
-      { name: 'description', label: 'Description', type: 'textarea' },
+      { name: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'A cramped shop run by a retired adventurer…' },
     ],
     payload: f => ({ name: f.name, level: Number(f.level) || 3, storeType: f.storeType, settlementSize: f.settlementSize, description: f.description }),
     map: mapStore('pf2e'),
   },
   {
     id: 'pf2e-settlement', label: 'Nation, city or town', system: 'pf2e', sheet: 'Handouts (any sheet)', cost: 1,
+    // No city-builder or nation-builder workflow exists on n8n yet (Foundry falls back to its offline stub), so the panel hides this.
+    available: false,
     endpoint: f => (f.kind === 'nation' && f.includeChildCities ? '/webhook/nation-builder' : '/webhook/city-builder'),
     fields: [
       { name: 'name', label: 'Name', type: 'text', required: true },
