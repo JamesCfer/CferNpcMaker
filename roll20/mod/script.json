@@ -1,0 +1,16 @@
+{
+  "name": "Cfer Importer",
+  "script": "CferImporter.js",
+  "version": "1.0.0",
+  "previousversions": [],
+  "description": "Companion script for the free Cfer Tools for Roll20 browser extension (AI NPC, item, store, settlement, Hero 6e and battle map generators). The extension sends what you generate to this script, which creates the characters and handouts, runs the D&D 5E by Roll20 and Pathfinder Second Edition by Roll20 sheets' own import, gives items to selected tokens, and adds walls, doors, windows and lights to battle maps. The script makes no network calls. Commands (GM only): !cfer-help, !cfer-give. Generation needs the browser extension and a Celestia Tools Patreon membership: https://www.patreon.com/cw/CelestiaTools",
+  "authors": "James Cfer",
+  "roll20userid": "",
+  "useroptions": [],
+  "dependencies": [],
+  "modifies": {
+    "character": "write", "attribute": "write", "handout": "write", "page": "write",
+    "graphic": "write", "path": "write", "door": "write", "window": "write"
+  },
+  "conflicts": []
+}

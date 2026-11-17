@@ -1,0 +1,1429 @@
+{
+ "ok": true,
+ "foundryNpc": {
+  "name": "Princess Lilith",
+  "type": "npc",
+  "system": {
+   "currency": {
+    "pp": 0,
+    "gp": 0,
+    "ep": 0,
+    "sp": 0,
+    "cp": 0
+   },
+   "abilities": {
+    "str": {
+     "value": 10,
+     "proficient": 0,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    },
+    "dex": {
+     "value": 30,
+     "proficient": 1,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    },
+    "con": {
+     "value": 20,
+     "proficient": 1,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    },
+    "int": {
+     "value": 10,
+     "proficient": 0,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    },
+    "wis": {
+     "value": 20,
+     "proficient": 1,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    },
+    "cha": {
+     "value": 10,
+     "proficient": 0,
+     "max": null,
+     "bonuses": {
+      "check": "",
+      "save": "0"
+     },
+     "check": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     },
+     "save": {
+      "roll": {
+       "min": null,
+       "max": null,
+       "mode": 0
+      }
+     }
+    }
+   },
+   "bonuses": {
+    "mwak": {
+     "attack": "",
+     "damage": ""
+    },
+    "rwak": {
+     "attack": "",
+     "damage": ""
+    },
+    "msak": {
+     "attack": "",
+     "damage": ""
+    },
+    "rsak": {
+     "attack": "",
+     "damage": ""
+    },
+    "abilities": {
+     "check": "",
+     "save": "",
+     "skill": ""
+    },
+    "spell": {
+     "dc": ""
+    }
+   },
+   "skills": {
+    "acr": {
+     "ability": "dex",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 1,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "ani": {
+     "ability": "wis",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "arc": {
+     "ability": "int",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "ath": {
+     "ability": "str",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "dec": {
+     "ability": "cha",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "his": {
+     "ability": "int",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "ins": {
+     "ability": "wis",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 1,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "itm": {
+     "ability": "cha",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "inv": {
+     "ability": "int",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "med": {
+     "ability": "wis",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "nat": {
+     "ability": "int",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "prc": {
+     "ability": "wis",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 1,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "prf": {
+     "ability": "cha",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "per": {
+     "ability": "cha",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "rel": {
+     "ability": "int",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "slt": {
+     "ability": "dex",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "ste": {
+     "ability": "dex",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 1,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    },
+    "sur": {
+     "ability": "wis",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "value": 0,
+     "bonuses": {
+      "check": "",
+      "passive": ""
+     }
+    }
+   },
+   "tools": {},
+   "spells": {
+    "spell1": {
+     "value": 0,
+     "override": null
+    },
+    "spell2": {
+     "value": 0,
+     "override": null
+    },
+    "spell3": {
+     "value": 0,
+     "override": null
+    },
+    "spell4": {
+     "value": 0,
+     "override": null
+    },
+    "spell5": {
+     "value": 0,
+     "override": null
+    },
+    "spell6": {
+     "value": 0,
+     "override": null
+    },
+    "spell7": {
+     "value": 0,
+     "override": null
+    },
+    "spell8": {
+     "value": 0,
+     "override": null
+    },
+    "spell9": {
+     "value": 0,
+     "override": null
+    },
+    "pact": {
+     "value": 0
+    },
+    "spell0": {
+     "value": 0
+    }
+   },
+   "attributes": {
+    "ac": {
+     "calc": "natural",
+     "flat": 21
+    },
+    "init": {
+     "ability": "dex",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "bonus": ""
+    },
+    "movement": {
+     "units": "ft",
+     "hover": false,
+     "ignoredDifficultTerrain": [],
+     "walk": "35",
+     "special": ""
+    },
+    "attunement": {
+     "max": 3
+    },
+    "senses": {
+     "darkvision": 120,
+     "blindsight": 0,
+     "tremorsense": 0,
+     "truesight": 0,
+     "units": "ft",
+     "special": ""
+    },
+    "spellcasting": "wis",
+    "exhaustion": 0,
+    "concentration": {
+     "ability": "",
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "bonuses": {
+      "save": ""
+     },
+     "limit": 1
+    },
+    "loyalty": {},
+    "hd": {
+     "spent": 0
+    },
+    "hp": {
+     "value": 1140,
+     "max": 1140,
+     "temp": 0,
+     "tempmax": 0,
+     "formula": "120d8 + 600"
+    },
+    "death": {
+     "roll": {
+      "min": null,
+      "max": null,
+      "mode": 0
+     },
+     "success": 0,
+     "failure": 0,
+     "bonuses": {
+      "save": ""
+     }
+    },
+    "price": {
+     "value": null,
+     "denomination": "gp"
+    },
+    "spell": {
+     "level": 0
+    }
+   },
+   "details": {
+    "biography": {
+     "value": "",
+     "public": ""
+    },
+    "alignment": "neutral evil",
+    "ideal": "",
+    "bond": "",
+    "flaw": "",
+    "race": null,
+    "type": {
+     "value": "humanoid",
+     "subtype": ""
+    },
+    "habitat": {
+     "value": [],
+     "custom": ""
+    },
+    "cr": 30,
+    "treasure": {
+     "value": []
+    },
+    "xp": {
+     "value": 200
+    }
+   },
+   "resources": {
+    "legact": {
+     "max": 0,
+     "spent": 0
+    },
+    "legres": {
+     "max": 0,
+     "spent": 0
+    },
+    "lair": {
+     "value": false,
+     "initiative": null,
+     "inside": false
+    }
+   },
+   "source": {
+    "revision": 1,
+    "rules": "2024",
+    "book": "",
+    "page": "",
+    "custom": "AI Generated",
+    "license": ""
+   },
+   "traits": {
+    "size": "med",
+    "di": {
+     "value": [],
+     "custom": "",
+     "bypasses": []
+    },
+    "dr": {
+     "value": [
+      "necrotic",
+      "psychic"
+     ],
+     "custom": "",
+     "bypasses": []
+    },
+    "dv": {
+     "value": [],
+     "custom": "",
+     "bypasses": []
+    },
+    "dm": {
+     "amount": {},
+     "bypasses": []
+    },
+    "ci": {
+     "value": [
+      "charmed",
+      "frightened"
+     ],
+     "custom": ""
+    },
+    "languages": {
+     "value": [
+      "common",
+      "undercommon",
+      "infernal"
+     ],
+     "custom": "",
+     "communication": {}
+    },
+    "important": false
+   }
+  },
+  "items": [
+   {
+    "_id": "6eec2c4c7a449ae5",
+    "name": "Studded Leather Armor",
+    "type": "equipment",
+    "img": "icons/svg/shield.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>Studded Leather Armor.</p>",
+      "chat": ""
+     },
+     "unidentified": {
+      "description": ""
+     },
+     "identified": true,
+     "container": null,
+     "quantity": 1,
+     "weight": {
+      "value": 0,
+      "units": "lb"
+     },
+     "price": {
+      "value": 0,
+      "denomination": "gp"
+     },
+     "rarity": "",
+     "attunement": "",
+     "attuned": false,
+     "equipped": true,
+     "proficient": 1,
+     "type": {
+      "value": "light",
+      "baseItem": ""
+     },
+     "armor": {
+      "value": 12
+     },
+     "properties": [],
+     "identifier": "studded-leather-armor",
+     "activities": {},
+     "uses": {
+      "max": "",
+      "spent": 0,
+      "recovery": []
+     }
+    }
+   },
+   {
+    "_id": "41c91067467efdbd",
+    "name": "Unarmed Strike",
+    "type": "weapon",
+    "img": "icons/svg/sword.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>A swift, precise blow delivered with supernatural speed.</p>",
+      "chat": ""
+     },
+     "unidentified": {
+      "description": ""
+     },
+     "identified": true,
+     "container": null,
+     "quantity": 1,
+     "weight": {
+      "value": 0,
+      "units": "lb"
+     },
+     "price": {
+      "value": 0,
+      "denomination": "gp"
+     },
+     "rarity": "",
+     "attunement": "",
+     "attuned": false,
+     "equipped": true,
+     "crew": {
+      "value": []
+     },
+     "ammunition": {},
+     "armor": {},
+     "proficient": 1,
+     "type": {
+      "value": "natural",
+      "baseItem": ""
+     },
+     "properties": [],
+     "uses": {
+      "max": "",
+      "spent": 0,
+      "recovery": []
+     },
+     "range": {
+      "value": 5,
+      "long": null,
+      "units": "ft"
+     },
+     "damage": {
+      "base": {
+       "types": [
+        "piercing"
+       ],
+       "custom": {
+        "enabled": false
+       },
+       "scaling": {
+        "number": 1
+       }
+      },
+      "versatile": {
+       "types": [],
+       "custom": {
+        "enabled": false
+       },
+       "scaling": {
+        "number": 1
+       }
+      }
+     },
+     "identifier": "unarmed-strike",
+     "activities": {
+      "a40fe529584ed846": {
+       "_id": "a40fe529584ed846",
+       "type": "attack",
+       "name": "",
+       "activation": {
+        "type": "action",
+        "value": 1,
+        "override": false
+       },
+       "consumption": {
+        "scaling": {
+         "allowed": false
+        },
+        "spellSlot": true,
+        "targets": []
+       },
+       "description": {},
+       "duration": {
+        "units": "inst",
+        "concentration": false,
+        "override": false
+       },
+       "effects": [],
+       "flags": {},
+       "range": {
+        "units": "self",
+        "override": false
+       },
+       "target": {
+        "prompt": true,
+        "template": {
+         "contiguous": false,
+         "units": "ft"
+        },
+        "affects": {
+         "choice": false
+        },
+        "override": false
+       },
+       "uses": {
+        "spent": 0,
+        "recovery": []
+       },
+       "sort": 0,
+       "visibility": {
+        "level": {},
+        "requireAttunement": false,
+        "requireIdentification": false,
+        "requireMagic": false
+       },
+       "attach": {
+        "flat": false,
+        "type": {
+         "value": "melee",
+         "classification": "weapon"
+        },
+        "ability": "",
+        "bonus": "",
+        "critical": {}
+       },
+       "damage": {
+        "parts": [
+         {
+          "types": [
+           "piercing"
+          ],
+          "number": 1,
+          "denomination": 6,
+          "bonus": "@mod",
+          "scaling": {
+           "mode": "",
+           "number": 1
+          },
+          "custom": {
+           "enabled": false
+          }
+         }
+        ],
+        "critical": {},
+        "includeBase": true
+       }
+      }
+     }
+    }
+   },
+   {
+    "_id": "83b51fa66d3646a3",
+    "name": "Shadow Dagger",
+    "type": "weapon",
+    "img": "icons/svg/sword.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>A blade of living shadow that strikes with uncanny accuracy.</p>",
+      "chat": ""
+     },
+     "unidentified": {
+      "description": ""
+     },
+     "identified": true,
+     "container": null,
+     "quantity": 1,
+     "weight": {
+      "value": 0,
+      "units": "lb"
+     },
+     "price": {
+      "value": 0,
+      "denomination": "gp"
+     },
+     "rarity": "",
+     "attunement": "",
+     "attuned": false,
+     "equipped": true,
+     "crew": {
+      "value": []
+     },
+     "ammunition": {},
+     "armor": {},
+     "proficient": 1,
+     "type": {
+      "value": "natural",
+      "baseItem": ""
+     },
+     "properties": [],
+     "uses": {
+      "max": "",
+      "spent": 0,
+      "recovery": []
+     },
+     "range": {
+      "value": 5,
+      "long": null,
+      "units": "ft"
+     },
+     "damage": {
+      "base": {
+       "types": [
+        "piercing"
+       ],
+       "custom": {
+        "enabled": false
+       },
+       "scaling": {
+        "number": 1
+       }
+      },
+      "versatile": {
+       "types": [],
+       "custom": {
+        "enabled": false
+       },
+       "scaling": {
+        "number": 1
+       }
+      }
+     },
+     "identifier": "shadow-dagger",
+     "activities": {
+      "af1d5ebf1d9c01cc": {
+       "_id": "af1d5ebf1d9c01cc",
+       "type": "attack",
+       "name": "",
+       "activation": {
+        "type": "action",
+        "value": 1,
+        "override": false
+       },
+       "consumption": {
+        "scaling": {
+         "allowed": false
+        },
+        "spellSlot": true,
+        "targets": []
+       },
+       "description": {},
+       "duration": {
+        "units": "inst",
+        "concentration": false,
+        "override": false
+       },
+       "effects": [],
+       "flags": {},
+       "range": {
+        "units": "self",
+        "override": false
+       },
+       "target": {
+        "prompt": true,
+        "template": {
+         "contiguous": false,
+         "units": "ft"
+        },
+        "affects": {
+         "choice": false
+        },
+        "override": false
+       },
+       "uses": {
+        "spent": 0,
+        "recovery": []
+       },
+       "sort": 0,
+       "visibility": {
+        "level": {},
+        "requireAttunement": false,
+        "requireIdentification": false,
+        "requireMagic": false
+       },
+       "attach": {
+        "flat": false,
+        "type": {
+         "value": "melee",
+         "classification": "weapon"
+        },
+        "ability": "",
+        "bonus": "",
+        "critical": {}
+       },
+       "damage": {
+        "parts": [
+         {
+          "types": [
+           "piercing"
+          ],
+          "number": 1,
+          "denomination": 4,
+          "bonus": "@mod",
+          "scaling": {
+           "mode": "",
+           "number": 1
+          },
+          "custom": {
+           "enabled": false
+          }
+         }
+        ],
+        "critical": {},
+        "includeBase": true
+       }
+      }
+     }
+    }
+   },
+   {
+    "_id": "8131250b59d1f39c",
+    "name": "Multiattack",
+    "type": "feat",
+    "img": "icons/svg/mystery-man.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>Princess Lilith makes three Unarmed Strike attacks.</p>",
+      "chat": ""
+     },
+     "requirements": "",
+     "uses": {
+      "max": "",
+      "recovery": [],
+      "spent": 0
+     },
+     "type": {
+      "value": "monster",
+      "subtype": ""
+     },
+     "properties": [],
+     "advancement": [],
+     "identifier": "multiattack",
+     "crewed": false,
+     "enchant": {},
+     "prerequisites": {
+      "items": [],
+      "repeatable": false
+     },
+     "activities": {
+      "4f7e6c8236e00909": {
+       "_id": "4f7e6c8236e00909",
+       "type": "utility",
+       "activation": {
+        "type": "action",
+        "value": 1,
+        "override": false
+       },
+       "consumption": {
+        "scaling": {
+         "allowed": false
+        },
+        "spellSlot": true,
+        "targets": []
+       },
+       "description": {},
+       "duration": {
+        "units": "inst",
+        "concentration": false,
+        "override": false
+       },
+       "effects": [],
+       "flags": {},
+       "range": {
+        "units": "self",
+        "override": false
+       },
+       "target": {
+        "template": {
+         "contiguous": false,
+         "units": "ft"
+        },
+        "affects": {
+         "choice": false
+        },
+        "override": false,
+        "prompt": true
+       },
+       "uses": {
+        "spent": 0,
+        "recovery": []
+       },
+       "roll": {
+        "prompt": false,
+        "visible": false
+       },
+       "sort": 0,
+       "visibility": {
+        "level": {},
+        "requireAttunement": false,
+        "requireIdentification": false,
+        "requireMagic": false
+       }
+      }
+     }
+    }
+   },
+   {
+    "_id": "be06ea17636798a6",
+    "name": "Shadow Step",
+    "type": "feat",
+    "img": "icons/svg/mystery-man.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>Princess Lilith can teleport up to 60 feet to an unoccupied space she can see that is in dim light or darkness as a bonus action, allowing her to reposition quickly in combat.</p>",
+      "chat": ""
+     },
+     "requirements": "",
+     "uses": {
+      "max": "",
+      "recovery": [],
+      "spent": 0
+     },
+     "type": {
+      "value": "monster",
+      "subtype": ""
+     },
+     "properties": [],
+     "advancement": [],
+     "identifier": "shadow-step",
+     "crewed": false,
+     "enchant": {},
+     "prerequisites": {
+      "items": [],
+      "repeatable": false
+     },
+     "activities": {
+      "6de74983b8d5795b": {
+       "_id": "6de74983b8d5795b",
+       "type": "utility",
+       "activation": {
+        "type": "action",
+        "value": 1,
+        "override": false
+       },
+       "consumption": {
+        "scaling": {
+         "allowed": false
+        },
+        "spellSlot": true,
+        "targets": []
+       },
+       "description": {},
+       "duration": {
+        "units": "inst",
+        "concentration": false,
+        "override": false
+       },
+       "effects": [],
+       "flags": {},
+       "range": {
+        "units": "self",
+        "override": false
+       },
+       "target": {
+        "template": {
+         "contiguous": false,
+         "units": "ft"
+        },
+        "affects": {
+         "choice": false
+        },
+        "override": false,
+        "prompt": true
+       },
+       "uses": {
+        "spent": 0,
+        "recovery": []
+       },
+       "roll": {
+        "prompt": false,
+        "visible": false
+       },
+       "sort": 0,
+       "visibility": {
+        "level": {},
+        "requireAttunement": false,
+        "requireIdentification": false,
+        "requireMagic": false
+       }
+      }
+     }
+    }
+   },
+   {
+    "_id": "310b9a85b0811ddd",
+    "name": "Evasion",
+    "type": "feat",
+    "img": "icons/svg/mystery-man.svg",
+    "flags": {},
+    "effects": [],
+    "system": {
+     "source": {
+      "custom": "AI Generated",
+      "book": "",
+      "page": "",
+      "license": "",
+      "rules": "2024",
+      "revision": 1
+     },
+     "description": {
+      "value": "<p>If Princess Lilith is subjected to an effect that allows her to make a Dexterity saving throw to take only half damage, she instead takes no damage if she succeeds on the saving throw, and only half damage if she fails.</p>",
+      "chat": ""
+     },
+     "requirements": "",
+     "uses": {
+      "max": "",
+      "recovery": [],
+      "spent": 0
+     },
+     "type": {
+      "value": "monster",
+      "subtype": ""
+     },
+     "properties": [],
+     "advancement": [],
+     "identifier": "evasion",
+     "crewed": false,
+     "enchant": {},
+     "prerequisites": {
+      "items": [],
+      "repeatable": false
+     },
+     "activities": {
+      "996fc6fd0862035f": {
+       "_id": "996fc6fd0862035f",
+       "type": "utility",
+       "activation": {
+        "type": "action",
+        "value": 1,
+        "override": false
+       },
+       "consumption": {
+        "scaling": {
+         "allowed": false
+        },
+        "spellSlot": true,
+        "targets": []
+       },
+       "description": {},
+       "duration": {
+        "units": "inst",
+        "concentration": false,
+        "override": false
+       },
+       "effects": [],
+       "flags": {},
+       "range": {
+        "units": "self",
+        "override": false
+       },
+       "target": {
+        "template": {
+         "contiguous": false,
+         "units": "ft"
+        },
+        "affects": {
+         "choice": false
+        },
+        "override": false,
+        "prompt": true
+       },
+       "uses": {
+        "spent": 0,
+        "recovery": []
+       },
+       "roll": {
+        "prompt": false,
+        "visible": false
+       },
+       "sort": 0,
+       "visibility": {
+        "level": {},
+        "requireAttunement": false,
+        "requireIdentification": false,
+        "requireMagic": false
+       }
+      }
+     }
+    }
+   }
+  ],
+  "effects": [],
+  "img": "icons/svg/mystery-man.svg",
+  "flags": {},
+  "prototypeToken": {
+   "name": "Princess Lilith",
+   "displayName": 20,
+   "actorLink": false,
+   "width": 1,
+   "height": 1,
+   "texture": {
+    "src": "icons/svg/mystery-man.svg",
+    "anchorX": 0.5,
+    "anchorY": 0.5,
+    "offsetX": 0,
+    "offsetY": 0,
+    "fit": "contain",
+    "scaleX": 1,
+    "scaleY": 1,
+    "rotation": 0,
+    "tint": "#ffffff",
+    "alphaThreshold": 0.75
+   },
+   "lockRotation": false,
+   "rotation": 0,
+   "alpha": 1,
+   "disposition": -1,
+   "displayBars": 40,
+   "bar1": {
+    "attribute": "attributes.hp"
+   },
+   "bar2": {
+    "attribute": null
+   },
+   "light": {
+    "negative": false,
+    "priority": 0,
+    "alpha": 0.5,
+    "angle": 360,
+    "bright": 0,
+    "color": null,
+    "coloration": 1,
+    "dim": 0,
+    "attenuation": 0.5,
+    "luminosity": 0.5,
+    "saturation": 0,
+    "contrast": 0,
+    "shadows": 0,
+    "animation": {
+     "type": null,
+     "speed": 5,
+     "intensity": 5,
+     "reverse": false
+    },
+    "darkness": {
+     "min": 0,
+     "max": 1
+    }
+   },
+   "sight": {
+    "enabled": true,
+    "range": 120,
+    "angle": 360,
+    "visionMode": "darkvision",
+    "color": null,
+    "attenuation": 0.1,
+    "brightness": 0,
+    "saturation": -1,
+    "contrast": 0
+   },
+   "detectionModes": [
+    {
+     "id": "lightPerception",
+     "range": 120,
+     "enabled": true
+    }
+   ],
+   "occludable": {
+    "radius": 0
+   },
+   "ring": {
+    "enabled": false,
+    "colors": {
+     "ring": null,
+     "background": null
+    },
+    "effects": 1,
+    "subject": {
+     "scale": 1,
+     "texture": null
+    }
+   },
+   "turnMarker": {
+    "mode": 1,
+    "animation": null,
+    "src": null,
+    "disposition": false
+   },
+   "movementAction": null,
+   "flags": {},
+   "randomImg": false,
+   "appendNumber": false,
+   "prependAdjective": false
+  },
+  "_id": "2b7c0ed241679f8c"
+ },
+ "chosenSpells": [],
+ "system_name": "dnd5e",
+ "meta": {
+  "cr": 30,
+  "name": "Princess Lilith",
+  "itemCount": 6,
+  "hp": 1140,
+  "spellCount": 0
+ }
+}
