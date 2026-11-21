@@ -62,7 +62,9 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T43. **PF2e NPC — "Ferry-pole boatman"** — a taciturn river ferryman who poles travellers across a treacherous crossing, trades in current-lore and local rumour, and never answers questions about what he has fished out of the water.
 - [x] T44. **D&D 5e Item — "Reedcutter's sickle"** — a curved sickle that clears tangled vegetation in a single stroke and lets the wielder move through marsh and reeds without slowing.
 - [x] T45. **PF2e Settlement — "Tannery riverside ward"** — a pungent, hard-working craft quarter of tanners, dyers, and leatherworkers downriver of a larger town, tolerated for its trade and shunned for its smell.
-- [ ] T46. **Hero 6e Character — "Ex-military super-soldier"** — a veteran enhanced operative struggling with civilian life, disciplined and tactical but haunted by orders they once followed.
+- [x] T46. **Hero 6e Character — "Ex-military super-soldier"** — a veteran enhanced operative struggling with civilian life, disciplined and tactical but haunted by orders they once followed.
+- [x] T47. **PF2e Item — "Hearthstone ember-charm"** — a pocket-sized charm of banked coals that warms its bearer against cold and can be flared once a day to light a dark room.
+- [ ] T48. **PF2e NPC — "Charcoal burner"** — a reclusive forest woodsman who tends slow-burning kilns, trades in charcoal and woodland rumour, and keeps strange hours.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
