@@ -66,7 +66,8 @@ append the *next* template idea to the bottom so the list never runs dry.
 - [x] T47. **PF2e Item — "Hearthstone ember-charm"** — a pocket-sized charm of banked coals that warms its bearer against cold and can be flared once a day to light a dark room.
 - [x] T48. **PF2e NPC — "Charcoal burner"** — a reclusive forest woodsman who tends slow-burning kilns, trades in charcoal and woodland rumour, and keeps strange hours.
 - [x] T49. **D&D 5e Item — "Kilnwarden's tongs"** — heavy iron tongs that let the wielder handle red-hot metal and embers unharmed and snuff small fires with a pinch.
-- [ ] T50. **PF2e Settlement — "Lime-kiln hamlet"** — a small, chalk-dusted hamlet of burners and haulers whose smouldering kilns light the hillside, supplying mortar to the nearby builders.
+- [x] T50. **PF2e Settlement — "Lime-kiln hamlet"** — a small, chalk-dusted hamlet of burners and haulers whose smouldering kilns light the hillside, supplying mortar to the nearby builders.
+- [ ] T51. **PF2e Creature — "Ashen kiln-wight"** — a soot-grey undead that rises from a long-cold kiln, drawn to living warmth and leaving choking ash in its wake.
 
 > Each entry is sized to one cycle / one PR. Keep templates flavourful but
 > system-appropriate (no anachronisms, no modern names) and distinct from the
